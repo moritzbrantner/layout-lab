@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Interactive experiments for understanding browser layout, constraint resolution, and positioning."
+    />
+    <title>Layout Lab — see layout rules become geometry</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <p class="eyebrow">Browser rendering laboratory</p>
+        <h1>Layout Lab</h1>
+        <p class="lede">
+          Change declarative layout rules and watch them become geometry. The browser is the first
+          reference engine; later experiments can compare custom layout implementations against it.
+        </p>
+        <a class="repo-link" href="https://github.com/moritzbrantner/layout-lab">Source on GitHub</a>
+      </header>
+
+      <section class="experiment" aria-labelledby="experiment-title">
+        <div class="section-copy">
+          <p class="eyebrow">Experiment 01</p>
+          <h2 id="experiment-title">One box tree, three layout algorithms</h2>
+          <p>
+            Keep the content fixed and switch only the container's layout mode. Resize the available
+            inline space and gap to see which dimensions are inputs and which become computed results.
+          </p>
+        </div>
+
+        <div class="lab-grid">
+          <form class="controls" id="layout-controls">
+            <label>
+              Layout algorithm
+              <select id="layout-mode">
+                <option value="flow">Normal flow</option>
+                <option value="flex" selected>Flexbox</option>
+                <option value="grid">Grid</option>
+              </select>
+            </label>
+            <label>
+              Container width
+              <span><output id="width-output">720</output> px</span>
+              <input id="container-width" type="range" min="320" max="900" value="720" step="10" />
+            </label>
+            <label>
+              Gap
+              <span><output id="gap-output">16</output> px</span>
+              <input id="gap" type="range" min="0" max="48" value="16" step="2" />
+            </label>
+            <label class="check-row">
+              <input id="wrap" type="checkbox" checked />
+              Allow wrapping
+            </label>
+          </form>
+
+          <div class="stage-wrap">
+            <div class="ruler" aria-hidden="true"><span id="ruler-width">720 px available</span></div>
+            <div class="stage" id="layout-stage" data-mode="flex">
+              <article class="box box-a"><span>A</span><small>160 px basis</small></article>
+              <article class="box box-b"><span>B</span><small>220 px basis</small></article>
+              <article class="box box-c"><span>C</span><small>120 px basis</small></article>
+              <article class="box box-d"><span>D</span><small>180 px basis</small></article>
+            </div>
+          </div>
+        </div>
+
+        <div class="readout" aria-live="polite">
+          <p><span>Algorithm</span><strong id="algorithm-output">Flex formatting context</strong></p>
+          <p><span>Measured stage</span><strong id="measure-output">—</strong></p>
+          <p><span>Observed rows</span><strong id="rows-output">—</strong></p>
+        </div>
+      </section>
+
+      <section class="pipeline" aria-labelledby="pipeline-title">
+        <div class="section-copy">
+          <p class="eyebrow">Mental model</p>
+          <h2 id="pipeline-title">CSS is not positioning instructions</h2>
+          <p>
+            Most declarations feed constraints into a layout algorithm. The final coordinates are an
+            output of several stages, not values authored directly in the stylesheet.
+          </p>
+        </div>
+        <ol class="steps">
+          <li><strong>Style</strong><span>Resolve selectors, inheritance, cascade, and computed values.</span></li>
+          <li><strong>Box generation</strong><span>Turn the element tree into the boxes participating in layout.</span></li>
+          <li><strong>Layout</strong><span>Resolve sizes and positions under the chosen formatting contexts.</span></li>
+          <li><strong>Paint & composite</strong><span>Turn geometry into visual layers, pixels, and composited output.</span></li>
+        </ol>
+      </section>
+
+      <section class="roadmap" aria-labelledby="roadmap-title">
+        <div class="section-copy">
+          <p class="eyebrow">Next comparisons</p>
+          <h2 id="roadmap-title">What belongs in this lab</h2>
+        </div>
+        <div class="cards">
+          <article><h3>Intrinsic sizing</h3><p>min-content, max-content, fit-content, and why text changes geometry.</p></article>
+          <article><h3>Positioning</h3><p>static, relative, absolute, fixed, sticky, containing blocks, and stacking contexts.</p></article>
+          <article><h3>Constraint systems</h3><p>Compare CSS algorithms with Cassowary-style constraints and custom layout solvers.</p></article>
+          <article><h3>3D layout</h3><p>Explore transforms, perspective, depth, and what a genuinely spatial layout model would require.</p></article>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
