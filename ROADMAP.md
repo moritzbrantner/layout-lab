@@ -17,11 +17,11 @@
 - [x] Grid sizing baseline: equal fractional tracks and gap subtraction
 - [x] Flex min/max freezing with repeated redistribution for explicit numeric bounds
 - [ ] Flex intrinsic/automatic minimum-size interactions
-- [ ] Grid track sizing: intrinsic tracks, minmax, auto-fit, auto-fill, spanning contributions
+- [x] Grid track sizing supported subset: intrinsic tracks, minmax, auto-fit, auto-fill, spanning contributions
   - [x] minmax + flexible-fraction baseline
   - [x] explicit spanning minimum contribution phase
-  - [ ] intrinsic content contributions
-  - [ ] auto-fit / auto-fill
+  - [x] browser-measured intrinsic min-content contribution feeding the deterministic track phase
+  - [x] auto-fit / auto-fill capacity and empty-track behavior
 - [ ] Block/inline formatting and margin collapse
 - [ ] Absolute, sticky, and fixed positioning containing blocks
 - [ ] Aspect ratio, replaced elements, overflow, and scroll containers
@@ -42,6 +42,7 @@
 - [x] Deterministic pure sizing helpers with browser-side geometry comparison
 - [x] Step-through Flexbox resolution with frozen/flexible item states for explicit numeric bounds
 - [x] Step-through Grid base-growth and flexible-track phases for the supported subset
+- [x] Auto-repeat capacity/collapse model with browser computed-track comparison
 - [ ] Constraint graph representation for layout dependencies
 - [ ] Side-by-side declared style, resolved style, and final geometry
 - [ ] Edge-case corpus with expected geometry
@@ -64,4 +65,4 @@
 
 ## Scope rule
 
-Prefer experiments that expose a layout rule, an intermediate decision, or measurable geometry. Keep simplified explanatory models visibly scoped and compare them against browser evidence. Avoid adding graphics infrastructure merely to make the site visually impressive; rendering technology belongs here only when it clarifies a layout or compositing boundary.
+Prefer experiments that expose a layout rule, an intermediate decision, or measurable geometry. Keep simplified explanatory models visibly scoped and compare them against browser evidence. Browser-native text measurement remains browser-owned rather than being reimplemented approximately. Avoid adding graphics infrastructure merely to make the site visually impressive; rendering technology belongs here only when it clarifies a layout or compositing boundary.
