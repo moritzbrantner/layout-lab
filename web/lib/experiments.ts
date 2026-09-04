@@ -1,7 +1,14 @@
 export type ExperimentArea = "2D" | "3D";
 
 export type Experiment = {
-  id: "flex" | "grid" | "intrinsic-sizing" | "positioning" | "transforms-3d";
+  id:
+    | "flex"
+    | "grid"
+    | "intrinsic-sizing"
+    | "positioning"
+    | "transforms-3d"
+    | "flex-freezing"
+    | "grid-track-sizing";
   title: string;
   area: ExperimentArea;
   summary: string;
@@ -43,5 +50,19 @@ export const experiments: readonly Experiment[] = [
     area: "3D",
     summary: "Inspect perspective and Z separation inside a preserved 3D transform context.",
     properties: ["perspective", "transform-style", "rotateX", "rotateY", "translateZ"],
+  },
+  {
+    id: "flex-freezing",
+    title: "Flex freezing",
+    area: "2D",
+    summary: "Step through repeated min/max clamping, freezing, and free-space redistribution on a single flex line.",
+    properties: ["flex-basis", "flex-grow", "flex-shrink", "min-width", "max-width"],
+  },
+  {
+    id: "grid-track-sizing",
+    title: "Grid track sizing",
+    area: "2D",
+    summary: "Follow minmax track bases through a spanning minimum contribution and into flexible track resolution.",
+    properties: ["minmax", "fr", "grid-column", "min-width", "gap"],
   },
 ] as const;
