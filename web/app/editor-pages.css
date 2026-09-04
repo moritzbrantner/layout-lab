@@ -1,0 +1,160 @@
+.editor-index-page {
+  padding-top: 64px;
+}
+
+.editor-index-intro {
+  max-width: 760px;
+  padding: 24px 0 48px;
+}
+
+.editor-index-intro h1,
+.editor-page-heading h1 {
+  margin-top: 10px;
+}
+
+.editor-directory {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+
+.editor-directory a {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.45fr) minmax(0, 1fr);
+  gap: 24px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+  color: inherit;
+  text-decoration: none;
+}
+
+.editor-directory a:hover,
+.editor-directory a:focus-visible {
+  color: var(--accent);
+  outline: none;
+}
+
+.editor-directory strong {
+  font-size: 1rem;
+}
+
+.editor-directory span {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.editor-page-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 96px;
+}
+
+.editor-page-header {
+  padding: 0 0 28px;
+  border-bottom: 1px solid var(--line);
+}
+
+.editor-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 42px;
+}
+
+.editor-navigation a {
+  min-height: 2.2rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.74rem;
+  font-weight: 720;
+}
+
+.editor-navigation a:hover,
+.editor-navigation a:focus-visible,
+.editor-navigation a[aria-current="page"] {
+  border-color: var(--text);
+  color: var(--text);
+  outline: none;
+}
+
+.editor-navigation .editor-navigation-home {
+  border-color: transparent;
+  padding-left: 0;
+}
+
+.editor-page-heading {
+  max-width: 760px;
+}
+
+.editor-page-heading h1 {
+  font-size: clamp(2.8rem, 7vw, 5.5rem);
+}
+
+.editor-page-heading p {
+  margin-bottom: 0;
+  font-size: 1.05rem;
+}
+
+.single-editor-selection {
+  min-width: 0;
+}
+
+.single-editor-selection > main {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.single-editor-selection .hero {
+  display: none;
+}
+
+.single-editor-selection .experiment {
+  display: none;
+}
+
+.single-editor-selection[data-editor="flex"] #flex,
+.single-editor-selection[data-editor="grid"] #grid,
+.single-editor-selection[data-editor="intrinsic-sizing"] #intrinsic-sizing,
+.single-editor-selection[data-editor="positioning"] #positioning,
+.single-editor-selection[data-editor="transforms-3d"] #transforms-3d,
+.single-editor-selection[data-editor="flex-freezing"] #flex-freezing,
+.single-editor-selection[data-editor="grid-track-sizing"] #grid-track-sizing,
+.single-editor-selection[data-editor="grid-intrinsic"] #grid-intrinsic,
+.single-editor-selection[data-editor="grid-auto-repeat"] #grid-auto-repeat,
+.single-editor-selection[data-editor="origins-3d"] #origins-3d,
+.single-editor-selection[data-editor="context-3d"] #context-3d,
+.single-editor-selection[data-editor="stacking-contexts"] #stacking-contexts,
+.single-editor-selection[data-editor="hit-testing"] #hit-testing {
+  display: block;
+}
+
+.single-editor-selection .experiment {
+  padding-top: 44px;
+  border-top: 0;
+}
+
+.editor-page-shell .layout-workbench {
+  margin-top: 44px;
+}
+
+@media (max-width: 700px) {
+  .editor-directory a {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .editor-navigation {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .editor-navigation a {
+    flex: 0 0 auto;
+  }
+}
