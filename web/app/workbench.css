@@ -1,0 +1,553 @@
+.layout-workbench {
+  margin: 4rem 0 6rem;
+  border: 1px solid color-mix(in srgb, CanvasText 18%, transparent);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  background: color-mix(in srgb, Canvas 96%, CanvasText 4%);
+}
+
+.workbench-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 2rem;
+  border-bottom: 1px solid color-mix(in srgb, CanvasText 13%, transparent);
+}
+
+.workbench-heading > div:first-child {
+  max-width: 52rem;
+}
+
+.workbench-heading h2 {
+  margin: 0.35rem 0 0.75rem;
+}
+
+.workbench-heading p {
+  margin: 0;
+  opacity: 0.72;
+}
+
+.workbench-view-switch {
+  display: inline-flex;
+  padding: 0.25rem;
+  border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
+  border-radius: 0.7rem;
+  background: Canvas;
+}
+
+.workbench-view-switch button,
+.workbench-presets button,
+.workbench-tree button,
+.workbench-object {
+  font: inherit;
+}
+
+.workbench-view-switch button {
+  min-width: 3.6rem;
+  min-height: 2.5rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.workbench-view-switch button.is-active {
+  background: CanvasText;
+  color: Canvas;
+}
+
+.workbench-presets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid color-mix(in srgb, CanvasText 12%, transparent);
+  background: color-mix(in srgb, CanvasText 3%, Canvas);
+}
+
+.workbench-presets > span {
+  margin-right: 0.2rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  opacity: 0.62;
+}
+
+.workbench-presets button {
+  min-height: 2.25rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid color-mix(in srgb, CanvasText 17%, transparent);
+  border-radius: 0.55rem;
+  background: Canvas;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 680;
+}
+
+.workbench-presets button:hover,
+.workbench-presets button:focus-visible {
+  border-color: color-mix(in srgb, CanvasText 45%, transparent);
+}
+
+.workbench-presets .workbench-reset {
+  margin-left: auto;
+  opacity: 0.7;
+}
+
+.workbench-shell {
+  display: grid;
+  grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr);
+  min-height: 40rem;
+}
+
+.workbench-sidebar {
+  min-width: 0;
+  padding: 1rem;
+  border-right: 1px solid color-mix(in srgb, CanvasText 13%, transparent);
+  background: color-mix(in srgb, CanvasText 2.4%, Canvas);
+}
+
+.workbench-panel-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 0.35rem 0.55rem;
+}
+
+.workbench-panel-heading span {
+  font-size: 0.72rem;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.workbench-panel-heading small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.7rem;
+  opacity: 0.55;
+}
+
+.workbench-tree {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.workbench-tree button {
+  display: grid;
+  grid-template-columns: 1rem 1rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.workbench-tree button:hover,
+.workbench-tree button:focus-visible {
+  background: color-mix(in srgb, CanvasText 5%, transparent);
+}
+
+.workbench-tree button.is-selected {
+  border-color: color-mix(in srgb, CanvasText 20%, transparent);
+  background: color-mix(in srgb, CanvasText 8%, transparent);
+}
+
+.tree-children {
+  display: grid;
+  gap: 0.2rem;
+  margin-left: 1rem;
+  padding-left: 0.6rem;
+  border-left: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
+}
+
+.tree-children button {
+  grid-template-columns: 1rem minmax(0, 1fr);
+}
+
+.tree-disclosure,
+.tree-icon {
+  opacity: 0.55;
+  text-align: center;
+}
+
+.tree-item-icon {
+  font-size: 1.15rem;
+}
+
+.tree-label {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.tree-label strong,
+.tree-label small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-label strong {
+  font-size: 0.8rem;
+  font-weight: 680;
+}
+
+.tree-label small {
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  opacity: 0.5;
+}
+
+.workbench-divider {
+  height: 1px;
+  margin: 1rem -1rem;
+  background: color-mix(in srgb, CanvasText 13%, transparent);
+}
+
+.workbench-inspector-fields {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.workbench-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.35rem 0.7rem;
+  font-size: 0.78rem;
+}
+
+.workbench-field > span {
+  font-weight: 650;
+}
+
+.workbench-field select {
+  grid-column: 1 / -1;
+  min-height: 2.45rem;
+  width: 100%;
+  padding: 0 0.55rem;
+  border: 1px solid color-mix(in srgb, CanvasText 18%, transparent);
+  border-radius: 0.55rem;
+  background: Canvas;
+  color: CanvasText;
+  font: inherit;
+}
+
+.workbench-range output {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.62;
+}
+
+.workbench-range input {
+  grid-column: 1 / -1;
+  width: 100%;
+  accent-color: CanvasText;
+}
+
+.workbench-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.5rem;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.workbench-toggle input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: CanvasText;
+}
+
+.workbench-inspector-note {
+  margin: 0.2rem 0 0;
+  padding: 0.7rem;
+  border-left: 2px solid color-mix(in srgb, CanvasText 28%, transparent);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  opacity: 0.66;
+}
+
+.workbench-main {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto minmax(26rem, 1fr) auto;
+}
+
+.workbench-viewport-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 0;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid color-mix(in srgb, CanvasText 13%, transparent);
+}
+
+.workbench-viewport-toolbar > div {
+  display: grid;
+}
+
+.workbench-viewport-toolbar strong {
+  font-size: 0.82rem;
+}
+
+.workbench-viewport-toolbar span,
+.workbench-viewport-toolbar code {
+  font-size: 0.7rem;
+  opacity: 0.55;
+}
+
+.workbench-viewport-toolbar code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workbench-viewport {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  overflow: hidden;
+  padding: 3rem;
+  background: color-mix(in srgb, Canvas 93%, CanvasText 7%);
+  perspective: 900px;
+}
+
+.workbench-grid-floor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(color-mix(in srgb, CanvasText 6%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, CanvasText 6%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
+}
+
+.workbench-viewport.is-3d .workbench-grid-floor {
+  opacity: 0.65;
+  transform: perspective(650px) rotateX(62deg) scale(1.25);
+  transform-origin: center 72%;
+}
+
+.workbench-layout-plane {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 48rem);
+  min-height: 15rem;
+  padding: 1rem;
+  border: 1px dashed color-mix(in srgb, CanvasText 26%, transparent);
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, Canvas 78%, transparent);
+  transition: transform 240ms ease;
+}
+
+.workbench-viewport.is-3d .workbench-layout-plane {
+  min-height: 18rem;
+  border-style: solid;
+  box-shadow: 0 1.5rem 3rem color-mix(in srgb, CanvasText 12%, transparent);
+}
+
+.workbench-object {
+  position: relative;
+  min-height: 8.5rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.9rem;
+  border: 1px solid color-mix(in srgb, CanvasText 23%, transparent);
+  border-radius: 0.7rem;
+  background: Canvas;
+  color: CanvasText;
+  cursor: pointer;
+  text-align: left;
+  transform-style: preserve-3d;
+  transition: transform 240ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.workbench-object:hover,
+.workbench-object:focus-visible,
+.workbench-object.is-selected {
+  border-color: CanvasText;
+}
+
+.workbench-object.is-selected {
+  outline: 2px solid color-mix(in srgb, CanvasText 35%, transparent);
+  outline-offset: 2px;
+}
+
+.workbench-object strong {
+  font-size: 0.82rem;
+  line-height: 1.2;
+}
+
+.workbench-object small {
+  font-size: 0.68rem;
+  opacity: 0.58;
+}
+
+.workbench-object em {
+  position: absolute;
+  right: 0.55rem;
+  bottom: 0.45rem;
+  font-size: 0.62rem;
+  font-style: normal;
+  opacity: 0.52;
+}
+
+.object-id {
+  display: grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, CanvasText 9%, Canvas);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.object-a { border-top-width: 3px; }
+.object-b { border-top-width: 5px; }
+.object-c { border-bottom-width: 3px; }
+.object-d { border-bottom-width: 5px; }
+
+.workbench-readout {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid color-mix(in srgb, CanvasText 13%, transparent);
+}
+
+.workbench-readout > div {
+  min-width: 0;
+  display: grid;
+  gap: 0.12rem;
+  padding: 0.7rem 0.85rem;
+  border-right: 1px solid color-mix(in srgb, CanvasText 10%, transparent);
+}
+
+.workbench-readout > div:last-child {
+  border-right: 0;
+}
+
+.workbench-readout > div.is-selected {
+  background: color-mix(in srgb, CanvasText 5%, transparent);
+}
+
+.workbench-readout span {
+  font-size: 0.64rem;
+  font-weight: 800;
+  opacity: 0.5;
+}
+
+.workbench-readout strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.workbench-readout small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.64rem;
+  opacity: 0.52;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workbench-layout-plane,
+  .workbench-object {
+    transition: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .workbench-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .workbench-sidebar {
+    border-right: 0;
+    border-bottom: 1px solid color-mix(in srgb, CanvasText 13%, transparent);
+  }
+
+  .workbench-main {
+    grid-template-rows: auto minmax(24rem, auto) auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .layout-workbench {
+    margin: 2.5rem 0 4rem;
+    border-radius: 0.85rem;
+  }
+
+  .workbench-heading {
+    flex-direction: column;
+    padding: 1.25rem;
+  }
+
+  .workbench-view-switch {
+    width: 100%;
+  }
+
+  .workbench-view-switch button {
+    flex: 1;
+  }
+
+  .workbench-presets .workbench-reset {
+    margin-left: 0;
+  }
+
+  .workbench-viewport-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .workbench-viewport-toolbar code {
+    max-width: 100%;
+  }
+
+  .workbench-viewport {
+    padding: 2rem 1rem;
+    overflow-x: auto;
+  }
+
+  .workbench-layout-plane {
+    width: 42rem;
+    max-width: none;
+  }
+
+  .workbench-readout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workbench-readout > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .workbench-readout > div:nth-child(-n + 2) {
+    border-bottom: 1px solid color-mix(in srgb, CanvasText 10%, transparent);
+  }
+}
