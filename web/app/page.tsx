@@ -1,19 +1,29 @@
-import {CompositingDepth} from "@/components/CompositingDepth";
-import {GridDepth} from "@/components/GridDepth";
-import {LayoutLab} from "@/components/LayoutLab";
-import {LayoutWorkbench} from "@/components/LayoutWorkbench";
-import {SizingDepth} from "@/components/SizingDepth";
-import {ThreeDDepth} from "@/components/ThreeDDepth";
+import Link from "next/link";
+import {experiments} from "@/lib/experiments";
 
 export default function Home() {
   return (
-    <>
-      <LayoutWorkbench />
-      <LayoutLab />
-      <SizingDepth />
-      <GridDepth />
-      <ThreeDDepth />
-      <CompositingDepth />
-    </>
+    <main className="editor-index-page">
+      <section className="editor-index-intro">
+        <div className="eyebrow">layout lab</div>
+        <h1>Choose one editor.</h1>
+        <p>
+          Each layout experiment now has its own page so the controls, explanation, and viewport can stay focused on one layout problem at a time.
+        </p>
+      </section>
+
+      <nav className="editor-directory" aria-label="Layout Lab editor directory">
+        <Link href="/workbench">
+          <strong>Object workbench</strong>
+          <span>Build one object tree, edit properties directly inside its elements, and switch between 2D and 3D views.</span>
+        </Link>
+        {experiments.map((experiment) => (
+          <Link key={experiment.id} href={`/editors/${experiment.id}`}>
+            <strong>{experiment.title}</strong>
+            <span>{experiment.summary}</span>
+          </Link>
+        ))}
+      </nav>
+    </main>
   );
 }

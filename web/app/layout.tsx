@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./workbench.css";
+import "./workbench-inline.css";
+import "./editor-pages.css";
 import "./sizing.css";
 import "./sizing-depth.css";
 import "./grid-depth.css";
