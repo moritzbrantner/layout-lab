@@ -5,6 +5,7 @@ import {GridDepth} from "@/components/GridDepth";
 import {LayoutLab} from "@/components/LayoutLab";
 import {SizingDepth} from "@/components/SizingDepth";
 import {ThreeDDepth} from "@/components/ThreeDDepth";
+import {editorCollectionById, type EditorCollection as EditorCollectionName} from "@/lib/editor-pages";
 import {experiments, type Experiment} from "@/lib/experiments";
 
 export const dynamicParams = false;
@@ -13,41 +14,12 @@ export function generateStaticParams() {
   return experiments.map((experiment) => ({id: experiment.id}));
 }
 
-const foundationEditors = new Set<Experiment["id"]>([
-  "flex",
-  "grid",
-  "intrinsic-sizing",
-  "positioning",
-  "transforms-3d",
-]);
-
-const sizingEditors = new Set<Experiment["id"]>([
-  "flex-freezing",
-  "grid-track-sizing",
-]);
-
-const gridEditors = new Set<Experiment["id"]>([
-  "grid-intrinsic",
-  "grid-auto-repeat",
-]);
-
-const threeDEditors = new Set<Experiment["id"]>([
-  "origins-3d",
-  "context-3d",
-]);
-
-const compositingEditors = new Set<Experiment["id"]>([
-  "stacking-contexts",
-  "hit-testing",
-]);
-
-function EditorCollection({id}: {id: Experiment["id"]}) {
-  if (foundationEditors.has(id)) return <LayoutLab />;
-  if (sizingEditors.has(id)) return <SizingDepth />;
-  if (gridEditors.has(id)) return <GridDepth />;
-  if (threeDEditors.has(id)) return <ThreeDDepth />;
-  if (compositingEditors.has(id)) return <CompositingDepth />;
-  return null;
+function EditorCollection({collection}: {collection: EditorCollectionName}) {
+  if (collection === "foundation") return <LayoutLab />;
+  if (collection === "sizing") return <SizingDepth />;
+  if (collection === "grid") return <GridDepth />;
+  if (collection === "three-d") return <ThreeDDepth />;
+  return <CompositingDepth />;
 }
 
 export default async function ExperimentPage({params}: {params: Promise<{id: string}>}) {
@@ -55,16 +27,17 @@ export default async function ExperimentPage({params}: {params: Promise<{id: str
   const experiment = experiments.find((candidate) => candidate.id === id);
   if (!experiment) notFound();
 
+  const experimentId = experiment.id as Experiment["id"];
   return (
     <div className="editor-page-shell">
       <EditorPageHeader
-        current={experiment.id}
+        current={experimentId}
         area={experiment.area}
         title={experiment.title}
         summary={experiment.summary}
       />
-      <div className="single-editor-selection" data-editor={experiment.id}>
-        <EditorCollection id={experiment.id} />
+      <div className="single-editor-selection" data-editor={experimentId}>
+        <EditorCollection collection={editorCollectionById[experimentId]} />
       </div>
     </div>
   );
