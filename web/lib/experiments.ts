@@ -8,7 +8,9 @@ export type Experiment = {
     | "positioning"
     | "transforms-3d"
     | "flex-freezing"
-    | "grid-track-sizing";
+    | "grid-track-sizing"
+    | "grid-intrinsic"
+    | "grid-auto-repeat";
   title: string;
   area: ExperimentArea;
   summary: string;
@@ -64,5 +66,19 @@ export const experiments: readonly Experiment[] = [
     area: "2D",
     summary: "Follow minmax track bases through a spanning minimum contribution and into flexible track resolution.",
     properties: ["minmax", "fr", "grid-column", "min-width", "gap"],
+  },
+  {
+    id: "grid-intrinsic",
+    title: "Intrinsic Grid tracks",
+    area: "2D",
+    summary: "Use a browser-measured min-content contribution as the base for an intrinsic minmax track, then explain the flexible phase.",
+    properties: ["min-content", "minmax", "fr", "overflow-wrap", "grid-template-columns"],
+  },
+  {
+    id: "grid-auto-repeat",
+    title: "Grid auto-repeat",
+    area: "2D",
+    summary: "Compare auto-fit and auto-fill by making explicit capacity, empty tracks, collapse, and redistributed free space visible.",
+    properties: ["repeat", "auto-fit", "auto-fill", "minmax", "fr", "gap"],
   },
 ] as const;
