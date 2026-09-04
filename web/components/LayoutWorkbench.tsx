@@ -121,10 +121,24 @@ function WorkbenchTree({selection, state, onSelect}: {
   );
 }
 
-function LayoutInspector({state, setState}: {state: WorkbenchState; setState: (state: WorkbenchState) => void}) {
+function InlinePanelHeader({title, onHide}: {title: string; onHide: () => void}) {
+  return (
+    <div className="workbench-inline-heading">
+      <strong>{title}</strong>
+      <button type="button" onClick={onHide} aria-label="Hide inline controls">Hide</button>
+    </div>
+  );
+}
+
+function LayoutControls({state, setState, onHide}: {
+  state: WorkbenchState;
+  setState: (state: WorkbenchState) => void;
+  onHide: () => void;
+}) {
   const layout = state.layout;
   return (
     <div className="workbench-inspector-fields">
+      <InlinePanelHeader title="Layout root" onHide={onHide} />
       <SelectControl
         label="layout mode"
         value={layout.mode}
@@ -182,16 +196,18 @@ function LayoutInspector({state, setState}: {state: WorkbenchState; setState: (s
   );
 }
 
-function ItemInspector({id, state, setState}: {
+function ItemControls({id, state, setState, onHide}: {
   id: WorkbenchItemId;
   state: WorkbenchState;
   setState: (state: WorkbenchState) => void;
+  onHide: () => void;
 }) {
   const item = state.items.find((candidate) => candidate.id === id)!;
   const update = (patch: Parameters<typeof updateWorkbenchItem>[2]) => setState(updateWorkbenchItem(state, id, patch));
 
   return (
     <div className="workbench-inspector-fields">
+      <InlinePanelHeader title={`${id} · ${itemNames[id]}`} onHide={onHide} />
       {state.layout.mode === "flex" ? (
         <>
           <RangeControl label="flex-grow" value={item.grow} min={0} max={8} onChange={(grow) => update({grow})} />
@@ -204,11 +220,6 @@ function ItemInspector({id, state, setState}: {
         <RangeControl label="grid-column span" value={item.gridSpan} min={1} max={Math.max(1, state.layout.columns)} onChange={(gridSpan) => update({gridSpan})} />
       )}
       <RangeControl label="Z depth" value={item.depth} min={-120} max={120} step={6} unit="px" onChange={(depth) => update({depth})} />
-      <p className="workbench-inspector-note">
-        {state.layout.mode === "flex"
-          ? "Grow changes how this object shares free space. max-width can clamp that growth and force the flex algorithm to redistribute the remainder."
-          : "Grid span changes how many tracks this object occupies. Z depth is only visual until 3D mode is enabled."}
-      </p>
     </div>
   );
 }
@@ -222,6 +233,7 @@ export function LayoutWorkbench() {
   const [state, setState] = useState<WorkbenchState>(() => createWorkbenchState());
   const [selection, setSelection] = useState<Selection>("layout");
   const [geometry, setGeometry] = useState<ItemGeometry[]>([]);
+  const [showControls, setShowControls] = useState(true);
   const stageRef = useRef<HTMLDivElement>(null);
 
   const refreshKey = useMemo(() => JSON.stringify(state), [state]);
@@ -265,11 +277,18 @@ export function LayoutWorkbench() {
   const applyPreset = (preset: WorkbenchPreset) => {
     setState(applyWorkbenchPreset(preset, state.view));
     setSelection(preset === "equal" ? "layout" : "B");
+    setShowControls(true);
   };
 
   const reset = () => {
     setState(createWorkbenchState());
     setSelection("layout");
+    setShowControls(true);
+  };
+
+  const select = (next: Selection) => {
+    setSelection(next);
+    setShowControls(true);
   };
 
   return (
@@ -279,7 +298,7 @@ export function LayoutWorkbench() {
           <div className="eyebrow">interactive editor</div>
           <h2 id="workbench-title">Object tree → constraints → live geometry</h2>
           <p>
-            Select the layout root or one child, change its properties, and watch the browser resolve the same object tree in real time. Switch to 3D to lift those resolved boxes into depth without changing the underlying layout rules.
+            Select a node in the tree or directly in the viewport. Its controls open inside that element as an overlay, so editing stays spatially attached to the thing being changed without affecting measured layout geometry.
           </p>
         </div>
         <div className="workbench-view-switch" aria-label="Viewport mode">
@@ -306,20 +325,12 @@ export function LayoutWorkbench() {
       </div>
 
       <div className="workbench-shell">
-        <aside className="workbench-sidebar" aria-label="Object tree and properties">
+        <aside className="workbench-sidebar" aria-label="Object tree">
           <div className="workbench-panel-heading">
             <span>Objects</span>
-            <small>{state.items.length + 1} nodes</small>
+            <small>Select to edit</small>
           </div>
-          <WorkbenchTree selection={selection} state={state} onSelect={setSelection} />
-          <div className="workbench-divider" />
-          <div className="workbench-panel-heading">
-            <span>Properties</span>
-            <small>{selection === "layout" ? "Layout root" : `${selection} · ${itemNames[selection]}`}</small>
-          </div>
-          {selection === "layout"
-            ? <LayoutInspector state={state} setState={setState} />
-            : <ItemInspector id={selection} state={state} setState={setState} />}
+          <WorkbenchTree selection={selection} state={state} onSelect={select} />
         </aside>
 
         <div className="workbench-main">
@@ -328,20 +339,44 @@ export function LayoutWorkbench() {
               <strong>{state.view === "2d" ? "2D layout viewport" : "3D layout viewport"}</strong>
               <span>{state.layout.mode} · {state.layout.gap}px gap</span>
             </div>
-            <code>{state.layout.mode === "flex" ? `display:flex; flex-direction:${state.layout.direction}` : `display:grid; columns:${state.layout.columns}`}</code>
+            <div className="workbench-viewport-actions">
+              <code>{state.layout.mode === "flex" ? `display:flex; flex-direction:${state.layout.direction}` : `display:grid; columns:${state.layout.columns}`}</code>
+              <button
+                type="button"
+                aria-pressed={showControls}
+                onClick={() => setShowControls((visible) => !visible)}
+              >
+                {showControls ? "Hide controls" : "Show controls"}
+              </button>
+            </div>
           </div>
 
           <div className={`workbench-viewport ${state.view === "3d" ? "is-3d" : "is-2d"}`}>
             <div className="workbench-grid-floor" aria-hidden="true" />
             <div
               ref={stageRef}
-              className="workbench-layout-plane"
+              className={`workbench-layout-plane ${selection === "layout" ? "is-selected" : ""}`}
               style={{
                 ...containerStyle,
                 transform: state.view === "3d" ? "rotateX(52deg) rotateZ(-24deg)" : undefined,
                 transformStyle: state.view === "3d" ? "preserve-3d" : undefined,
               }}
             >
+              <button
+                type="button"
+                className="workbench-root-badge"
+                aria-pressed={selection === "layout"}
+                onClick={() => select("layout")}
+              >
+                root · {state.layout.mode}
+              </button>
+
+              {showControls && selection === "layout" ? (
+                <div className="workbench-root-controls" onClick={(event) => event.stopPropagation()}>
+                  <LayoutControls state={state} setState={setState} onHide={() => setShowControls(false)} />
+                </div>
+              ) : null}
+
               {state.items.map((item) => {
                 const style: CSSProperties = state.layout.mode === "flex"
                   ? {
@@ -357,20 +392,33 @@ export function LayoutWorkbench() {
                   style.transform = `translateZ(${item.depth}px)`;
                 }
 
+                const isEditing = showControls && selection === item.id;
+
                 return (
-                  <button
+                  <article
                     key={item.id}
-                    type="button"
                     data-workbench-item={item.id}
-                    className={`workbench-object object-${item.id.toLowerCase()} ${selection === item.id ? "is-selected" : ""}`}
+                    className={`workbench-object object-${item.id.toLowerCase()} ${selection === item.id ? "is-selected" : ""} ${isEditing ? "is-editing" : ""}`}
                     style={style}
-                    onClick={() => setSelection(item.id)}
                   >
-                    <span className="object-id">{item.id}</span>
-                    <strong>{itemNames[item.id]}</strong>
-                    <small>{state.layout.mode === "flex" ? `grow ${item.grow} · ${measuredLabel(geometry, item.id)}` : `span ${item.gridSpan} · ${measuredLabel(geometry, item.id)}`}</small>
-                    {state.view === "3d" ? <em>{item.depth > 0 ? "+" : ""}{item.depth}px Z</em> : null}
-                  </button>
+                    <button
+                      type="button"
+                      className="workbench-object-select"
+                      aria-pressed={selection === item.id}
+                      onClick={() => select(item.id)}
+                    >
+                      <span className="object-id">{item.id}</span>
+                      <strong>{itemNames[item.id]}</strong>
+                      <small>{state.layout.mode === "flex" ? `grow ${item.grow} · ${measuredLabel(geometry, item.id)}` : `span ${item.gridSpan} · ${measuredLabel(geometry, item.id)}`}</small>
+                      {state.view === "3d" ? <em>{item.depth > 0 ? "+" : ""}{item.depth}px Z</em> : null}
+                    </button>
+
+                    {isEditing ? (
+                      <div className="workbench-inline-controls" onClick={(event) => event.stopPropagation()}>
+                        <ItemControls id={item.id} state={state} setState={setState} onHide={() => setShowControls(false)} />
+                      </div>
+                    ) : null}
+                  </article>
                 );
               })}
             </div>
