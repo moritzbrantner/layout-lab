@@ -30,9 +30,9 @@
 
 ## H3 — 3D layout and compositing
 
-- [ ] Transform-origin and perspective-origin visualization
-- [ ] Nested 3D contexts and flattening
-- [ ] Backface visibility
+- [x] Transform-origin and perspective-origin visualization with resolved matrix evidence
+- [x] Nested 3D contexts and flattening
+- [x] Backface visibility
 - [ ] Stacking contexts, paint order, and z-index interaction
 - [ ] Hit-testing versus transformed visual geometry
 - [ ] Compositing-layer observations where browser APIs expose useful evidence

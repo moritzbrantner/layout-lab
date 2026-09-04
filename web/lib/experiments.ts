@@ -10,7 +10,9 @@ export type Experiment = {
     | "flex-freezing"
     | "grid-track-sizing"
     | "grid-intrinsic"
-    | "grid-auto-repeat";
+    | "grid-auto-repeat"
+    | "origins-3d"
+    | "context-3d";
   title: string;
   area: ExperimentArea;
   summary: string;
@@ -80,5 +82,19 @@ export const experiments: readonly Experiment[] = [
     area: "2D",
     summary: "Compare auto-fit and auto-fill by making explicit capacity, empty tracks, collapse, and redistributed free space visible.",
     properties: ["repeat", "auto-fit", "auto-fill", "minmax", "fr", "gap"],
+  },
+  {
+    id: "origins-3d",
+    title: "3D transform origins",
+    area: "3D",
+    summary: "Move the perspective origin and transform origin independently, then inspect the browser-resolved transform matrix.",
+    properties: ["perspective", "perspective-origin", "transform-origin", "rotateX", "rotateY"],
+  },
+  {
+    id: "context-3d",
+    title: "Nested 3D contexts",
+    area: "3D",
+    summary: "Compare preserve-3d with flattening and observe how backface visibility changes face painting.",
+    properties: ["transform-style", "preserve-3d", "flat", "translateZ", "backface-visibility"],
   },
 ] as const;
