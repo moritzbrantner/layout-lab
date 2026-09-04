@@ -1,12 +1,15 @@
 export const workbenchItemIds = ["A", "B", "C", "D"] as const;
 
-export type WorkbenchItemId = (typeof workbenchItemIds)[number];
+export type WorkbenchItemId = string;
 export type WorkbenchViewMode = "2d" | "3d";
 export type WorkbenchLayoutMode = "flex" | "grid";
 export type WorkbenchPreset = "equal" | "dominant-b" | "max-clamp";
+export type WorkbenchMoveDirection = "up" | "down";
 
 export type WorkbenchItem = {
   id: WorkbenchItemId;
+  name: string;
+  visible: boolean;
   basis: number;
   grow: number;
   shrink: number;
@@ -30,25 +33,48 @@ export type WorkbenchState = {
   view: WorkbenchViewMode;
   layout: WorkbenchLayout;
   items: WorkbenchItem[];
+  nextItemOrdinal: number;
 };
 
-const defaultDepths: Record<WorkbenchItemId, number> = {
+const defaultNames: Record<string, string> = {
+  A: "Navigation",
+  B: "Primary panel",
+  C: "Inspector",
+  D: "Activity",
+};
+
+const defaultDepths: Record<string, number> = {
   A: -54,
   B: 18,
   C: 72,
   D: -8,
 };
 
+function itemIdForOrdinal(ordinal: number): string {
+  let current = Math.max(1, Math.floor(ordinal));
+  let id = "";
+
+  while (current > 0) {
+    current -= 1;
+    id = String.fromCharCode(65 + (current % 26)) + id;
+    current = Math.floor(current / 26);
+  }
+
+  return id;
+}
+
 function makeItem(id: WorkbenchItemId): WorkbenchItem {
   return {
     id,
+    name: defaultNames[id] ?? `Object ${id}`,
+    visible: true,
     basis: 112,
     grow: 1,
     shrink: 1,
     minWidth: 64,
     maxWidth: 360,
     gridSpan: 1,
-    depth: defaultDepths[id],
+    depth: defaultDepths[id] ?? 0,
   };
 }
 
@@ -65,6 +91,7 @@ export function createWorkbenchState(): WorkbenchState {
       columns: 4,
     },
     items: workbenchItemIds.map(makeItem),
+    nextItemOrdinal: workbenchItemIds.length + 1,
   };
 }
 
@@ -85,6 +112,36 @@ export function applyWorkbenchPreset(preset: WorkbenchPreset, view: WorkbenchVie
   }
 
   return state;
+}
+
+export function addWorkbenchItem(state: WorkbenchState): WorkbenchState {
+  const id = itemIdForOrdinal(state.nextItemOrdinal);
+  return {
+    ...state,
+    items: [...state.items, makeItem(id)],
+    nextItemOrdinal: state.nextItemOrdinal + 1,
+  };
+}
+
+export function removeWorkbenchItem(state: WorkbenchState, id: WorkbenchItemId): WorkbenchState {
+  if (!state.items.some((item) => item.id === id)) return state;
+  return {...state, items: state.items.filter((item) => item.id !== id)};
+}
+
+export function moveWorkbenchItem(
+  state: WorkbenchState,
+  id: WorkbenchItemId,
+  direction: WorkbenchMoveDirection,
+): WorkbenchState {
+  const index = state.items.findIndex((item) => item.id === id);
+  if (index < 0) return state;
+
+  const targetIndex = direction === "up" ? index - 1 : index + 1;
+  if (targetIndex < 0 || targetIndex >= state.items.length) return state;
+
+  const items = [...state.items];
+  [items[index], items[targetIndex]] = [items[targetIndex], items[index]];
+  return {...state, items};
 }
 
 export function updateWorkbenchItem(
