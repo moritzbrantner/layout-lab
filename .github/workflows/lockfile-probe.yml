@@ -1,0 +1,27 @@
+name: Lockfile Probe
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.0
+      - name: Generate canonical lockfile
+        run: |
+          rm -f bun.lock bun.lockb
+          bun install
+          test -f bun.lock
+          echo '---BEGIN-BUN-LOCK---'
+          cat bun.lock
+          echo '---END-BUN-LOCK---'
