@@ -1,7 +1,7 @@
 export type ExperimentArea = "2D" | "3D";
 
 export type Experiment = {
-  id: "flex" | "grid" | "positioning" | "transforms-3d";
+  id: "flex" | "grid" | "intrinsic-sizing" | "positioning" | "transforms-3d";
   title: string;
   area: ExperimentArea;
   summary: string;
@@ -13,15 +13,22 @@ export const experiments: readonly Experiment[] = [
     id: "flex",
     title: "Flexbox",
     area: "2D",
-    summary: "Resolve a one-dimensional layout across main and cross axes.",
-    properties: ["display", "flex-direction", "justify-content", "align-items", "gap"],
+    summary: "Resolve a one-dimensional layout across main and cross axes, then inspect how free space is distributed.",
+    properties: ["display", "flex-basis", "flex-grow", "flex-shrink", "justify-content", "align-items", "gap"],
   },
   {
     id: "grid",
     title: "Grid",
     area: "2D",
-    summary: "Place items into explicit tracks and inspect the resulting boxes.",
-    properties: ["display", "grid-template-columns", "grid-auto-flow", "grid-column", "gap"],
+    summary: "Place items into explicit fractional tracks and expose the track-size arithmetic behind the final boxes.",
+    properties: ["display", "grid-template-columns", "grid-auto-flow", "grid-column", "gap", "fr"],
+  },
+  {
+    id: "intrinsic-sizing",
+    title: "Intrinsic sizing",
+    area: "2D",
+    summary: "Compare min-content, max-content, and fit-content while the available inline size changes.",
+    properties: ["width", "min-content", "max-content", "fit-content", "overflow-wrap"],
   },
   {
     id: "positioning",
