@@ -12,7 +12,9 @@ export type Experiment = {
     | "grid-intrinsic"
     | "grid-auto-repeat"
     | "origins-3d"
-    | "context-3d";
+    | "context-3d"
+    | "stacking-contexts"
+    | "hit-testing";
   title: string;
   area: ExperimentArea;
   summary: string;
@@ -96,5 +98,19 @@ export const experiments: readonly Experiment[] = [
     area: "3D",
     summary: "Compare preserve-3d with flattening and observe how backface visibility changes face painting.",
     properties: ["transform-style", "preserve-3d", "flat", "translateZ", "backface-visibility"],
+  },
+  {
+    id: "stacking-contexts",
+    title: "Stacking contexts",
+    area: "3D",
+    summary: "Make nested paint-order boundaries visible and verify the top element at an overlap point with browser hit-testing.",
+    properties: ["z-index", "position", "transform", "stacking context", "paint order"],
+  },
+  {
+    id: "hit-testing",
+    title: "Transformed hit-testing",
+    area: "3D",
+    summary: "Compare the transformed painted shape with its axis-aligned bounding rectangle and inspect browser hit targets.",
+    properties: ["transform", "getBoundingClientRect", "elementFromPoint", "pointer events"],
   },
 ] as const;

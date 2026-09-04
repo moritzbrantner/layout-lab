@@ -1,0 +1,253 @@
+.compositing-depth-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: -96px auto 0;
+  padding-bottom: 96px;
+}
+
+.stacking-stage {
+  position: relative;
+  min-height: 390px;
+  overflow: hidden;
+}
+
+.stacking-context {
+  position: absolute;
+  width: min(300px, 58%);
+  min-height: 210px;
+  padding: 16px;
+  border: 2px solid currentColor;
+  border-radius: 16px;
+  background: rgba(18, 23, 34, 0.9);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.stacking-context-a {
+  top: 48px;
+  left: 42px;
+  color: var(--series-a);
+}
+
+.stacking-context-b {
+  right: 42px;
+  bottom: 42px;
+  color: var(--series-c);
+}
+
+.stacking-child,
+.stacking-badge {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.stacking-child {
+  right: -54px;
+  bottom: 22px;
+  width: 150px;
+  height: 100px;
+  border: 2px solid var(--series-e);
+  background: rgba(240, 142, 170, 0.92);
+  color: #17101a;
+}
+
+.stacking-badge {
+  top: 54px;
+  left: 24px;
+  width: 130px;
+  height: 92px;
+  background: rgba(229, 180, 122, 0.92);
+  color: #1a1207;
+}
+
+.stacking-sample-point {
+  position: absolute;
+  top: 50%;
+  left: 54%;
+  z-index: 10000;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--text);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.stacking-sample-point::before,
+.stacking-sample-point::after {
+  position: absolute;
+  content: "";
+  background: var(--text);
+  opacity: 0.65;
+}
+
+.stacking-sample-point::before {
+  top: 4px;
+  left: -12px;
+  width: 32px;
+  height: 1px;
+}
+
+.stacking-sample-point::after {
+  top: -12px;
+  left: 4px;
+  width: 1px;
+  height: 32px;
+}
+
+.stacking-sample-point span {
+  position: absolute;
+  top: 14px;
+  left: 10px;
+  width: max-content;
+  color: var(--muted);
+  font-size: 0.6rem;
+}
+
+.paint-evidence {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-bottom: 1px solid var(--line);
+}
+
+.paint-evidence > div {
+  min-width: 0;
+  padding: 11px 14px;
+  border-right: 1px solid var(--line);
+}
+
+.paint-evidence > div:last-child {
+  border-right: 0;
+}
+
+.paint-evidence span,
+.paint-evidence code {
+  display: block;
+}
+
+.paint-evidence span {
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 700;
+}
+
+.paint-evidence code {
+  overflow-x: auto;
+  font-size: 0.66rem;
+  white-space: nowrap;
+}
+
+.hit-test-stage {
+  position: relative;
+  display: grid;
+  min-height: 390px;
+  place-items: center;
+  overflow: hidden;
+  touch-action: pan-y;
+  cursor: crosshair;
+}
+
+.hit-test-box {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: 230px;
+  height: 140px;
+  padding: 18px;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border: 2px solid var(--series-a);
+  border-radius: 14px;
+  background: rgba(132, 211, 176, 0.18);
+  color: var(--series-a);
+  text-align: center;
+  transform-origin: center;
+}
+
+.hit-test-box span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.bounding-rect-overlay {
+  position: absolute;
+  z-index: 1;
+  border: 1px dashed var(--series-e);
+  pointer-events: none;
+}
+
+.bounding-rect-overlay span {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  padding: 3px 5px;
+  background: var(--panel);
+  color: var(--series-e);
+  font-size: 0.6rem;
+  font-weight: 750;
+}
+
+.hit-marker {
+  position: absolute;
+  z-index: 4;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--text);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.hit-marker::before,
+.hit-marker::after {
+  position: absolute;
+  content: "";
+  background: var(--text);
+}
+
+.hit-marker::before {
+  top: 4px;
+  left: -10px;
+  width: 30px;
+  height: 1px;
+}
+
+.hit-marker::after {
+  top: -10px;
+  left: 4px;
+  width: 1px;
+  height: 30px;
+}
+
+@media (max-width: 700px) {
+  .compositing-depth-shell {
+    width: min(100% - 20px, 1180px);
+  }
+
+  .stacking-context-a {
+    left: 20px;
+  }
+
+  .stacking-context-b {
+    right: 20px;
+  }
+
+  .paint-evidence {
+    grid-template-columns: 1fr;
+  }
+
+  .paint-evidence > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .paint-evidence > div:last-child {
+    border-bottom: 0;
+  }
+}
