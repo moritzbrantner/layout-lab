@@ -12,9 +12,11 @@
 
 ## H2 — 2D layout depth
 
-- [ ] Intrinsic sizing: min-content, max-content, fit-content
-- [ ] Flex sizing algorithm: basis, grow, shrink, min-size interactions
-- [ ] Grid track sizing: fixed, fractional, minmax, auto-fit/auto-fill
+- [x] Intrinsic sizing baseline: min-content, max-content, fit-content
+- [x] Flex sizing baseline: basis, grow, scaled shrink, and browser comparison
+- [x] Grid sizing baseline: equal fractional tracks and gap subtraction
+- [ ] Flex min/max freezing and intrinsic min-size interactions
+- [ ] Grid track sizing: intrinsic tracks, minmax, auto-fit, auto-fill, spanning contributions
 - [ ] Block/inline formatting and margin collapse
 - [ ] Absolute, sticky, and fixed positioning containing blocks
 - [ ] Aspect ratio, replaced elements, overflow, and scroll containers
@@ -32,6 +34,7 @@
 
 ## H4 — Explain the algorithms
 
+- [x] Deterministic pure sizing helpers with browser-side geometry comparison
 - [ ] Step-through Flexbox resolution with frozen/flexible item states
 - [ ] Step-through Grid track sizing phases
 - [ ] Constraint graph representation for layout dependencies
@@ -56,4 +59,4 @@
 
 ## Scope rule
 
-Prefer experiments that expose a layout rule, an intermediate decision, or measurable geometry. Avoid adding graphics infrastructure merely to make the site visually impressive; rendering technology belongs here only when it clarifies a layout or compositing boundary.
+Prefer experiments that expose a layout rule, an intermediate decision, or measurable geometry. Keep simplified explanatory models visibly scoped and compare them against browser evidence. Avoid adding graphics infrastructure merely to make the site visually impressive; rendering technology belongs here only when it clarifies a layout or compositing boundary.
