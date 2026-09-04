@@ -22,4 +22,5 @@ jobs:
       - run: bun install
       - run: bun run test
       - run: bun run typecheck
+      - run: bun run storybook:build
       - run: bun run build
