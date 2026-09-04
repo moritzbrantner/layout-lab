@@ -113,7 +113,9 @@
 
 .workbench-tree .tree-action {
   display: grid;
+  grid-template-columns: none;
   place-items: center;
+  gap: 0;
   width: 1.65rem;
   min-width: 1.65rem;
   min-height: 1.65rem;
