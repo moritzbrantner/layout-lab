@@ -33,8 +33,8 @@
 - [x] Transform-origin and perspective-origin visualization with resolved matrix evidence
 - [x] Nested 3D contexts and flattening
 - [x] Backface visibility
-- [ ] Stacking contexts, paint order, and z-index interaction
-- [ ] Hit-testing versus transformed visual geometry
+- [x] Stacking contexts, paint order, and z-index interaction with browser overlap sampling
+- [x] Hit-testing versus transformed visual geometry
 - [ ] Compositing-layer observations where browser APIs expose useful evidence
 
 ## H4 — Explain the algorithms
@@ -58,7 +58,7 @@
 
 ## H6 — Layout to rendering
 
-- [ ] Paint-order visualization
+- [ ] Paint-order visualization beyond the focused stacking-context experiment
 - [ ] 2D canvas renderer for resolved boxes
 - [ ] Optional WebGPU/3D renderer only where it teaches a boundary CSS alone cannot show
 - [ ] Performance experiments for large layout trees and incremental relayout
