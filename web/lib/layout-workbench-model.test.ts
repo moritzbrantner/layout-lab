@@ -1,16 +1,20 @@
 import {describe, expect, test} from "bun:test";
 import {
+  addWorkbenchItem,
   applyWorkbenchPreset,
   createWorkbenchState,
+  moveWorkbenchItem,
+  removeWorkbenchItem,
   updateWorkbenchItem,
 } from "./layout-workbench-model";
 
 describe("layout workbench model", () => {
-  test("starts with equal flex growth", () => {
+  test("starts with equal visible flex growth", () => {
     const state = createWorkbenchState();
 
     expect(state.layout.mode).toBe("flex");
     expect(state.items.map((item) => item.grow)).toEqual([1, 1, 1, 1]);
+    expect(state.items.every((item) => item.visible)).toBe(true);
   });
 
   test("dominant preset makes B consume substantially more free space", () => {
@@ -32,9 +36,30 @@ describe("layout workbench model", () => {
 
   test("item updates preserve all siblings", () => {
     const state = createWorkbenchState();
-    const next = updateWorkbenchItem(state, "C", {grow: 4, depth: 96});
+    const next = updateWorkbenchItem(state, "C", {grow: 4, depth: 96, visible: false});
 
-    expect(next.items.find((item) => item.id === "C")).toMatchObject({grow: 4, depth: 96});
+    expect(next.items.find((item) => item.id === "C")).toMatchObject({grow: 4, depth: 96, visible: false});
     expect(next.items.find((item) => item.id === "B")).toEqual(state.items.find((item) => item.id === "B"));
+  });
+
+  test("objects can be added and deleted without reusing identity", () => {
+    const state = addWorkbenchItem(createWorkbenchState());
+    const added = state.items.at(-1);
+    const withoutAdded = removeWorkbenchItem(state, added!.id);
+    const next = addWorkbenchItem(withoutAdded);
+
+    expect(added).toMatchObject({id: "E", name: "Object E", visible: true});
+    expect(withoutAdded.items.some((item) => item.id === "E")).toBe(false);
+    expect(next.items.at(-1)?.id).toBe("F");
+  });
+
+  test("objects can move up and down deterministically", () => {
+    const state = createWorkbenchState();
+    const movedUp = moveWorkbenchItem(state, "C", "up");
+    const movedBack = moveWorkbenchItem(movedUp, "C", "down");
+
+    expect(movedUp.items.map((item) => item.id)).toEqual(["A", "C", "B", "D"]);
+    expect(movedBack.items.map((item) => item.id)).toEqual(["A", "B", "C", "D"]);
+    expect(moveWorkbenchItem(state, "A", "up")).toBe(state);
   });
 });
