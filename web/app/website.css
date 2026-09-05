@@ -1,0 +1,217 @@
+.website-page-shell {
+  width: min(1500px, calc(100% - 32px));
+}
+
+.website-rearranger {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: 18px;
+  margin-top: 44px;
+  align-items: start;
+}
+
+.website-source-panel,
+.website-stage {
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.website-source-panel {
+  display: grid;
+  gap: 24px;
+  padding: 20px;
+}
+
+.website-source-panel h2 {
+  margin: 8px 0 18px;
+  font-size: 1.6rem;
+}
+
+.website-url-form,
+.website-import-fallbacks,
+.website-import-fallbacks form {
+  display: grid;
+  gap: 10px;
+}
+
+.website-url-form label,
+.website-import-fallbacks label,
+.website-file-input span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.website-url-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.website-source-panel input[type="text"],
+.website-source-panel textarea,
+.website-source-panel input[type="file"] {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.website-source-panel input[type="text"] {
+  min-height: 42px;
+  padding: 8px 10px;
+}
+
+.website-source-panel textarea {
+  min-height: 150px;
+  padding: 10px;
+  resize: vertical;
+  font: 0.74rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.website-source-panel input[type="file"] {
+  margin-top: 7px;
+  padding: 8px;
+  font-size: 0.72rem;
+}
+
+.website-source-panel button,
+.website-stage-toolbar button {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.website-source-panel button:hover:not(:disabled),
+.website-source-panel button:focus-visible:not(:disabled),
+.website-stage-toolbar button:hover:not(:disabled),
+.website-stage-toolbar button:focus-visible:not(:disabled) {
+  border-color: var(--text);
+  outline: none;
+}
+
+.website-source-panel button:disabled,
+.website-stage-toolbar button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.website-import-fallbacks {
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.website-import-status,
+.website-import-boundary {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.website-import-status {
+  color: var(--text);
+}
+
+.website-import-boundary {
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.website-stage {
+  overflow: hidden;
+}
+
+.website-stage-toolbar {
+  display: flex;
+  min-height: 62px;
+  padding: 10px 12px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.website-stage-toolbar > div {
+  min-width: 0;
+}
+
+.website-stage-toolbar strong,
+.website-stage-toolbar span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.website-stage-toolbar strong {
+  font-size: 0.78rem;
+}
+
+.website-stage-toolbar span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.website-frame-shell {
+  min-height: 640px;
+  height: min(76vh, 920px);
+  background: #fff;
+}
+
+.website-frame-shell iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.website-frame-empty {
+  display: grid;
+  width: min(460px, calc(100% - 48px));
+  height: 100%;
+  margin: 0 auto;
+  place-items: center;
+  color: #596273;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
+@media (max-width: 960px) {
+  .website-rearranger {
+    grid-template-columns: 1fr;
+  }
+
+  .website-frame-shell {
+    min-height: 560px;
+    height: 70vh;
+  }
+}
+
+@media (max-width: 560px) {
+  .website-page-shell {
+    width: min(100% - 20px, 1500px);
+  }
+
+  .website-url-row {
+    grid-template-columns: 1fr;
+  }
+
+  .website-stage-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .website-frame-shell {
+    min-height: 480px;
+  }
+}
