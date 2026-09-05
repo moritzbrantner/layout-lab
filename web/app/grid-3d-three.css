@@ -1,0 +1,114 @@
+.grid3d-viewer-toolbar {
+  grid-template-columns: auto repeat(3, minmax(135px, 0.7fr)) minmax(170px, 0.95fr);
+  align-items: center;
+}
+
+.grid3d-renderer-switch {
+  display: inline-grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #090c12;
+}
+
+.grid3d-renderer-switch button {
+  min-height: 36px;
+  padding: 0.42rem 0.68rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 780;
+  cursor: pointer;
+}
+
+.grid3d-renderer-switch button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.grid3d-renderer-switch button:focus-visible,
+.grid3d-three-host canvas:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.grid3d-viewport[data-renderer="three"] {
+  display: block;
+  background-image: none;
+}
+
+.grid3d-three-shell {
+  position: relative;
+  width: 100%;
+  min-height: 560px;
+  background: var(--bg);
+}
+
+.grid3d-three-host {
+  width: 100%;
+  min-height: 560px;
+}
+
+.grid3d-three-host canvas {
+  display: block;
+  width: 100%;
+  cursor: grab;
+}
+
+.grid3d-three-host canvas:active {
+  cursor: grabbing;
+}
+
+.grid3d-three-status {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  padding: 8px 10px;
+  border: 1px solid rgba(170, 179, 196, 0.22);
+  border-radius: 7px;
+  background: rgba(9, 12, 18, 0.86);
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  pointer-events: none;
+}
+
+.grid3d-three-status.is-error {
+  border-color: rgba(240, 142, 170, 0.5);
+  color: var(--text);
+}
+
+@media (max-width: 1220px) {
+  .grid3d-viewer-toolbar {
+    grid-template-columns: auto repeat(2, minmax(140px, 1fr));
+  }
+
+  .grid3d-object-select {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 680px) {
+  .grid3d-viewer-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .grid3d-renderer-switch {
+    width: 100%;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid3d-object-select {
+    grid-column: auto;
+  }
+
+  .grid3d-three-shell,
+  .grid3d-three-host {
+    min-height: 360px;
+  }
+}
