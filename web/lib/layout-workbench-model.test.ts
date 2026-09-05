@@ -1,11 +1,15 @@
 import {describe, expect, test} from "bun:test";
 import {
+  addWorkbenchChild,
   addWorkbenchItem,
   applyWorkbenchPreset,
   createWorkbenchState,
+  findWorkbenchItem,
   moveWorkbenchItem,
+  moveWorkbenchNode,
   removeWorkbenchItem,
   updateWorkbenchItem,
+  visibleWorkbenchItems,
 } from "./layout-workbench-model";
 
 describe("layout workbench model", () => {
@@ -15,11 +19,12 @@ describe("layout workbench model", () => {
     expect(state.layout.mode).toBe("flex");
     expect(state.items.map((item) => item.grow)).toEqual([1, 1, 1, 1]);
     expect(state.items.every((item) => item.visible)).toBe(true);
+    expect(state.items.every((item) => item.children.length === 0)).toBe(true);
   });
 
   test("dominant preset makes B consume substantially more free space", () => {
     const state = applyWorkbenchPreset("dominant-b");
-    const itemB = state.items.find((item) => item.id === "B");
+    const itemB = findWorkbenchItem(state.items, "B");
 
     expect(itemB?.grow).toBe(5);
     expect(itemB?.basis).toBe(132);
@@ -28,38 +33,72 @@ describe("layout workbench model", () => {
 
   test("max-clamp preset demonstrates flex growth constrained by max-width", () => {
     const state = applyWorkbenchPreset("max-clamp", "3d");
-    const itemB = state.items.find((item) => item.id === "B");
+    const itemB = findWorkbenchItem(state.items, "B");
 
     expect(state.view).toBe("3d");
     expect(itemB).toMatchObject({grow: 8, maxWidth: 184});
   });
 
-  test("item updates preserve all siblings", () => {
-    const state = createWorkbenchState();
-    const next = updateWorkbenchItem(state, "C", {grow: 4, depth: 96, visible: false});
+  test("item updates preserve nested identity and sibling values", () => {
+    const nested = addWorkbenchChild(createWorkbenchState(), "B");
+    const next = updateWorkbenchItem(nested, "E", {grow: 4, depth: 96, visible: false});
 
-    expect(next.items.find((item) => item.id === "C")).toMatchObject({grow: 4, depth: 96, visible: false});
-    expect(next.items.find((item) => item.id === "B")).toEqual(state.items.find((item) => item.id === "B"));
+    expect(findWorkbenchItem(next.items, "E")).toMatchObject({grow: 4, depth: 96, visible: false});
+    expect(findWorkbenchItem(next.items, "B")?.grow).toBe(1);
+    expect(findWorkbenchItem(next.items, "C")).toEqual(findWorkbenchItem(nested.items, "C"));
   });
 
-  test("objects can be added and deleted without reusing identity", () => {
+  test("add child uses the selected parent and never reuses identity", () => {
+    const state = addWorkbenchChild(createWorkbenchState(), "B");
+    const itemB = findWorkbenchItem(state.items, "B");
+    const withoutAdded = removeWorkbenchItem(state, "E");
+    const next = addWorkbenchChild(withoutAdded, "B");
+
+    expect(itemB?.children).toHaveLength(1);
+    expect(itemB?.children[0]).toMatchObject({id: "E", name: "Object E", visible: true});
+    expect(findWorkbenchItem(withoutAdded.items, "E")).toBeNull();
+    expect(findWorkbenchItem(next.items, "F")?.name).toBe("Object F");
+  });
+
+  test("legacy root add remains a root-child compatibility path", () => {
     const state = addWorkbenchItem(createWorkbenchState());
-    const added = state.items.at(-1);
-    const withoutAdded = removeWorkbenchItem(state, added!.id);
-    const next = addWorkbenchItem(withoutAdded);
 
-    expect(added).toMatchObject({id: "E", name: "Object E", visible: true});
-    expect(withoutAdded.items.some((item) => item.id === "E")).toBe(false);
-    expect(next.items.at(-1)?.id).toBe("F");
+    expect(state.items.map((item) => item.id)).toEqual(["A", "B", "C", "D", "E"]);
   });
 
-  test("objects can move up and down deterministically", () => {
+  test("drag move can reorder siblings", () => {
     const state = createWorkbenchState();
-    const movedUp = moveWorkbenchItem(state, "C", "up");
-    const movedBack = moveWorkbenchItem(movedUp, "C", "down");
+    const moved = moveWorkbenchNode(state, "A", "layout", 3);
 
-    expect(movedUp.items.map((item) => item.id)).toEqual(["A", "C", "B", "D"]);
-    expect(movedBack.items.map((item) => item.id)).toEqual(["A", "B", "C", "D"]);
-    expect(moveWorkbenchItem(state, "A", "up")).toBe(state);
+    expect(moved.items.map((item) => item.id)).toEqual(["B", "C", "A", "D"]);
+  });
+
+  test("drag move can reparent a node", () => {
+    const state = addWorkbenchChild(createWorkbenchState(), "B");
+    const moved = moveWorkbenchNode(state, "D", "B", 1);
+
+    expect(moved.items.map((item) => item.id)).toEqual(["A", "B", "C"]);
+    expect(findWorkbenchItem(moved.items, "B")?.children.map((item) => item.id)).toEqual(["E", "D"]);
+  });
+
+  test("drag move cannot move a parent inside its own descendant", () => {
+    const withChild = addWorkbenchChild(createWorkbenchState(), "B");
+    const invalid = moveWorkbenchNode(withChild, "B", "E", 0);
+
+    expect(invalid).toBe(withChild);
+  });
+
+  test("legacy up/down movement still works for nested siblings", () => {
+    const state = addWorkbenchChild(addWorkbenchChild(createWorkbenchState(), "B"), "B");
+    const moved = moveWorkbenchItem(state, "F", "up");
+
+    expect(findWorkbenchItem(moved.items, "B")?.children.map((item) => item.id)).toEqual(["F", "E"]);
+  });
+
+  test("hidden parents hide their subtree from the flattened visible geometry list", () => {
+    const nested = addWorkbenchChild(createWorkbenchState(), "B");
+    const hidden = updateWorkbenchItem(nested, "B", {visible: false});
+
+    expect(visibleWorkbenchItems(hidden.items).map((item) => item.id)).toEqual(["A", "C", "D"]);
   });
 });
