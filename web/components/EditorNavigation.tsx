@@ -6,6 +6,7 @@ export function EditorNavigation({current}: {current?: string}) {
     <nav className="editor-navigation" aria-label="Layout Lab editors">
       <Link href="/" className="editor-navigation-home">All editors</Link>
       <Link href="/workbench" aria-current={current === "workbench" ? "page" : undefined}>Workbench</Link>
+      <Link href="/website" aria-current={current === "website" ? "page" : undefined}>Website</Link>
       {experiments.map((experiment) => (
         <Link
           key={experiment.id}

@@ -17,6 +17,10 @@ export default function Home() {
           <strong>Object workbench</strong>
           <span>Build one object tree, edit properties directly inside its elements, and switch between 2D and 3D views.</span>
         </Link>
+        <Link href="/website">
+          <strong>Website rearranger</strong>
+          <span>Import an inert website snapshot, block its own interactions, and drag visible DOM elements into new positions.</span>
+        </Link>
         {experiments.map((experiment) => (
           <Link key={experiment.id} href={`/editors/${experiment.id}`}>
             <strong>{experiment.title}</strong>

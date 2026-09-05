@@ -8,6 +8,16 @@ describe("EditorNavigation", () => {
 
     expect(markup).toContain('aria-label="Layout Lab editors"');
     expect(markup).toContain('href="/workbench"');
+    expect(markup).toContain('href="/website"');
+    expect(markup.split('aria-current="page"')).toHaveLength(2);
+  });
+
+  test("marks the website rearranger as a first-class editor route", () => {
+    const markup = renderToStaticMarkup(<EditorNavigation current="website" />);
+    const websiteLink = markup.match(/<a[^>]*href="\/website"[^>]*>/)?.[0];
+
+    expect(websiteLink).toBeDefined();
+    expect(websiteLink).toContain('aria-current="page"');
     expect(markup.split('aria-current="page"')).toHaveLength(2);
   });
 
