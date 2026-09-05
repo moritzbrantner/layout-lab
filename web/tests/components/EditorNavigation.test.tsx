@@ -8,7 +8,17 @@ describe("EditorNavigation", () => {
 
     expect(markup).toContain('aria-label="Layout Lab editors"');
     expect(markup).toContain('href="/workbench"');
+    expect(markup).toContain('href="/grid-3d"');
     expect(markup).toContain('href="/website"');
+    expect(markup.split('aria-current="page"')).toHaveLength(2);
+  });
+
+  test("marks the 3D grid as a first-class editor route", () => {
+    const markup = renderToStaticMarkup(<EditorNavigation current="grid-3d" />);
+    const gridLink = markup.match(/<a[^>]*href="\/grid-3d"[^>]*>/)?.[0];
+
+    expect(gridLink).toBeDefined();
+    expect(gridLink).toContain('aria-current="page"');
     expect(markup.split('aria-current="page"')).toHaveLength(2);
   });
 
