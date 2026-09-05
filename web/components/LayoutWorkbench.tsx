@@ -1,18 +1,22 @@
 "use client";
 
-import {CSSProperties, useEffect, useMemo, useRef, useState} from "react";
+import {Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent} from "react";
 import {
-  addWorkbenchItem,
+  addWorkbenchChild,
   applyWorkbenchPreset,
   createWorkbenchState,
-  moveWorkbenchItem,
+  findWorkbenchItem,
+  itemIdForOrdinal,
+  moveWorkbenchNode,
   removeWorkbenchItem,
+  type WorkbenchItem,
   type WorkbenchItemId,
   type WorkbenchLayout,
-  type WorkbenchMoveDirection,
+  type WorkbenchParentId,
   type WorkbenchPreset,
   type WorkbenchState,
   updateWorkbenchItem,
+  visibleWorkbenchItems,
 } from "@/lib/layout-workbench-model";
 
 type Selection = "layout" | WorkbenchItemId;
@@ -102,103 +106,6 @@ function updateLayout(state: WorkbenchState, patch: Partial<WorkbenchLayout>): W
   return {...state, layout: {...state.layout, ...patch}};
 }
 
-function WorkbenchTree({
-  selection,
-  state,
-  onSelect,
-  onAdd,
-  onDelete,
-  onMove,
-  onToggleVisibility,
-}: {
-  selection: Selection;
-  state: WorkbenchState;
-  onSelect: (selection: Selection) => void;
-  onAdd: () => void;
-  onDelete: (id: WorkbenchItemId) => void;
-  onMove: (id: WorkbenchItemId, direction: WorkbenchMoveDirection) => void;
-  onToggleVisibility: (id: WorkbenchItemId, visible: boolean) => void;
-}) {
-  return (
-    <>
-      <div className="workbench-panel-heading">
-        <span>Objects</span>
-        <button type="button" className="workbench-add-object" onClick={onAdd}>+ Add object</button>
-      </div>
-      <div className="workbench-tree" role="tree" aria-label="Object tree">
-        <button
-          type="button"
-          role="treeitem"
-          aria-selected={selection === "layout"}
-          className={`workbench-tree-root ${selection === "layout" ? "is-selected" : ""}`}
-          onClick={() => onSelect("layout")}
-        >
-          <span className="tree-disclosure" aria-hidden="true">⌄</span>
-          <span className="tree-icon" aria-hidden="true">▦</span>
-          <span className="tree-label"><strong>Layout root</strong><small>{state.layout.mode}</small></span>
-        </button>
-        <div className="tree-children" role="group">
-          {state.items.map((item, index) => (
-            <div
-              key={item.id}
-              role="treeitem"
-              aria-selected={selection === item.id}
-              className={`tree-row ${selection === item.id ? "is-selected" : ""} ${item.visible ? "" : "is-hidden"}`}
-            >
-              <input
-                className="tree-visibility"
-                type="checkbox"
-                checked={item.visible}
-                aria-label={`${item.visible ? "Hide" : "Show"} ${item.id} · ${item.name}`}
-                onChange={(event) => onToggleVisibility(item.id, event.target.checked)}
-              />
-              <button
-                type="button"
-                className="tree-select"
-                aria-label={`Edit ${item.id} · ${item.name}`}
-                onClick={() => onSelect(item.id)}
-              >
-                <span className="tree-label">
-                  <strong>{item.id} · {item.name}</strong>
-                  <small>{state.layout.mode === "flex" ? `grow ${item.grow}` : `span ${item.gridSpan}`}</small>
-                </span>
-              </button>
-              <div className="tree-actions" aria-label={`Actions for ${item.id} · ${item.name}`}>
-                <button
-                  type="button"
-                  className="tree-action"
-                  aria-label={`Move ${item.id} up`}
-                  disabled={index === 0}
-                  onClick={() => onMove(item.id, "up")}
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  className="tree-action"
-                  aria-label={`Move ${item.id} down`}
-                  disabled={index === state.items.length - 1}
-                  onClick={() => onMove(item.id, "down")}
-                >
-                  ↓
-                </button>
-                <button
-                  type="button"
-                  className="tree-action tree-delete"
-                  aria-label={`Delete ${item.id} · ${item.name}`}
-                  onClick={() => onDelete(item.id)}
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </>
-  );
-}
-
 function InspectorHeading({title, subtitle}: {title: string; subtitle: string}) {
   return (
     <div className="workbench-inspector-heading">
@@ -273,19 +180,19 @@ function LayoutControls({state, setState}: {
   );
 }
 
-function ItemControls({id, state, setState}: {
-  id: WorkbenchItemId;
+function ItemControls({item, state, setState}: {
+  item: WorkbenchItem;
   state: WorkbenchState;
   setState: (state: WorkbenchState) => void;
 }) {
-  const item = state.items.find((candidate) => candidate.id === id);
-  if (!item) return <p className="workbench-empty-inspector">Select an object to edit its constraints.</p>;
-
-  const update = (patch: Parameters<typeof updateWorkbenchItem>[2]) => setState(updateWorkbenchItem(state, id, patch));
+  const update = (patch: Parameters<typeof updateWorkbenchItem>[2]) => setState(updateWorkbenchItem(state, item.id, patch));
 
   return (
     <div className="workbench-inspector-fields">
-      <InspectorHeading title={`${item.id} · ${item.name}`} subtitle={item.visible ? "Visible object" : "Hidden object"} />
+      <InspectorHeading
+        title={`${item.id} · ${item.name}`}
+        subtitle={`${item.visible ? "Visible" : "Hidden"} object${item.children.length > 0 ? ` · ${item.children.length} ${item.children.length === 1 ? "child" : "children"}` : ""}`}
+      />
       {state.layout.mode === "flex" ? (
         <>
           <RangeControl label="flex-grow" value={item.grow} min={0} max={8} onCommit={(grow) => update({grow})} />
@@ -308,19 +215,252 @@ function ItemControls({id, state, setState}: {
   );
 }
 
+function itemMetricLabel(item: WorkbenchItem, mode: WorkbenchLayout["mode"]) {
+  return mode === "flex" ? `grow ${item.grow}` : `span ${item.gridSpan}`;
+}
+
+function TreeDropZone({
+  active,
+  onDrop,
+}: {
+  active: boolean;
+  onDrop: (event: DragEvent<HTMLDivElement>) => void;
+}) {
+  return (
+    <div
+      className={`tree-drop-zone ${active ? "is-active" : ""}`}
+      aria-hidden="true"
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+      }}
+      onDrop={onDrop}
+    >
+      <span />
+    </div>
+  );
+}
+
+function TreeBranch({
+  items,
+  parentId,
+  depth,
+  selection,
+  layoutMode,
+  draggedId,
+  onSelect,
+  onDelete,
+  onMove,
+  onToggleVisibility,
+  onDragStart,
+  onDragEnd,
+}: {
+  items: WorkbenchItem[];
+  parentId: WorkbenchParentId;
+  depth: number;
+  selection: Selection;
+  layoutMode: WorkbenchLayout["mode"];
+  draggedId: WorkbenchItemId | null;
+  onSelect: (selection: Selection) => void;
+  onDelete: (id: WorkbenchItemId) => void;
+  onMove: (id: WorkbenchItemId, parentId: WorkbenchParentId, index: number) => void;
+  onToggleVisibility: (id: WorkbenchItemId, visible: boolean) => void;
+  onDragStart: (id: WorkbenchItemId) => void;
+  onDragEnd: () => void;
+}) {
+  return (
+    <div className="tree-branch" role="group">
+      {items.map((item, index) => (
+        <Fragment key={item.id}>
+          <TreeDropZone
+            active={draggedId !== null}
+            onDrop={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              if (draggedId) onMove(draggedId, parentId, index);
+              onDragEnd();
+            }}
+          />
+          <div
+            className={`tree-row ${selection === item.id ? "is-selected" : ""} ${item.visible ? "" : "is-hidden"}`}
+            style={{paddingLeft: `${depth * 0.72}rem`}}
+          >
+            <input
+              className="tree-visibility"
+              type="checkbox"
+              checked={item.visible}
+              aria-label={`${item.visible ? "Hide" : "Show"} ${item.id} · ${item.name}`}
+              onChange={(event) => onToggleVisibility(item.id, event.target.checked)}
+            />
+            <button
+              type="button"
+              role="treeitem"
+              aria-selected={selection === item.id}
+              className="tree-select"
+              draggable
+              title="Drag to reorder. Drop on another object to make it a child."
+              onClick={() => onSelect(item.id)}
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", item.id);
+                onDragStart(item.id);
+              }}
+              onDragEnd={onDragEnd}
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (draggedId) onMove(draggedId, item.id, item.children.length);
+                onDragEnd();
+              }}
+            >
+              <span className="tree-drag-handle" aria-hidden="true">⋮⋮</span>
+              <span className="tree-label">
+                <strong>{item.id} · {item.name}</strong>
+                <small>
+                  {itemMetricLabel(item, layoutMode)}
+                  {item.children.length > 0 ? ` · ${item.children.length} ${item.children.length === 1 ? "child" : "children"}` : ""}
+                </small>
+              </span>
+            </button>
+            <div className="tree-actions" aria-label={`Actions for ${item.id} · ${item.name}`}>
+              <button
+                type="button"
+                className="tree-action tree-delete"
+                aria-label={`Delete ${item.id} · ${item.name}`}
+                onClick={() => onDelete(item.id)}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          {item.children.length > 0 ? (
+            <TreeBranch
+              items={item.children}
+              parentId={item.id}
+              depth={depth + 1}
+              selection={selection}
+              layoutMode={layoutMode}
+              draggedId={draggedId}
+              onSelect={onSelect}
+              onDelete={onDelete}
+              onMove={onMove}
+              onToggleVisibility={onToggleVisibility}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+            />
+          ) : null}
+        </Fragment>
+      ))}
+      <TreeDropZone
+        active={draggedId !== null}
+        onDrop={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (draggedId) onMove(draggedId, parentId, items.length);
+          onDragEnd();
+        }}
+      />
+    </div>
+  );
+}
+
 function measuredLabel(geometry: ItemGeometry[], id: WorkbenchItemId) {
   const item = geometry.find((candidate) => candidate.id === id);
   return item ? `${item.width}px` : "—";
+}
+
+function layoutContainerStyle(state: WorkbenchState): CSSProperties {
+  return state.layout.mode === "flex"
+    ? {
+        display: "flex",
+        flexDirection: state.layout.direction,
+        justifyContent: state.layout.justify,
+        alignItems: state.layout.align,
+        flexWrap: state.layout.wrap ? "wrap" : "nowrap",
+        gap: state.layout.gap,
+      }
+    : {
+        display: "grid",
+        gridTemplateColumns: `repeat(${state.layout.columns}, minmax(0, 1fr))`,
+        alignItems: state.layout.align,
+        gap: state.layout.gap,
+      };
+}
+
+function renderWorkbenchItems({
+  items,
+  selection,
+  state,
+  geometry,
+  onSelect,
+}: {
+  items: WorkbenchItem[];
+  selection: Selection;
+  state: WorkbenchState;
+  geometry: ItemGeometry[];
+  onSelect: (selection: Selection) => void;
+}) {
+  return items.filter((item) => item.visible).map((item) => {
+    const style: CSSProperties = state.layout.mode === "flex"
+      ? {
+          flex: `${item.grow} ${item.shrink} ${item.basis}px`,
+          minWidth: item.minWidth,
+          maxWidth: item.maxWidth,
+        }
+      : {
+          gridColumn: `span ${Math.min(item.gridSpan, state.layout.columns)}`,
+        };
+
+    if (state.view === "3d") style.transform = `translateZ(${item.depth}px)`;
+
+    const hasVisibleChildren = item.children.some((child) => child.visible);
+
+    return (
+      <article
+        key={item.id}
+        data-workbench-item={item.id}
+        className={`workbench-object object-${item.id.toLowerCase()} ${selection === item.id ? "is-selected" : ""} ${hasVisibleChildren ? "has-children" : ""}`}
+        style={style}
+      >
+        <button
+          type="button"
+          className="workbench-object-select"
+          aria-pressed={selection === item.id}
+          onClick={() => onSelect(item.id)}
+        >
+          <span className="object-id">{item.id}</span>
+          <strong>{item.name}</strong>
+          <small>{itemMetricLabel(item, state.layout.mode)} · {measuredLabel(geometry, item.id)}</small>
+          {state.view === "3d" ? <em>{item.depth > 0 ? "+" : ""}{item.depth}px Z</em> : null}
+        </button>
+        {hasVisibleChildren ? (
+          <div className="workbench-object-children" style={layoutContainerStyle(state)}>
+            {renderWorkbenchItems({items: item.children, selection, state, geometry, onSelect})}
+          </div>
+        ) : null}
+      </article>
+    );
+  });
 }
 
 export function LayoutWorkbench() {
   const [state, setState] = useState<WorkbenchState>(() => createWorkbenchState());
   const [selection, setSelection] = useState<Selection>("layout");
   const [geometry, setGeometry] = useState<ItemGeometry[]>([]);
+  const [draggedId, setDraggedId] = useState<WorkbenchItemId | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
 
   const refreshKey = useMemo(() => JSON.stringify(state), [state]);
-  const visibleItems = state.items.filter((item) => item.visible);
+  const selectedItem = selection === "layout" ? null : findWorkbenchItem(state.items, selection);
+  const visibleItems = visibleWorkbenchItems(state.items);
+
+  useEffect(() => {
+    if (selection !== "layout" && !findWorkbenchItem(state.items, selection)) setSelection("layout");
+  }, [selection, state.items]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -342,22 +482,6 @@ export function LayoutWorkbench() {
     return () => observer.disconnect();
   }, [refreshKey]);
 
-  const containerStyle: CSSProperties = state.layout.mode === "flex"
-    ? {
-        display: "flex",
-        flexDirection: state.layout.direction,
-        justifyContent: state.layout.justify,
-        alignItems: state.layout.align,
-        flexWrap: state.layout.wrap ? "wrap" : "nowrap",
-        gap: state.layout.gap,
-      }
-    : {
-        display: "grid",
-        gridTemplateColumns: `repeat(${state.layout.columns}, minmax(0, 1fr))`,
-        alignItems: state.layout.align,
-        gap: state.layout.gap,
-      };
-
   const applyPreset = (preset: WorkbenchPreset) => {
     setState(applyWorkbenchPreset(preset, state.view));
     setSelection(preset === "equal" ? "layout" : "B");
@@ -366,32 +490,28 @@ export function LayoutWorkbench() {
   const reset = () => {
     setState(createWorkbenchState());
     setSelection("layout");
+    setDraggedId(null);
   };
 
-  const addItem = () => {
-    const next = addWorkbenchItem(state);
-    const added = next.items.at(-1);
+  const addChild = () => {
+    const parentId: WorkbenchParentId = selection;
+    const addedId = itemIdForOrdinal(state.nextItemOrdinal);
+    const next = addWorkbenchChild(state, parentId);
+    if (next === state) return;
     setState(next);
-    if (added) setSelection(added.id);
+    setSelection(addedId);
   };
 
   const deleteItem = (id: WorkbenchItemId) => {
-    const index = state.items.findIndex((item) => item.id === id);
-    const next = removeWorkbenchItem(state, id);
-    setState(next);
-
-    if (selection === id) {
-      const fallback = next.items[Math.min(Math.max(index, 0), Math.max(0, next.items.length - 1))];
-      setSelection(fallback?.id ?? "layout");
-    }
+    setState((current) => removeWorkbenchItem(current, id));
   };
 
-  const moveItem = (id: WorkbenchItemId, direction: WorkbenchMoveDirection) => {
-    setState(moveWorkbenchItem(state, id, direction));
+  const moveItem = (id: WorkbenchItemId, parentId: WorkbenchParentId, index: number) => {
+    setState((current) => moveWorkbenchNode(current, id, parentId, index));
   };
 
   const toggleVisibility = (id: WorkbenchItemId, visible: boolean) => {
-    setState(updateWorkbenchItem(state, id, {visible}));
+    setState((current) => updateWorkbenchItem(current, id, {visible}));
   };
 
   return (
@@ -401,7 +521,7 @@ export function LayoutWorkbench() {
           <div className="eyebrow">interactive editor</div>
           <h2 id="workbench-title">Object tree → constraints → live geometry</h2>
           <p>
-            Build and reorder the object tree on the left, select any node, then edit its constraints in the inspector on the right. Slider changes are previewed in the control and committed only when the interaction ends.
+            Select a node, add children beneath it, or drag nodes between positions and parents in the tree. Edit the selected node in the inspector on the right; slider changes commit only when the interaction ends.
           </p>
         </div>
         <div className="workbench-view-switch" aria-label="Viewport mode">
@@ -429,15 +549,50 @@ export function LayoutWorkbench() {
 
       <div className="workbench-shell">
         <aside className="workbench-sidebar" aria-label="Object tree">
-          <WorkbenchTree
-            selection={selection}
-            state={state}
-            onSelect={setSelection}
-            onAdd={addItem}
-            onDelete={deleteItem}
-            onMove={moveItem}
-            onToggleVisibility={toggleVisibility}
-          />
+          <div className="workbench-panel-heading">
+            <span>Objects</span>
+            <button type="button" className="workbench-add-object" onClick={addChild}>+ Add child</button>
+          </div>
+          <div className="workbench-tree" role="tree" aria-label="Object tree">
+            <div
+              className={`tree-row workbench-tree-root ${selection === "layout" ? "is-selected" : ""}`}
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                if (draggedId) moveItem(draggedId, "layout", state.items.length);
+                setDraggedId(null);
+              }}
+            >
+              <span className="tree-root-spacer" aria-hidden="true">⌄</span>
+              <button
+                type="button"
+                role="treeitem"
+                aria-selected={selection === "layout"}
+                className="tree-select"
+                onClick={() => setSelection("layout")}
+              >
+                <span className="tree-drag-handle" aria-hidden="true">▦</span>
+                <span className="tree-label"><strong>Layout root</strong><small>{state.layout.mode}</small></span>
+              </button>
+            </div>
+            <TreeBranch
+              items={state.items}
+              parentId="layout"
+              depth={1}
+              selection={selection}
+              layoutMode={state.layout.mode}
+              draggedId={draggedId}
+              onSelect={setSelection}
+              onDelete={deleteItem}
+              onMove={moveItem}
+              onToggleVisibility={toggleVisibility}
+              onDragStart={setDraggedId}
+              onDragEnd={() => setDraggedId(null)}
+            />
+          </div>
         </aside>
 
         <div className="workbench-main">
@@ -457,7 +612,7 @@ export function LayoutWorkbench() {
               ref={stageRef}
               className={`workbench-layout-plane ${selection === "layout" ? "is-selected" : ""}`}
               style={{
-                ...containerStyle,
+                ...layoutContainerStyle(state),
                 transform: state.view === "3d" ? "rotateX(52deg) rotateZ(-24deg)" : undefined,
                 transformStyle: state.view === "3d" ? "preserve-3d" : undefined,
               }}
@@ -470,82 +625,36 @@ export function LayoutWorkbench() {
               >
                 root · {state.layout.mode}
               </button>
-
-              {visibleItems.map((item) => {
-                const style: CSSProperties = state.layout.mode === "flex"
-                  ? {
-                      flex: `${item.grow} ${item.shrink} ${item.basis}px`,
-                      minWidth: item.minWidth,
-                      maxWidth: item.maxWidth,
-                    }
-                  : {
-                      gridColumn: `span ${Math.min(item.gridSpan, state.layout.columns)}`,
-                    };
-
-                if (state.view === "3d") style.transform = `translateZ(${item.depth}px)`;
-
-                return (
-                  <article
-                    key={item.id}
-                    data-workbench-item={item.id}
-                    className={`workbench-object object-${item.id.toLowerCase()} ${selection === item.id ? "is-selected" : ""}`}
-                    style={style}
-                  >
-                    <button
-                      type="button"
-                      className="workbench-object-select"
-                      aria-pressed={selection === item.id}
-                      onClick={() => setSelection(item.id)}
-                    >
-                      <span className="object-id">{item.id}</span>
-                      <strong>{item.name}</strong>
-                      <small>{state.layout.mode === "flex" ? `grow ${item.grow} · ${measuredLabel(geometry, item.id)}` : `span ${item.gridSpan} · ${measuredLabel(geometry, item.id)}`}</small>
-                      {state.view === "3d" ? <em>{item.depth > 0 ? "+" : ""}{item.depth}px Z</em> : null}
-                    </button>
-                  </article>
-                );
-              })}
+              {renderWorkbenchItems({items: state.items, selection, state, geometry, onSelect: setSelection})}
             </div>
           </div>
 
           <div className="workbench-readout" aria-live="polite">
-            {visibleItems.length > 0 ? visibleItems.map((item) => {
+            {visibleItems.length === 0 ? <div className="workbench-readout-empty">All objects are hidden. Re-enable a node from the tree.</div> : null}
+            {visibleItems.map((item) => {
               const measured = geometry.find((candidate) => candidate.id === item.id);
               return (
                 <div key={item.id} className={selection === item.id ? "is-selected" : ""}>
                   <span>{item.id}</span>
                   <strong>{measured ? `${measured.width} × ${measured.height}px` : "measuring…"}</strong>
-                  <small>{state.layout.mode === "flex" ? `grow ${item.grow} / max ${item.maxWidth}px` : `span ${item.gridSpan}`}</small>
+                  <small>{itemMetricLabel(item, state.layout.mode)} / max {item.maxWidth}px</small>
                 </div>
               );
-            }) : (
-              <div className="workbench-readout-empty">All objects are hidden. Use the tree checkboxes to show one again.</div>
-            )}
+            })}
           </div>
         </div>
 
         <aside className="workbench-inspector" aria-label="Edit inspector">
-          <div className="workbench-inspector-tabs" role="tablist" aria-label="Inspector tabs">
-            <button
-              id="workbench-edit-tab"
-              type="button"
-              role="tab"
-              aria-selected="true"
-              aria-controls="workbench-edit-panel"
-            >
-              Edit
-            </button>
+          <div className="workbench-inspector-tabs">
+            <button type="button" aria-current="page">Edit</button>
           </div>
-          <div
-            id="workbench-edit-panel"
-            className="workbench-inspector-body"
-            role="tabpanel"
-            aria-labelledby="workbench-edit-tab"
-          >
+          <div className="workbench-inspector-body">
             {selection === "layout" ? (
               <LayoutControls state={state} setState={setState} />
+            ) : selectedItem ? (
+              <ItemControls item={selectedItem} state={state} setState={setState} />
             ) : (
-              <ItemControls id={selection} state={state} setState={setState} />
+              <p className="workbench-empty-inspector">Select an object to edit its constraints.</p>
             )}
           </div>
         </aside>
