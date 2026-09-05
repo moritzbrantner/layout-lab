@@ -1,7 +1,7 @@
 "use client";
 
 import {useEffect, useRef, useState} from "react";
-import type {Grid3DDefinition, ResolvedGrid3DScene} from "@/lib/grid-3d-model";
+import type {Grid3DDefinition, ResolvedGrid3DBox, ResolvedGrid3DScene} from "@/lib/grid-3d-model";
 import {
   grid3DThreeLoaderPath,
   normalizeGrid3DView,
@@ -23,8 +23,11 @@ type Runtime = {
   camera: any;
   renderer: any;
   world: any;
+  floor: any | null;
   boxMeshes: any[];
   resizeObserver: ResizeObserver;
+  animationFrame: number | null;
+  reduceMotion: boolean;
   render: () => void;
 };
 
@@ -105,12 +108,19 @@ function disposeObject(object: any) {
   });
 }
 
+function removeWorldObject(runtime: Runtime, object: any) {
+  runtime.world.remove(object);
+  disposeObject(object);
+}
+
 function clearWorld(runtime: Runtime) {
+  if (runtime.animationFrame !== null) {
+    cancelAnimationFrame(runtime.animationFrame);
+    runtime.animationFrame = null;
+  }
   const children = [...runtime.world.children];
-  children.forEach((child) => {
-    runtime.world.remove(child);
-    disposeObject(child);
-  });
+  children.forEach((child) => removeWorldObject(runtime, child));
+  runtime.floor = null;
   runtime.boxMeshes = [];
 }
 
@@ -135,19 +145,20 @@ function setCamera(runtime: Runtime, scene: ResolvedGrid3DScene, view: Grid3DVie
   runtime.render();
 }
 
-function buildWorld(
+function replaceFloor(
   runtime: Runtime,
   host: HTMLElement,
   definition: Grid3DDefinition,
   resolved: ResolvedGrid3DScene,
-  selectedId: string,
 ) {
-  clearWorld(runtime);
   const {THREE} = runtime;
+  if (runtime.floor) {
+    removeWorldObject(runtime, runtime.floor);
+  }
+
   const centerX = resolved.width / 2;
   const centerZ = resolved.depth / 2;
   const muted = readThemeColor(host, "--muted", "#aab3c4");
-  const accent = readThemeColor(host, "--accent", "#85a7ff");
   const floorMaterial = new THREE.LineBasicMaterial({color: muted, transparent: true, opacity: 0.34});
   const floorGeometry = new THREE.BufferGeometry();
   const floorPoints: any[] = [];
@@ -165,41 +176,137 @@ function buildWorld(
     );
   });
   floorGeometry.setFromPoints(floorPoints);
-  runtime.world.add(new THREE.LineSegments(floorGeometry, floorMaterial));
+  runtime.floor = new THREE.LineSegments(floorGeometry, floorMaterial);
+  runtime.world.add(runtime.floor);
+}
+
+function createBoxMesh(runtime: Runtime, host: HTMLElement, box: ResolvedGrid3DBox, index: number) {
+  const {THREE} = runtime;
+  const muted = readThemeColor(host, "--muted", "#aab3c4");
+  const color = readThemeColor(host, SERIES_VARS[index % SERIES_VARS.length], "#8eb9ff");
+  const geometry = new THREE.BoxGeometry(1, 1, 1);
+  const material = new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.7,
+    metalness: 0,
+    transparent: true,
+    opacity: 0.72,
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.userData.boxId = box.id;
+
+  const edgeGeometry = new THREE.EdgesGeometry(geometry);
+  const edgeMaterial = new THREE.LineBasicMaterial({color: muted, transparent: true, opacity: 0.72});
+  const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+  edges.userData.grid3dEdges = true;
+  mesh.add(edges);
+  runtime.world.add(mesh);
+  return mesh;
+}
+
+function updateBoxAppearance(
+  runtime: Runtime,
+  host: HTMLElement,
+  mesh: any,
+  index: number,
+  selected: boolean,
+) {
+  const color = readThemeColor(host, SERIES_VARS[index % SERIES_VARS.length], "#8eb9ff");
+  const muted = readThemeColor(host, "--muted", "#aab3c4");
+  const accent = readThemeColor(host, "--accent", "#85a7ff");
+  mesh.material.color.set(color);
+  mesh.material.opacity = selected ? 0.9 : 0.72;
+  mesh.material.emissive.set(selected ? accent : "#000000");
+  mesh.material.emissiveIntensity = selected ? 0.18 : 0;
+
+  const edges = mesh.children.find((child: any) => child.userData?.grid3dEdges);
+  if (edges?.material) {
+    edges.material.color.set(selected ? accent : muted);
+    edges.material.opacity = selected ? 1 : 0.72;
+  }
+}
+
+function scheduleBoxAnimation(runtime: Runtime) {
+  if (runtime.reduceMotion) {
+    runtime.boxMeshes.forEach((mesh) => {
+      mesh.position.copy(mesh.userData.targetPosition);
+      mesh.scale.copy(mesh.userData.targetScale);
+    });
+    runtime.render();
+    return;
+  }
+  if (runtime.animationFrame !== null) return;
+
+  const tick = () => {
+    let moving = false;
+    runtime.boxMeshes.forEach((mesh) => {
+      const targetPosition = mesh.userData.targetPosition;
+      const targetScale = mesh.userData.targetScale;
+      const positionDistance = mesh.position.distanceTo(targetPosition);
+      const scaleDistance = mesh.scale.distanceTo(targetScale);
+
+      if (positionDistance > 0.002) {
+        mesh.position.lerp(targetPosition, 0.24);
+        moving = true;
+      } else {
+        mesh.position.copy(targetPosition);
+      }
+      if (scaleDistance > 0.002) {
+        mesh.scale.lerp(targetScale, 0.24);
+        moving = true;
+      } else {
+        mesh.scale.copy(targetScale);
+      }
+    });
+
+    runtime.render();
+    runtime.animationFrame = moving ? requestAnimationFrame(tick) : null;
+  };
+
+  runtime.animationFrame = requestAnimationFrame(tick);
+}
+
+function buildWorld(
+  runtime: Runtime,
+  host: HTMLElement,
+  definition: Grid3DDefinition,
+  resolved: ResolvedGrid3DScene,
+  selectedId: string,
+) {
+  replaceFloor(runtime, host, definition, resolved);
+  const {THREE} = runtime;
+  const centerX = resolved.width / 2;
+  const centerZ = resolved.depth / 2;
+  const existing = new Map(runtime.boxMeshes.map((mesh) => [mesh.userData.boxId, mesh]));
+  const nextMeshes: any[] = [];
 
   resolved.boxes.forEach((box, index) => {
-    const selected = box.id === selectedId;
-    const color = readThemeColor(host, SERIES_VARS[index % SERIES_VARS.length], "#8eb9ff");
-    const geometry = new THREE.BoxGeometry(box.width, box.height, box.depth);
-    const material = new THREE.MeshStandardMaterial({
-      color,
-      roughness: 0.7,
-      metalness: 0,
-      transparent: true,
-      opacity: selected ? 0.9 : 0.72,
-      emissive: selected ? accent : "#000000",
-      emissiveIntensity: selected ? 0.18 : 0,
-    });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(
+    let mesh = existing.get(box.id);
+    const isNew = !mesh;
+    if (!mesh) {
+      mesh = createBoxMesh(runtime, host, box, index);
+    }
+    existing.delete(box.id);
+    updateBoxAppearance(runtime, host, mesh, index, box.id === selectedId);
+
+    const targetPosition = new THREE.Vector3(
       box.x + box.width / 2 - centerX,
       box.y + box.height / 2,
       box.z + box.depth / 2 - centerZ,
     );
-    mesh.userData.boxId = box.id;
-
-    const edgeGeometry = new THREE.EdgesGeometry(geometry);
-    const edgeMaterial = new THREE.LineBasicMaterial({
-      color: selected ? accent : muted,
-      transparent: true,
-      opacity: selected ? 1 : 0.72,
-    });
-    mesh.add(new THREE.LineSegments(edgeGeometry, edgeMaterial));
-    runtime.world.add(mesh);
-    runtime.boxMeshes.push(mesh);
+    const targetScale = new THREE.Vector3(box.width, box.height, box.depth);
+    mesh.userData.targetPosition = targetPosition;
+    mesh.userData.targetScale = targetScale;
+    if (isNew) {
+      mesh.position.copy(targetPosition);
+      mesh.scale.copy(targetScale);
+    }
+    nextMeshes.push(mesh);
   });
 
-  runtime.render();
+  existing.forEach((mesh) => removeWorldObject(runtime, mesh));
+  runtime.boxMeshes = nextMeshes;
+  scheduleBoxAnimation(runtime);
 }
 
 export function Grid3DThreeViewer({
@@ -265,8 +372,11 @@ export function Grid3DThreeViewer({
           camera,
           renderer,
           world,
+          floor: null,
           boxMeshes: [],
           resizeObserver: null as unknown as ResizeObserver,
+          animationFrame: null,
+          reduceMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
           render: () => renderer.render(threeScene, camera),
         };
         runtimeRef.current = runtime;
@@ -342,7 +452,7 @@ export function Grid3DThreeViewer({
         };
 
         setStatus("ready");
-        setMessage("Drag to orbit. Select boxes by clicking or use the inspector control.");
+        setMessage("Drag to orbit. Live layout controls animate resolved boxes into their new geometry.");
       } catch (cause) {
         setStatus("error");
         setMessage(cause instanceof Error ? cause.message : "WebGL renderer initialization failed.");
