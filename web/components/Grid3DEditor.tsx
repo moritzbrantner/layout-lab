@@ -1,6 +1,7 @@
 "use client";
 
 import {useMemo, useState} from "react";
+import {Grid3DThreeViewer} from "@/components/Grid3DThreeViewer";
 import {
   HOUSE_GRID_3D_SOURCE,
   parseGrid3DSource,
@@ -9,6 +10,12 @@ import {
   type ResolvedGrid3DBox,
   type ResolvedGrid3DScene,
 } from "@/lib/grid-3d-model";
+import {
+  DEFAULT_GRID3D_VIEW,
+  normalizeGrid3DView,
+  type Grid3DRendererMode,
+  type Grid3DView,
+} from "@/lib/grid-3d-renderer";
 
 type Point3D = {x: number; y: number; z: number};
 type ProjectedPoint = {x: number; y: number; depth: number};
@@ -187,24 +194,28 @@ export function Grid3DEditor() {
   const [definition, setDefinition] = useState<Grid3DDefinition>(INITIAL_DEFINITION);
   const [scene, setScene] = useState<ResolvedGrid3DScene>(INITIAL_SCENE);
   const [selectedId, setSelectedId] = useState<string>(INITIAL_SCENE.boxes[0]?.id ?? "");
-  const [yaw, setYaw] = useState(-38);
-  const [pitch, setPitch] = useState(28);
+  const [rendererMode, setRendererMode] = useState<Grid3DRendererMode>("three");
+  const [view, setView] = useState<Grid3DView>(DEFAULT_GRID3D_VIEW);
   const [error, setError] = useState<string | null>(null);
-  const scale = sceneScale(scene);
+  const scale = sceneScale(scene) * view.zoom / 100;
 
   const faces = useMemo(
-    () => projectedFaces(scene, yaw, pitch, scale),
-    [scene, yaw, pitch, scale],
+    () => projectedFaces(scene, view.yaw, view.pitch, scale),
+    [scene, view.yaw, view.pitch, scale],
   );
   const gridLines = useMemo(
-    () => projectedGridLines(definition, scene, yaw, pitch, scale),
-    [definition, scene, yaw, pitch, scale],
+    () => projectedGridLines(definition, scene, view.yaw, view.pitch, scale),
+    [definition, scene, view.yaw, view.pitch, scale],
   );
   const labels = useMemo(
-    () => scene.boxes.map((box) => ({box, point: boxLabelPoint(box, scene, yaw, pitch, scale)})),
-    [scene, yaw, pitch, scale],
+    () => scene.boxes.map((box) => ({box, point: boxLabelPoint(box, scene, view.yaw, view.pitch, scale)})),
+    [scene, view.yaw, view.pitch, scale],
   );
   const selected = scene.boxes.find((box) => box.id === selectedId) ?? null;
+
+  function updateView(patch: Partial<Grid3DView>) {
+    setView((current) => normalizeGrid3DView({...current, ...patch}));
+  }
 
   function applySource() {
     try {
@@ -226,6 +237,7 @@ export function Grid3DEditor() {
     setDefinition(INITIAL_DEFINITION);
     setScene(INITIAL_SCENE);
     setSelectedId(INITIAL_SCENE.boxes[0]?.id ?? "");
+    setView(DEFAULT_GRID3D_VIEW);
     setError(null);
   }
 
@@ -259,34 +271,61 @@ export function Grid3DEditor() {
         </div>
 
         <p className="grid3d-source-note">
-          MVP syntax supports numeric tracks, one or three gap values, and CSS Grid-style line or span placement.
-          The layout model owns geometry; this source does not depend on the renderer.
+          Layout resolution remains renderer-independent. Three.js receives only the resolved boxes and track geometry;
+          the built-in SVG projection remains available as a deterministic fallback.
         </p>
       </div>
 
       <div className="grid3d-viewer-panel">
         <div className="grid3d-viewer-toolbar">
+          <div className="grid3d-renderer-switch" role="group" aria-label="3D renderer">
+            <button
+              type="button"
+              aria-pressed={rendererMode === "three"}
+              onClick={() => setRendererMode("three")}
+            >
+              Three.js
+            </button>
+            <button
+              type="button"
+              aria-pressed={rendererMode === "svg"}
+              onClick={() => setRendererMode("svg")}
+            >
+              SVG
+            </button>
+          </div>
           <label>
             <span>Yaw</span>
             <input
               type="range"
-              min="-80"
-              max="80"
-              value={yaw}
-              onChange={(event) => setYaw(Number(event.target.value))}
+              min="-180"
+              max="180"
+              value={view.yaw}
+              onChange={(event) => updateView({yaw: Number(event.target.value)})}
             />
-            <output>{yaw}°</output>
+            <output>{Math.round(view.yaw)}°</output>
           </label>
           <label>
             <span>Pitch</span>
             <input
               type="range"
               min="5"
-              max="70"
-              value={pitch}
-              onChange={(event) => setPitch(Number(event.target.value))}
+              max="85"
+              value={view.pitch}
+              onChange={(event) => updateView({pitch: Number(event.target.value)})}
             />
-            <output>{pitch}°</output>
+            <output>{Math.round(view.pitch)}°</output>
+          </label>
+          <label>
+            <span>Zoom</span>
+            <input
+              type="range"
+              min="45"
+              max="180"
+              value={view.zoom}
+              onChange={(event) => updateView({zoom: Number(event.target.value)})}
+            />
+            <output>{Math.round(view.zoom)}%</output>
           </label>
           <label className="grid3d-object-select">
             <span>Inspect box</span>
@@ -296,38 +335,49 @@ export function Grid3DEditor() {
           </label>
         </div>
 
-        <div className="grid3d-viewport">
-          <svg viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`} role="img" aria-label="Resolved three-dimensional grid layout">
-            <g className="grid3d-floor-grid" aria-hidden="true">
-              {gridLines.map((line) => (
-                <line
-                  key={line.key}
-                  x1={line.start.x}
-                  y1={line.start.y}
-                  x2={line.end.x}
-                  y2={line.end.y}
-                />
-              ))}
-            </g>
+        <div className="grid3d-viewport" data-renderer={rendererMode}>
+          {rendererMode === "three" ? (
+            <Grid3DThreeViewer
+              definition={definition}
+              scene={scene}
+              selectedId={selectedId}
+              view={view}
+              onSelect={setSelectedId}
+              onViewChange={setView}
+            />
+          ) : (
+            <svg viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`} role="img" aria-label="Resolved three-dimensional grid layout">
+              <g className="grid3d-floor-grid" aria-hidden="true">
+                {gridLines.map((line) => (
+                  <line
+                    key={line.key}
+                    x1={line.start.x}
+                    y1={line.start.y}
+                    x2={line.end.x}
+                    y2={line.end.y}
+                  />
+                ))}
+              </g>
 
-            <g className="grid3d-box-faces">
-              {faces.map((face, index) => (
-                <polygon
-                  key={`${face.boxId}-${index}`}
-                  points={face.points}
-                  fill={face.fill}
-                  className={face.boxId === selectedId ? "is-selected" : undefined}
-                  onClick={() => setSelectedId(face.boxId)}
-                />
-              ))}
-            </g>
+              <g className="grid3d-box-faces">
+                {faces.map((face, index) => (
+                  <polygon
+                    key={`${face.boxId}-${index}`}
+                    points={face.points}
+                    fill={face.fill}
+                    className={face.boxId === selectedId ? "is-selected" : undefined}
+                    onClick={() => setSelectedId(face.boxId)}
+                  />
+                ))}
+              </g>
 
-            <g className="grid3d-labels" aria-hidden="true">
-              {labels.map(({box, point}) => (
-                <text key={box.id} x={point.x} y={point.y - 8}>{box.id}</text>
-              ))}
-            </g>
-          </svg>
+              <g className="grid3d-labels" aria-hidden="true">
+                {labels.map(({box, point}) => (
+                  <text key={box.id} x={point.x} y={point.y - 8}>{box.id}</text>
+                ))}
+              </g>
+            </svg>
+          )}
         </div>
 
         <div className="grid3d-resolved-readout" aria-live="polite">
@@ -336,6 +386,7 @@ export function Grid3DEditor() {
               <strong>{selected.id}</strong>
               <span>position x {format(selected.x)} · y {format(selected.y)} · z {format(selected.z)}</span>
               <span>size {format(selected.width)} × {format(selected.height)} × {format(selected.depth)}</span>
+              <span>renderer {rendererMode === "three" ? "Three.js / WebGL" : "SVG projection"}</span>
             </>
           ) : (
             <span>Add a box to the source to inspect resolved geometry.</span>
