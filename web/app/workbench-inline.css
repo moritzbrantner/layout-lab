@@ -1,4 +1,4 @@
-.workbench-page-shell {
+.editor-page-shell.workbench-page-shell {
   width: min(1540px, calc(100% - 32px));
 }
 
@@ -422,8 +422,8 @@
 }
 
 @media (max-width: 640px) {
-  .workbench-page-shell {
-    width: min(100% - 20px, 1540px);
+  .editor-page-shell.workbench-page-shell {
+    width: min(1540px, calc(100% - 20px));
   }
 
   .tree-row {
