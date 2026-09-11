@@ -2,6 +2,7 @@ import {notFound} from "next/navigation";
 import {CompositingDepth} from "@/components/CompositingDepth";
 import {EditorPageHeader} from "@/components/EditorNavigation";
 import {ExperimentUrlState} from "@/components/ExperimentUrlState";
+import {FlexAutomaticMinimumExperiment} from "@/components/FlexAutomaticMinimumExperiment";
 import {GridDepth} from "@/components/GridDepth";
 import {LayoutLab} from "@/components/LayoutLab";
 import {SizingDepth} from "@/components/SizingDepth";
@@ -15,8 +16,9 @@ export function generateStaticParams() {
   return experiments.map((experiment) => ({id: experiment.id}));
 }
 
-function EditorCollection({collection}: {collection: EditorCollectionName}) {
+function EditorCollection({collection, current}: {collection: EditorCollectionName; current: Experiment["id"]}) {
   if (collection === "foundation") return <LayoutLab />;
+  if (collection === "sizing" && current === "flex-auto-minimum") return <FlexAutomaticMinimumExperiment />;
   if (collection === "sizing") return <SizingDepth />;
   if (collection === "grid") return <GridDepth />;
   if (collection === "three-d") return <ThreeDDepth />;
@@ -38,7 +40,7 @@ export default async function ExperimentPage({params}: {params: Promise<{id: str
         summary={experiment.summary}
       />
       <div className="single-editor-selection" data-editor={experimentId}>
-        <EditorCollection collection={editorCollectionById[experimentId]} />
+        <EditorCollection collection={editorCollectionById[experimentId]} current={experimentId} />
       </div>
       <ExperimentUrlState experimentId={experimentId} />
     </div>
