@@ -1,0 +1,76 @@
+.aspect-overflow-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: -96px auto 0;
+  padding-bottom: 96px;
+}
+
+.aspect-overflow-demos {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+
+.aspect-stage {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-2);
+}
+
+.aspect-demo-box {
+  max-width: 100%;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 800;
+}
+
+.replaced-stage {
+  justify-items: start;
+  overflow-x: auto;
+}
+
+.replaced-demo-image {
+  display: block;
+  max-width: none;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.overflow-demo-box {
+  width: 320px;
+  max-width: 100%;
+  height: 160px;
+  box-sizing: border-box;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-2);
+}
+
+.overflow-demo-content {
+  width: 560px;
+  height: 260px;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border: 1px dashed var(--accent);
+  background:
+    linear-gradient(135deg, rgba(133, 167, 255, 0.08), rgba(229, 180, 122, 0.08));
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+@media (max-width: 700px) {
+  .aspect-overflow-shell {
+    width: min(100% - 20px, 1180px);
+  }
+}
