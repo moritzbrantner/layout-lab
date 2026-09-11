@@ -8,6 +8,7 @@ export type Experiment = {
     | "positioning"
     | "transforms-3d"
     | "flex-freezing"
+    | "flex-auto-minimum"
     | "grid-track-sizing"
     | "grid-intrinsic"
     | "grid-auto-repeat"
@@ -63,6 +64,13 @@ export const experiments: readonly Experiment[] = [
     area: "2D",
     summary: "Step through repeated min/max clamping, freezing, and free-space redistribution on a single flex line.",
     properties: ["flex-basis", "flex-grow", "flex-shrink", "min-width", "max-width"],
+  },
+  {
+    id: "flex-auto-minimum",
+    title: "Flex automatic minimum",
+    area: "2D",
+    summary: "Compare the content-based automatic minimum with min-width: 0 and watch that floor change flex shrinking.",
+    properties: ["min-width", "auto", "min-content", "flex-basis", "flex-shrink", "overflow-wrap"],
   },
   {
     id: "grid-track-sizing",

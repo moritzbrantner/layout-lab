@@ -16,7 +16,7 @@
 - [x] Flex sizing baseline: basis, grow, scaled shrink, and browser comparison
 - [x] Grid sizing baseline: equal fractional tracks and gap subtraction
 - [x] Flex min/max freezing with repeated redistribution for explicit numeric bounds
-- [ ] Flex intrinsic/automatic minimum-size interactions
+- [x] Flex intrinsic/automatic minimum-size interactions
 - [x] Grid track sizing supported subset: intrinsic tracks, minmax, auto-fit, auto-fill, spanning contributions
   - [x] minmax + flexible-fraction baseline
   - [x] explicit spanning minimum contribution phase
