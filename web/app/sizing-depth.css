@@ -9,6 +9,37 @@
   align-items: stretch;
 }
 
+.flex-auto-probe-strip {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  overflow-x: auto;
+}
+
+.flex-auto-probe-strip > span {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 760;
+}
+
+.flex-auto-probe {
+  display: block;
+  max-width: none;
+  justify-self: start;
+}
+
+.flex-auto-stage {
+  overflow: visible;
+}
+
+.flex-auto-content {
+  line-height: 1.35;
+}
+
 .depth-grid-stage {
   display: grid;
   min-height: 300px;
