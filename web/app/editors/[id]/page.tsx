@@ -3,6 +3,7 @@ import {CompositingDepth} from "@/components/CompositingDepth";
 import {EditorPageHeader} from "@/components/EditorNavigation";
 import {ExperimentUrlState} from "@/components/ExperimentUrlState";
 import {FlexAutomaticMinimumExperiment} from "@/components/FlexAutomaticMinimumExperiment";
+import {FlowFormattingExperiment} from "@/components/FlowFormattingExperiment";
 import {GridDepth} from "@/components/GridDepth";
 import {LayoutLab} from "@/components/LayoutLab";
 import {SizingDepth} from "@/components/SizingDepth";
@@ -19,6 +20,7 @@ export function generateStaticParams() {
 function EditorCollection({collection, current}: {collection: EditorCollectionName; current: Experiment["id"]}) {
   if (collection === "foundation") return <LayoutLab />;
   if (collection === "sizing" && current === "flex-auto-minimum") return <FlexAutomaticMinimumExperiment />;
+  if (collection === "sizing" && current === "flow-formatting") return <FlowFormattingExperiment />;
   if (collection === "sizing") return <SizingDepth />;
   if (collection === "grid") return <GridDepth />;
   if (collection === "three-d") return <ThreeDDepth />;
