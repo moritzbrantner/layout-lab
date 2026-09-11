@@ -12,6 +12,7 @@ import "./sizing-depth.css";
 import "./grid-depth.css";
 import "./three-d-depth.css";
 import "./compositing-depth.css";
+import "./visual-fixtures.css";
 
 export const metadata: Metadata = {
   title: "layout-lab",
