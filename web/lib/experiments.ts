@@ -9,6 +9,7 @@ export type Experiment = {
     | "transforms-3d"
     | "flex-freezing"
     | "flex-auto-minimum"
+    | "flow-formatting"
     | "grid-track-sizing"
     | "grid-intrinsic"
     | "grid-auto-repeat"
@@ -71,6 +72,13 @@ export const experiments: readonly Experiment[] = [
     area: "2D",
     summary: "Compare the content-based automatic minimum with min-width: 0 and watch that floor change flex shrinking.",
     properties: ["min-width", "auto", "min-content", "flex-basis", "flex-shrink", "overflow-wrap"],
+  },
+  {
+    id: "flow-formatting",
+    title: "Block and inline flow",
+    area: "2D",
+    summary: "Observe adjacent block-margin collapse and how one inline-level box fragments across browser line boxes.",
+    properties: ["display", "margin-block", "block formatting", "inline", "inline-block", "line boxes"],
   },
   {
     id: "grid-track-sizing",
