@@ -1,6 +1,7 @@
 import {notFound} from "next/navigation";
 import {CompositingDepth} from "@/components/CompositingDepth";
 import {EditorPageHeader} from "@/components/EditorNavigation";
+import {ExperimentUrlState} from "@/components/ExperimentUrlState";
 import {GridDepth} from "@/components/GridDepth";
 import {LayoutLab} from "@/components/LayoutLab";
 import {SizingDepth} from "@/components/SizingDepth";
@@ -39,6 +40,7 @@ export default async function ExperimentPage({params}: {params: Promise<{id: str
       <div className="single-editor-selection" data-editor={experimentId}>
         <EditorCollection collection={editorCollectionById[experimentId]} />
       </div>
+      <ExperimentUrlState experimentId={experimentId} />
     </div>
   );
 }
