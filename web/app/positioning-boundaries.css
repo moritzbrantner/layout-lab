@@ -47,9 +47,9 @@
 }
 
 .position-reference-inner > .position-reference-label {
-  left: 10px;
-  top: 8px;
-  bottom: auto;
+  position: static;
+  display: block;
+  padding: 8px 10px;
 }
 
 .position-target {
