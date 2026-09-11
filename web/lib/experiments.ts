@@ -10,6 +10,7 @@ export type Experiment = {
     | "flex-freezing"
     | "flex-auto-minimum"
     | "flow-formatting"
+    | "positioning-boundaries"
     | "grid-track-sizing"
     | "grid-intrinsic"
     | "grid-auto-repeat"
@@ -79,6 +80,13 @@ export const experiments: readonly Experiment[] = [
     area: "2D",
     summary: "Observe adjacent block-margin collapse and how one inline-level box fragments across browser line boxes.",
     properties: ["display", "margin-block", "block formatting", "inline", "inline-block", "line boxes"],
+  },
+  {
+    id: "positioning-boundaries",
+    title: "Positioning boundaries",
+    area: "2D",
+    summary: "Compare the reference boundaries used by absolute, fixed, and sticky positioning and verify them against browser geometry.",
+    properties: ["position", "absolute", "fixed", "sticky", "transform", "overflow", "top", "left"],
   },
   {
     id: "grid-track-sizing",
