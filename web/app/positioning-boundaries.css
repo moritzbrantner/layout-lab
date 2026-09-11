@@ -1,0 +1,117 @@
+.positioning-boundaries-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: -96px auto 0;
+  padding-bottom: 96px;
+}
+
+.positioning-boundaries-demos {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+
+.position-reference-stage,
+.position-sticky-scroller {
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-2);
+}
+
+.position-reference-stage {
+  position: relative;
+  min-height: 230px;
+  padding: 0;
+}
+
+.position-reference-inner {
+  width: calc(100% - 88px);
+  min-height: 136px;
+  margin: 48px 44px;
+  border: 1px dashed var(--accent);
+  border-radius: 10px;
+  background: rgba(133, 167, 255, 0.05);
+}
+
+.fixed-reference-outer {
+  transform: translateZ(0);
+}
+
+.position-reference-label {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.position-reference-inner > .position-reference-label {
+  left: 10px;
+  top: 8px;
+  bottom: auto;
+}
+
+.position-target {
+  box-sizing: border-box;
+  min-width: 92px;
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--text);
+  border-radius: 9px;
+  background: var(--accent);
+  color: #0b1020;
+  font-size: 0.74rem;
+  font-weight: 850;
+  z-index: 2;
+}
+
+.position-target-absolute {
+  position: absolute;
+  left: 24px;
+  top: 18px;
+}
+
+.position-target-fixed {
+  position: fixed;
+  left: 24px;
+  top: 18px;
+}
+
+.position-sticky-scroller {
+  position: relative;
+  height: 220px;
+  overflow: auto;
+}
+
+.position-sticky-spacer {
+  height: 72px;
+}
+
+.position-target-sticky {
+  position: sticky;
+  top: 12px;
+  width: 120px;
+  margin-left: 24px;
+}
+
+.position-sticky-tail {
+  height: 420px;
+  margin: 16px 24px 24px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: linear-gradient(to bottom, transparent, rgba(133, 167, 255, 0.08));
+}
+
+@media (max-width: 700px) {
+  .positioning-boundaries-shell {
+    width: min(100% - 20px, 1180px);
+  }
+
+  .position-reference-inner {
+    width: calc(100% - 48px);
+    margin-inline: 24px;
+  }
+}
