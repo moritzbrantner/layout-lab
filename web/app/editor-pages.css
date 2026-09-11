@@ -123,6 +123,7 @@
 .single-editor-selection[data-editor="positioning"] #positioning,
 .single-editor-selection[data-editor="transforms-3d"] #transforms-3d,
 .single-editor-selection[data-editor="flex-freezing"] #flex-freezing,
+.single-editor-selection[data-editor="flex-auto-minimum"] #flex-auto-minimum,
 .single-editor-selection[data-editor="grid-track-sizing"] #grid-track-sizing,
 .single-editor-selection[data-editor="grid-intrinsic"] #grid-intrinsic,
 .single-editor-selection[data-editor="grid-auto-repeat"] #grid-auto-repeat,
