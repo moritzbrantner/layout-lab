@@ -1,0 +1,69 @@
+.flow-formatting-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: -96px auto 0;
+  padding-bottom: 96px;
+}
+
+.flow-formatting-demos {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+
+.flow-margin-stage,
+.flow-inline-stage {
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-2);
+}
+
+.flow-margin-stage {
+  min-height: 240px;
+  padding: 24px;
+  overflow: auto;
+}
+
+.flow-block {
+  box-sizing: border-box;
+  min-height: 64px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.flow-block-a {
+  background: var(--accent-soft);
+}
+
+.flow-block-b {
+  background: rgba(229, 180, 122, 0.08);
+}
+
+.flow-inline-stage {
+  padding: 18px;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.flow-inline-phrase {
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 0 3px;
+  background: var(--accent-soft);
+  color: var(--text);
+  outline: 1px solid var(--accent);
+}
+
+.flow-fragment-table {
+  min-width: 520px;
+}
+
+@media (max-width: 700px) {
+  .flow-formatting-shell {
+    width: min(100% - 20px, 1180px);
+  }
+}
