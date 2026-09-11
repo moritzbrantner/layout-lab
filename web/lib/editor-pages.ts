@@ -9,6 +9,7 @@ export const editorCollectionById: Record<Experiment["id"], EditorCollection> = 
   positioning: "foundation",
   "transforms-3d": "foundation",
   "flex-freezing": "sizing",
+  "flex-auto-minimum": "sizing",
   "grid-track-sizing": "sizing",
   "grid-intrinsic": "grid",
   "grid-auto-repeat": "grid",
