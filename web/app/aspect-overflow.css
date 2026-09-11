@@ -22,7 +22,6 @@
 }
 
 .aspect-demo-box {
-  max-width: 100%;
   display: grid;
   place-items: center;
   box-sizing: border-box;
