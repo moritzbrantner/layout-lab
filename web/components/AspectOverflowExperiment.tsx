@@ -10,17 +10,8 @@ import {
 import {experiments} from "@/lib/experiments";
 
 type OverflowMode = "auto" | "hidden" | "clip" | "visible";
-
-type BoxMeasurement = {
-  width: number;
-  height: number;
-};
-
-type ImageMeasurement = BoxMeasurement & {
-  naturalWidth: number;
-  naturalHeight: number;
-};
-
+type BoxMeasurement = {width: number; height: number};
+type ImageMeasurement = BoxMeasurement & {naturalWidth: number; naturalHeight: number};
 type ScrollMeasurement = {
   clientWidth: number;
   clientHeight: number;
@@ -180,12 +171,7 @@ function RuleList({rules}: {rules: readonly string[]}) {
 }
 
 function TraceMetric({label, value}: {label: string; value: string}) {
-  return (
-    <div className="trace-metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
+  return <div className="trace-metric"><span>{label}</span><strong>{value}</strong></div>;
 }
 
 export function AspectOverflowExperiment() {
@@ -201,11 +187,12 @@ export function AspectOverflowExperiment() {
   const aspectMatches = aspectBrowser !== null && Math.abs(aspectBrowser.height - aspectModelHeight) <= 1;
 
   const [imageRef, imageBrowser] = useImageMeasurement(String(imageWidth));
-  const intrinsicRatio: AspectRatio = imageBrowser && imageBrowser.naturalWidth > 0 && imageBrowser.naturalHeight > 0
+  const intrinsicRatio: AspectRatio | null = imageBrowser && imageBrowser.naturalWidth > 0 && imageBrowser.naturalHeight > 0
     ? {width: imageBrowser.naturalWidth, height: imageBrowser.naturalHeight}
-    : {width: 160, height: 90};
-  const imageModelHeight = resolveAspectHeight({width: imageWidth, ratio: intrinsicRatio});
-  const imageMatches = imageBrowser !== null && Math.abs(imageBrowser.height - imageModelHeight) <= 1;
+    : null;
+  const imageModelHeight = intrinsicRatio ? resolveAspectHeight({width: imageWidth, ratio: intrinsicRatio}) : null;
+  const imageMatches = imageBrowser !== null && imageModelHeight !== null
+    && Math.abs(imageBrowser.height - imageModelHeight) <= 1;
 
   const [scrollRef, scrollBrowser] = useScrollMeasurement(overflowMode, requestedScrollLeft);
   const horizontalExtent = scrollBrowser
@@ -215,7 +202,6 @@ export function AspectOverflowExperiment() {
     ? resolveOverflowExtent({clientSize: scrollBrowser.clientHeight, scrollSize: scrollBrowser.scrollHeight})
     : 0;
   const clampedRequest = clampScrollOffset({requested: requestedScrollLeft, maximum: horizontalExtent});
-
   const overflowStyle: CSSProperties = {overflow: overflowMode};
 
   return (
@@ -240,10 +226,7 @@ export function AspectOverflowExperiment() {
           <div className="aspect-overflow-demos">
             <div className="trace-panel">
               <div className="trace-heading">
-                <div>
-                  <strong>Non-replaced aspect ratio</strong>
-                  <span>one definite axis plus an explicit ratio determines the other axis</span>
-                </div>
+                <div><strong>Non-replaced aspect ratio</strong><span>one definite axis plus an explicit ratio determines the other axis</span></div>
                 <code>{ratioLabel}</code>
               </div>
               <div className="trace-metrics">
@@ -253,9 +236,7 @@ export function AspectOverflowExperiment() {
                 <TraceMetric label="browser width" value={formatPx(aspectBrowser?.width ?? null)} />
               </div>
               <div className="aspect-stage">
-                <div ref={aspectRef} className="aspect-demo-box" style={{width: aspectWidth, aspectRatio: ratioLabel}}>
-                  aspect-ratio
-                </div>
+                <div ref={aspectRef} className="aspect-demo-box" style={{width: aspectWidth, aspectRatio: ratioLabel}}>aspect-ratio</div>
               </div>
               <p className="trace-note">
                 The deterministic helper covers only the direct width-to-height ratio arithmetic. Min/max constraints, transferred sizes, flex/grid participation, and replaced-element rules remain separate concerns.
@@ -264,14 +245,11 @@ export function AspectOverflowExperiment() {
 
             <div className="trace-panel">
               <div className="trace-heading">
-                <div>
-                  <strong>Replaced-element intrinsic ratio</strong>
-                  <span>the browser decodes the embedded image&apos;s intrinsic dimensions and uses them with `height: auto`</span>
-                </div>
-                <code>160 × 90 intrinsic</code>
+                <div><strong>Replaced-element intrinsic ratio</strong><span>the browser decodes the embedded image&apos;s intrinsic dimensions and uses them with `height: auto`</span></div>
+                <code>browser intrinsic size</code>
               </div>
               <div className="trace-metrics">
-                <TraceMetric label="natural size" value={imageBrowser ? `${imageBrowser.naturalWidth} × ${imageBrowser.naturalHeight}` : "—"} />
+                <TraceMetric label="natural size" value={intrinsicRatio ? `${intrinsicRatio.width} × ${intrinsicRatio.height}` : "—"} />
                 <TraceMetric label="rendered width" value={formatPx(imageBrowser?.width ?? null)} />
                 <TraceMetric label="model height" value={formatPx(imageModelHeight)} />
                 <TraceMetric label="browser height" value={`${formatPx(imageBrowser?.height ?? null)}${imageMatches ? " ✓" : ""}`} />
@@ -292,10 +270,7 @@ export function AspectOverflowExperiment() {
 
             <div className="trace-panel">
               <div className="trace-heading">
-                <div>
-                  <strong>Overflow and scroll container</strong>
-                  <span>compare the scrollable extent with the scroll position the browser actually accepts for each overflow mode</span>
-                </div>
+                <div><strong>Overflow and scroll container</strong><span>compare the scrollable extent with the scroll position the browser actually accepts for each overflow mode</span></div>
                 <code>overflow: {overflowMode}</code>
               </div>
               <div className="trace-metrics">
@@ -305,9 +280,7 @@ export function AspectOverflowExperiment() {
                 <TraceMetric label="browser scrollLeft" value={formatPx(scrollBrowser?.scrollLeft ?? null)} />
               </div>
               <div ref={scrollRef} className="overflow-demo-box" style={overflowStyle} data-scroll-container>
-                <div className="overflow-demo-content">
-                  <span>560 × 260 overflow content</span>
-                </div>
+                <div className="overflow-demo-content"><span>560 × 260 overflow content</span></div>
               </div>
               <div className="phase-list" aria-label="Overflow geometry evidence">
                 <div className="phase-row">
