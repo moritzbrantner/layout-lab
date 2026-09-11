@@ -7,7 +7,7 @@
 - [x] Grid playground with geometry readout
 - [x] 2D positioning and transform playground
 - [x] CSS 3D perspective and transform playground
-- [ ] Shareable experiment state in the URL
+- [x] Shareable experiment state in the URL
 - [ ] Small deterministic visual-regression fixtures
 
 ## H2 — 2D layout depth
