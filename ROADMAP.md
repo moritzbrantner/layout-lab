@@ -23,7 +23,7 @@
   - [x] browser-measured intrinsic min-content contribution feeding the deterministic track phase
   - [x] auto-fit / auto-fill capacity and empty-track behavior
 - [x] Block/inline formatting and margin collapse
-- [ ] Absolute, sticky, and fixed positioning containing blocks
+- [x] Absolute, sticky, and fixed positioning containing blocks
 - [ ] Aspect ratio, replaced elements, overflow, and scroll containers
 - [ ] Logical properties and writing modes
 - [ ] Container queries and containment
