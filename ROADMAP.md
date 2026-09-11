@@ -24,7 +24,7 @@
   - [x] auto-fit / auto-fill capacity and empty-track behavior
 - [x] Block/inline formatting and margin collapse
 - [x] Absolute, sticky, and fixed positioning containing blocks
-- [ ] Aspect ratio, replaced elements, overflow, and scroll containers
+- [x] Aspect ratio, replaced elements, overflow, and scroll containers
 - [ ] Logical properties and writing modes
 - [ ] Container queries and containment
 
