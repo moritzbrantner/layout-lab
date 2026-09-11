@@ -3,10 +3,20 @@
 import {useMemo, useState} from "react";
 import {Grid3DThreeViewer} from "@/components/Grid3DThreeViewer";
 import {
+  addGrid3DItem,
+  removeGrid3DItem,
+  serializeGrid3DDefinition,
+  updateGrid3DGap,
+  updateGrid3DItemPlacement,
+  updateGrid3DTrack,
+  type Grid3DAxis,
+} from "@/lib/grid-3d-controls";
+import {
   HOUSE_GRID_3D_SOURCE,
   parseGrid3DSource,
   resolveGrid3D,
   type Grid3DDefinition,
+  type Grid3DItem,
   type ResolvedGrid3DBox,
   type ResolvedGrid3DScene,
 } from "@/lib/grid-3d-model";
@@ -25,11 +35,15 @@ type ProjectedFace = {
   depth: number;
   fill: string;
 };
-
 type GridLine = {
   key: string;
   start: ProjectedPoint;
   end: ProjectedPoint;
+};
+type AxisDescriptor = {
+  axis: Grid3DAxis;
+  label: string;
+  trackLabel: string;
 };
 
 const VIEWBOX_WIDTH = 900;
@@ -40,6 +54,11 @@ const BOX_FILLS = [
   "var(--series-c)",
   "var(--series-d)",
   "var(--series-e)",
+];
+const AXES: AxisDescriptor[] = [
+  {axis: "column", label: "X / columns", trackLabel: "Column"},
+  {axis: "row", label: "Z / rows", trackLabel: "Row"},
+  {axis: "layer", label: "Y / layers", trackLabel: "Layer"},
 ];
 
 const INITIAL_DEFINITION = parseGrid3DSource(HOUSE_GRID_3D_SOURCE);
@@ -189,8 +208,94 @@ function format(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
 }
 
+function tracksFor(definition: Grid3DDefinition, axis: Grid3DAxis): number[] {
+  if (axis === "column") return definition.columns;
+  if (axis === "row") return definition.rows;
+  return definition.layers;
+}
+
+function LiveRange({
+  label,
+  value,
+  min,
+  max,
+  step,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  disabled?: boolean;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="grid3d-live-range">
+      <span>{label}</span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+      <output>{format(value)}</output>
+    </label>
+  );
+}
+
+function PlacementControls({
+  item,
+  definition,
+  disabled,
+  onChange,
+}: {
+  item: Grid3DItem;
+  definition: Grid3DDefinition;
+  disabled: boolean;
+  onChange: (axis: Grid3DAxis, patch: {start?: number; span?: number}) => void;
+}) {
+  return (
+    <div className="grid3d-placement-grid">
+      {AXES.map(({axis, label}) => {
+        const placement = item[axis];
+        const trackCount = tracksFor(definition, axis).length;
+        const maximumSpan = trackCount - placement.start + 1;
+        return (
+          <fieldset key={axis} className="grid3d-placement-axis">
+            <legend>{label}</legend>
+            <LiveRange
+              label="Start"
+              value={placement.start}
+              min={1}
+              max={trackCount}
+              step={1}
+              disabled={disabled}
+              onChange={(value) => onChange(axis, {start: value})}
+            />
+            <LiveRange
+              label="Span"
+              value={placement.span}
+              min={1}
+              max={maximumSpan}
+              step={1}
+              disabled={disabled}
+              onChange={(value) => onChange(axis, {span: value})}
+            />
+          </fieldset>
+        );
+      })}
+    </div>
+  );
+}
+
 export function Grid3DEditor() {
   const [source, setSource] = useState(HOUSE_GRID_3D_SOURCE);
+  const [sourceDirty, setSourceDirty] = useState(false);
   const [definition, setDefinition] = useState<Grid3DDefinition>(INITIAL_DEFINITION);
   const [scene, setScene] = useState<ResolvedGrid3DScene>(INITIAL_SCENE);
   const [selectedId, setSelectedId] = useState<string>(INITIAL_SCENE.boxes[0]?.id ?? "");
@@ -212,9 +317,26 @@ export function Grid3DEditor() {
     [scene, view.yaw, view.pitch, scale],
   );
   const selected = scene.boxes.find((box) => box.id === selectedId) ?? null;
+  const selectedItem = definition.items.find((item) => item.id === selectedId) ?? null;
 
   function updateView(patch: Partial<Grid3DView>) {
     setView((current) => normalizeGrid3DView({...current, ...patch}));
+  }
+
+  function commitDefinition(nextDefinition: Grid3DDefinition, preferredSelection = selectedId) {
+    try {
+      const nextScene = resolveGrid3D(nextDefinition);
+      setDefinition(nextDefinition);
+      setScene(nextScene);
+      setSource(serializeGrid3DDefinition(nextDefinition));
+      setSourceDirty(false);
+      setSelectedId(nextScene.boxes.some((box) => box.id === preferredSelection)
+        ? preferredSelection
+        : (nextScene.boxes[0]?.id ?? ""));
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "The Grid3D definition could not be resolved.");
+    }
   }
 
   function applySource() {
@@ -226,6 +348,7 @@ export function Grid3DEditor() {
       setSelectedId((current) => nextScene.boxes.some((box) => box.id === current)
         ? current
         : (nextScene.boxes[0]?.id ?? ""));
+      setSourceDirty(false);
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The Grid3D source could not be parsed.");
@@ -234,6 +357,7 @@ export function Grid3DEditor() {
 
   function restoreExample() {
     setSource(HOUSE_GRID_3D_SOURCE);
+    setSourceDirty(false);
     setDefinition(INITIAL_DEFINITION);
     setScene(INITIAL_SCENE);
     setSelectedId(INITIAL_SCENE.boxes[0]?.id ?? "");
@@ -241,38 +365,158 @@ export function Grid3DEditor() {
     setError(null);
   }
 
+  function addBox() {
+    const nextDefinition = addGrid3DItem(definition);
+    const newId = nextDefinition.items.at(-1)?.id ?? selectedId;
+    commitDefinition(nextDefinition, newId);
+  }
+
+  function removeSelectedBox() {
+    if (!selectedItem) return;
+    const nextDefinition = removeGrid3DItem(definition, selectedItem.id);
+    commitDefinition(nextDefinition, nextDefinition.items[0]?.id ?? "");
+  }
+
+  const liveControlsDisabled = sourceDirty;
+
   return (
     <section className="grid3d-editor" aria-label="3D grid layout editor">
       <div className="grid3d-source-panel">
         <div className="grid3d-panel-heading">
           <div>
-            <div className="eyebrow">Layout source</div>
-            <h2>CSS-like rules</h2>
+            <div className="eyebrow">Live layout</div>
+            <h2>Shape the grid</h2>
           </div>
-          <p>Columns run on X, rows run into Z, and layers stack upward on Y.</p>
+          <p>Change tracks, gaps, placement, and spans while the same Grid3D definition resolves continuously.</p>
         </div>
 
-        <textarea
-          className="grid3d-source"
-          value={source}
-          onChange={(event) => {
-            setSource(event.target.value);
-            setError(null);
-          }}
-          spellCheck={false}
-          aria-label="Grid3D source"
-        />
+        {sourceDirty ? (
+          <p className="grid3d-live-lock" role="status">
+            Source has unapplied edits. Apply or restore it before using live controls so those edits are never overwritten.
+          </p>
+        ) : null}
 
-        {error ? <p className="grid3d-error" role="alert">{error}</p> : null}
+        <section className="grid3d-control-section" aria-labelledby="grid3d-track-controls">
+          <div className="grid3d-control-heading">
+            <div>
+              <strong id="grid3d-track-controls">Track sizes</strong>
+              <span>These are the base dimensions that every box inherits through placement and spans.</span>
+            </div>
+          </div>
+          <div className="grid3d-track-groups">
+            {AXES.map(({axis, label, trackLabel}) => (
+              <fieldset key={axis} className="grid3d-track-group">
+                <legend>{label}</legend>
+                {tracksFor(definition, axis).map((track, index) => (
+                  <LiveRange
+                    key={`${axis}-${index}`}
+                    label={`${trackLabel} ${index + 1}`}
+                    value={track}
+                    min={0.5}
+                    max={10}
+                    step={0.1}
+                    disabled={liveControlsDisabled}
+                    onChange={(value) => commitDefinition(updateGrid3DTrack(definition, axis, index, value))}
+                  />
+                ))}
+              </fieldset>
+            ))}
+          </div>
+        </section>
 
-        <div className="grid3d-source-actions">
-          <button type="button" className="grid3d-primary-action" onClick={applySource}>Apply layout</button>
-          <button type="button" className="grid3d-secondary-action" onClick={restoreExample}>Restore house example</button>
-        </div>
+        <section className="grid3d-control-section" aria-labelledby="grid3d-gap-controls">
+          <div className="grid3d-control-heading">
+            <div>
+              <strong id="grid3d-gap-controls">Gaps</strong>
+              <span>Separate tracks independently on X, Z, and Y.</span>
+            </div>
+          </div>
+          <div className="grid3d-gap-controls">
+            {AXES.map(({axis, label}) => (
+              <LiveRange
+                key={axis}
+                label={label}
+                value={definition.gaps[axis]}
+                min={0}
+                max={2}
+                step={0.05}
+                disabled={liveControlsDisabled}
+                onChange={(value) => commitDefinition(updateGrid3DGap(definition, axis, value))}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section className="grid3d-control-section" aria-labelledby="grid3d-element-controls">
+          <div className="grid3d-control-heading grid3d-element-heading">
+            <div>
+              <strong id="grid3d-element-controls">Box placement</strong>
+              <span>Move one base element through the grid or stretch it across neighboring tracks.</span>
+            </div>
+            <select
+              value={selectedId}
+              disabled={definition.items.length === 0}
+              onChange={(event) => setSelectedId(event.target.value)}
+              aria-label="Box to edit"
+            >
+              {definition.items.map((item) => <option key={item.id} value={item.id}>{item.id}</option>)}
+            </select>
+          </div>
+
+          {selectedItem ? (
+            <PlacementControls
+              item={selectedItem}
+              definition={definition}
+              disabled={liveControlsDisabled}
+              onChange={(axis, patch) => commitDefinition(
+                updateGrid3DItemPlacement(definition, selectedItem.id, axis, patch),
+                selectedItem.id,
+              )}
+            />
+          ) : (
+            <p className="grid3d-empty-note">Add a box to start editing placement.</p>
+          )}
+
+          <div className="grid3d-element-actions">
+            <button type="button" disabled={liveControlsDisabled} onClick={addBox}>+ Add box</button>
+            <button
+              type="button"
+              disabled={liveControlsDisabled || !selectedItem}
+              onClick={removeSelectedBox}
+            >
+              Remove selected
+            </button>
+            <button type="button" onClick={restoreExample}>Restore house</button>
+          </div>
+        </section>
+
+        <details className="grid3d-source-details">
+          <summary>
+            <span>CSS-like source</span>
+            <small>{sourceDirty ? "unapplied edits" : "synchronized"}</small>
+          </summary>
+          <textarea
+            className="grid3d-source"
+            value={source}
+            onChange={(event) => {
+              setSource(event.target.value);
+              setSourceDirty(true);
+              setError(null);
+            }}
+            spellCheck={false}
+            aria-label="Grid3D source"
+          />
+
+          {error ? <p className="grid3d-error" role="alert">{error}</p> : null}
+
+          <div className="grid3d-source-actions">
+            <button type="button" className="grid3d-primary-action" onClick={applySource}>Apply source</button>
+            <button type="button" className="grid3d-secondary-action" onClick={restoreExample}>Discard edits + restore</button>
+          </div>
+        </details>
 
         <p className="grid3d-source-note">
-          Layout resolution remains renderer-independent. Three.js receives only the resolved boxes and track geometry;
-          the built-in SVG projection remains available as a deterministic fallback.
+          Live controls mutate the renderer-independent definition first and regenerate its source. Three.js and SVG only consume the resulting geometry.
         </p>
       </div>
 
@@ -329,7 +573,11 @@ export function Grid3DEditor() {
           </label>
           <label className="grid3d-object-select">
             <span>Inspect box</span>
-            <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}>
+            <select
+              value={selectedId}
+              disabled={scene.boxes.length === 0}
+              onChange={(event) => setSelectedId(event.target.value)}
+            >
               {scene.boxes.map((box) => <option key={box.id} value={box.id}>{box.id}</option>)}
             </select>
           </label>
@@ -389,7 +637,7 @@ export function Grid3DEditor() {
               <span>renderer {rendererMode === "three" ? "Three.js / WebGL" : "SVG projection"}</span>
             </>
           ) : (
-            <span>Add a box to the source to inspect resolved geometry.</span>
+            <span>Add a box to the layout to inspect resolved geometry.</span>
           )}
         </div>
       </div>
