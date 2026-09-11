@@ -8,7 +8,7 @@
 - [x] 2D positioning and transform playground
 - [x] CSS 3D perspective and transform playground
 - [x] Shareable experiment state in the URL
-- [ ] Small deterministic visual-regression fixtures
+- [x] Small deterministic visual-regression fixtures
 
 ## H2 — 2D layout depth
 
