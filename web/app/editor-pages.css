@@ -126,6 +126,7 @@
 .single-editor-selection[data-editor="flex-auto-minimum"] #flex-auto-minimum,
 .single-editor-selection[data-editor="flow-formatting"] #flow-formatting,
 .single-editor-selection[data-editor="positioning-boundaries"] #positioning-boundaries,
+.single-editor-selection[data-editor="aspect-overflow"] #aspect-overflow,
 .single-editor-selection[data-editor="grid-track-sizing"] #grid-track-sizing,
 .single-editor-selection[data-editor="grid-intrinsic"] #grid-intrinsic,
 .single-editor-selection[data-editor="grid-auto-repeat"] #grid-auto-repeat,
