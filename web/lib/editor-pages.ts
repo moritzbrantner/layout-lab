@@ -11,6 +11,7 @@ export const editorCollectionById: Record<Experiment["id"], EditorCollection> = 
   "flex-freezing": "sizing",
   "flex-auto-minimum": "sizing",
   "flow-formatting": "sizing",
+  "positioning-boundaries": "sizing",
   "grid-track-sizing": "sizing",
   "grid-intrinsic": "grid",
   "grid-auto-repeat": "grid",
