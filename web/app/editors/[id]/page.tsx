@@ -1,4 +1,5 @@
 import {notFound} from "next/navigation";
+import {AspectOverflowExperiment} from "@/components/AspectOverflowExperiment";
 import {CompositingDepth} from "@/components/CompositingDepth";
 import {EditorPageHeader} from "@/components/EditorNavigation";
 import {ExperimentUrlState} from "@/components/ExperimentUrlState";
@@ -23,6 +24,7 @@ function EditorCollection({collection, current}: {collection: EditorCollectionNa
   if (collection === "sizing" && current === "flex-auto-minimum") return <FlexAutomaticMinimumExperiment />;
   if (collection === "sizing" && current === "flow-formatting") return <FlowFormattingExperiment />;
   if (collection === "sizing" && current === "positioning-boundaries") return <PositioningBoundariesExperiment />;
+  if (collection === "sizing" && current === "aspect-overflow") return <AspectOverflowExperiment />;
   if (collection === "sizing") return <SizingDepth />;
   if (collection === "grid") return <GridDepth />;
   if (collection === "three-d") return <ThreeDDepth />;

@@ -11,6 +11,7 @@ export type Experiment = {
     | "flex-auto-minimum"
     | "flow-formatting"
     | "positioning-boundaries"
+    | "aspect-overflow"
     | "grid-track-sizing"
     | "grid-intrinsic"
     | "grid-auto-repeat"
@@ -87,6 +88,13 @@ export const experiments: readonly Experiment[] = [
     area: "2D",
     summary: "Compare the reference boundaries used by absolute, fixed, and sticky positioning and verify them against browser geometry.",
     properties: ["position", "absolute", "fixed", "sticky", "transform", "overflow", "top", "left"],
+  },
+  {
+    id: "aspect-overflow",
+    title: "Aspect ratio and overflow",
+    area: "2D",
+    summary: "Compare explicit aspect-ratio arithmetic, replaced-element intrinsic sizing, and browser-owned overflow geometry and scrolling.",
+    properties: ["aspect-ratio", "width", "height", "img", "overflow", "scrollWidth", "scrollLeft"],
   },
   {
     id: "grid-track-sizing",
