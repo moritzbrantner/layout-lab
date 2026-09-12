@@ -8,6 +8,7 @@ import {FlexAutomaticMinimumExperiment} from "@/components/FlexAutomaticMinimumE
 import {FlowFormattingExperiment} from "@/components/FlowFormattingExperiment";
 import {GridDepth} from "@/components/GridDepth";
 import {LayoutLab} from "@/components/LayoutLab";
+import {LogicalWritingModesExperiment} from "@/components/LogicalWritingModesExperiment";
 import {PositioningBoundariesExperiment} from "@/components/PositioningBoundariesExperiment";
 import {SizingDepth} from "@/components/SizingDepth";
 import {ThreeDDepth} from "@/components/ThreeDDepth";
@@ -27,6 +28,7 @@ function EditorCollection({collection, current}: {collection: EditorCollectionNa
   if (collection === "sizing" && current === "flow-formatting") return <FlowFormattingExperiment />;
   if (collection === "sizing" && current === "positioning-boundaries") return <PositioningBoundariesExperiment />;
   if (collection === "sizing" && current === "aspect-overflow") return <AspectOverflowExperiment />;
+  if (collection === "sizing" && current === "logical-writing-modes") return <LogicalWritingModesExperiment />;
   if (collection === "sizing") return <SizingDepth />;
   if (collection === "grid") return <GridDepth />;
   if (collection === "three-d") return <ThreeDDepth />;

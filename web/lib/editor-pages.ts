@@ -13,6 +13,7 @@ export const editorCollectionById: Record<Experiment["id"], EditorCollection> = 
   "flow-formatting": "sizing",
   "positioning-boundaries": "sizing",
   "aspect-overflow": "sizing",
+  "logical-writing-modes": "sizing",
   "grid-track-sizing": "sizing",
   "grid-intrinsic": "grid",
   "grid-auto-repeat": "grid",
