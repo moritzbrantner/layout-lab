@@ -1,5 +1,6 @@
 import {resolveAdjacentPositiveMargins} from "./flow-formatting";
-import {validateLayoutTree, type LayoutNode} from "./layout-tree";
+import {resolveFlexLine, type FlexLineResolution} from "./layout-analysis";
+import {adaptFlexTree, validateLayoutTree, type LayoutNode} from "./layout-tree";
 
 export type LayoutRect = {
   x: number;
@@ -30,6 +31,13 @@ export type BlockLayoutResult = {
   marginCollapses: readonly MarginCollapseEvidence[];
 };
 
+export type FlexLayoutResult = {
+  root: LayoutBox;
+  boxes: readonly LayoutBox[];
+  visitedNodes: number;
+  resolution: FlexLineResolution;
+};
+
 function clamp(value: number, minimum = 0, maximum = Number.POSITIVE_INFINITY) {
   return Math.min(Math.max(value, minimum), maximum);
 }
@@ -42,6 +50,16 @@ function resolveWidth(node: LayoutNode, containingWidth: number) {
 function resolveHeight(node: LayoutNode, contentHeight: number) {
   const candidate = node.style.height ?? contentHeight;
   return clamp(candidate, node.style.minHeight ?? 0, node.style.maxHeight ?? Number.POSITIVE_INFINITY);
+}
+
+function flattenBoxes(root: LayoutBox) {
+  const boxes: LayoutBox[] = [];
+  const visit = (box: LayoutBox) => {
+    boxes.push(box);
+    box.children.forEach(visit);
+  };
+  visit(root);
+  return boxes;
 }
 
 function assertBlockOnly(node: LayoutNode) {
@@ -113,17 +131,69 @@ export function layoutBlockTree(root: LayoutNode): BlockLayoutResult {
   };
 
   const rootBox = visit(root, root.style.width, 0, 0);
-  const boxes: LayoutBox[] = [];
-  const flatten = (box: LayoutBox) => {
-    boxes.push(box);
-    box.children.forEach(flatten);
-  };
-  flatten(rootBox);
+  const boxes = flattenBoxes(rootBox);
 
   return {
     root: rootBox,
     boxes,
     visitedNodes: boxes.length,
     marginCollapses,
+  };
+}
+
+export function layoutFlexTree(root: LayoutNode): FlexLayoutResult {
+  const errors = validateLayoutTree(root);
+  if (errors.length > 0) throw new Error(errors.join("; "));
+  const input = adaptFlexTree(root);
+
+  root.children.forEach((child) => {
+    if (child.style.display !== "block") {
+      throw new Error(`${child.id}: flex baseline supports block leaf items only`);
+    }
+    if (child.children.length > 0) {
+      throw new Error(`${child.id}: flex baseline does not yet lay out nested item contents`);
+    }
+  });
+
+  const resolution = resolveFlexLine(input);
+  let cursor = 0;
+  const children = root.children.map((child, index): LayoutBox => {
+    const item = resolution.items[index]!;
+    const height = resolveHeight(child, 0);
+    const box: LayoutBox = {
+      id: child.id,
+      label: child.label,
+      rect: {
+        x: cursor,
+        y: 0,
+        width: item.targetSize,
+        height,
+      },
+      children: [],
+    };
+    cursor += item.targetSize + input.gapSize;
+    return box;
+  });
+
+  const derivedHeight = children.reduce((maximum, child) => Math.max(maximum, child.rect.height), 0);
+  const rootHeight = resolveHeight(root, derivedHeight);
+  const rootBox: LayoutBox = {
+    id: root.id,
+    label: root.label,
+    rect: {
+      x: 0,
+      y: 0,
+      width: input.innerSize,
+      height: rootHeight,
+    },
+    children,
+  };
+  const boxes = flattenBoxes(rootBox);
+
+  return {
+    root: rootBox,
+    boxes,
+    visitedNodes: boxes.length,
+    resolution,
   };
 }

@@ -36,4 +36,25 @@ describe("LayoutTreeInspector", () => {
     expect(markup).toContain("header → content");
     expect(markup).toContain("20px vs 12px → 20px collapsed gap");
   });
+
+  test("shows the flex engine geometry and freeze evidence for the flex scenario", () => {
+    const markup = renderToStaticMarkup(
+      <LayoutTreeInspector scenario="flex" innerSize={520} gapSize={16} />,
+    );
+
+    expect(markup).toContain("Deterministic Flexbox subset");
+    expect(markup).toContain("Flex engine root <code>root</code>");
+    expect(markup).toContain("B <code>item-b</code>");
+    expect(markup).toContain("pass 1");
+    expect(markup).toContain("freeze B");
+    expect(markup).toContain("pass 2");
+  });
+
+  test("does not claim the flex engine subset on the grid scenario", () => {
+    const markup = renderToStaticMarkup(
+      <LayoutTreeInspector scenario="grid" innerSize={560} gapSize={16} />,
+    );
+
+    expect(markup).not.toContain("Deterministic Flexbox subset");
+  });
 });

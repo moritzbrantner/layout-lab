@@ -51,7 +51,7 @@
 
 - [x] Typed layout tree independent of the DOM
 - [x] Deterministic block layout baseline
-- [ ] Deterministic flex subset
+- [x] Deterministic flex subset
 - [ ] Deterministic grid subset
 - [ ] Compare engine output against browser fixtures
 - [ ] Keep browser integration as an adapter so algorithms remain reusable
