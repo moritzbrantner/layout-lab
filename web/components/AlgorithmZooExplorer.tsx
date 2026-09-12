@@ -110,7 +110,7 @@ export function AlgorithmZooExplorer() {
       ) : null}
 
       <p className="algorithm-zoo-boundary">
-        Constraint solving, line breaking, packing, tidy trees, and layered DAG layout now use this shared result contract. A seeded force-directed layout can plug into the same registry without adding a one-off visualization model.
+        Constraint solving, line breaking, packing, tidy trees, layered DAG layout, and seeded force-directed graph layout now use this shared result contract. The remaining H7 work is the shared step-through and same-fixture comparison experience.
       </p>
     </section>
   );
