@@ -1,0 +1,90 @@
+.layout-complexity {
+  margin-top: 38px;
+  padding-top: 30px;
+  border-top: 1px solid var(--line);
+}
+
+.layout-complexity-methodology,
+.layout-complexity-boundary,
+.layout-complexity-pathologies > p {
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.55;
+}
+
+.layout-complexity-methodology {
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--line);
+}
+
+.layout-complexity-methodology strong,
+.layout-complexity-suite h4,
+.layout-complexity-pathologies h4 {
+  color: var(--text);
+}
+
+.layout-complexity-methodology ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.layout-complexity-suite,
+.layout-complexity-pathologies {
+  margin-top: 24px;
+}
+
+.layout-complexity-suite h4,
+.layout-complexity-pathologies h4 {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+}
+
+.layout-complexity-table-wrap {
+  overflow-x: auto;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.layout-complexity-table-wrap table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.layout-complexity-table-wrap th,
+.layout-complexity-table-wrap td {
+  padding: 9px 11px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: 0.72rem;
+  vertical-align: top;
+}
+
+.layout-complexity-table-wrap thead th {
+  color: var(--muted);
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.layout-complexity-table-wrap tbody th {
+  min-width: 180px;
+}
+
+.layout-complexity-table-wrap tbody th code,
+.layout-complexity-table-wrap tbody th span {
+  display: block;
+}
+
+.layout-complexity-table-wrap tbody th span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.layout-complexity-boundary {
+  margin: 20px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
