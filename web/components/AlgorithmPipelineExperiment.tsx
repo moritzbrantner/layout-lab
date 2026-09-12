@@ -1,6 +1,7 @@
 "use client";
 
 import {useState} from "react";
+import {LayoutTreeInspector} from "@/components/LayoutTreeInspector";
 import {algorithmCorpusCases} from "@/lib/algorithm-corpus";
 import {
   buildFlexAlgorithmPipeline,
@@ -225,6 +226,8 @@ export function AlgorithmPipelineExperiment() {
           <output>{gapSize}px</output>
         </label>
       </div>
+
+      <LayoutTreeInspector scenario={scenario} innerSize={innerSize} gapSize={gapSize} />
 
       <AlgorithmEvidence pipeline={pipeline} />
 

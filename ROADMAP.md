@@ -49,7 +49,7 @@
 
 ## H5 — Small layout engine
 
-- [ ] Typed layout tree independent of the DOM
+- [x] Typed layout tree independent of the DOM
 - [ ] Deterministic block layout baseline
 - [ ] Deterministic flex subset
 - [ ] Deterministic grid subset
