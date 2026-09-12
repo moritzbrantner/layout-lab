@@ -1,6 +1,6 @@
 import {describe, expect, test} from "bun:test";
-import {buildFlexEngineTree, buildGridEngineTree} from "./layout-engine-fixtures";
-import {buildBlockLayoutTree} from "./layout-tree";
+import {buildGridEngineTree} from "./layout-engine-fixtures";
+import {buildBlockLayoutTree, buildFlexLayoutTree} from "./layout-tree";
 import {
   buildLayoutInvalidationGraph,
   invalidationPhaseId,
@@ -69,7 +69,7 @@ describe("layout invalidation graph", () => {
   });
 
   test("maps flex grow changes to the whole line but not cross sizes", () => {
-    const graph = buildLayoutInvalidationGraph(buildFlexEngineTree());
+    const graph = buildLayoutInvalidationGraph(buildFlexLayoutTree());
     const plan = planLayoutInvalidation(graph, {kind: "style", nodeId: "item-b", field: "flexItem.grow"});
 
     expect(plan.seedPhaseIds).toEqual(["root:flex-line"]);
@@ -82,8 +82,8 @@ describe("layout invalidation graph", () => {
     expect(plan.dirtyPhaseIds).not.toContain("root:block-size");
   });
 
-  test("keeps flex item height changes out of main-axis resolution", () => {
-    const graph = buildLayoutInvalidationGraph(buildFlexEngineTree());
+  test("keeps flex item height changes out of main-axis resolution while updating auto cross size", () => {
+    const graph = buildLayoutInvalidationGraph(buildFlexLayoutTree());
     const plan = planLayoutInvalidation(graph, {kind: "style", nodeId: "item-b", field: "height"});
 
     expect(sorted(plan.dirtyPhaseIds)).toEqual(sorted([
@@ -97,27 +97,42 @@ describe("layout invalidation graph", () => {
   });
 
   test("records properties that the current flex and grid subsets deliberately ignore", () => {
-    const flexGraph = buildLayoutInvalidationGraph(buildFlexEngineTree());
+    const flexGraph = buildLayoutInvalidationGraph(buildFlexLayoutTree());
     const gridGraph = buildLayoutInvalidationGraph(buildGridEngineTree());
 
     expect(planLayoutInvalidation(flexGraph, {kind: "style", nodeId: "item-b", field: "width"}).dirtyPhaseIds).toEqual([]);
     expect(planLayoutInvalidation(gridGraph, {kind: "style", nodeId: "item-c", field: "maxWidth"}).dirtyPhaseIds).toEqual([]);
   });
 
-  test("maps a Grid contribution change through track sizing and item geometry", () => {
+  test("maps a Grid contribution change through track sizing and both item geometries", () => {
     const graph = buildLayoutInvalidationGraph(buildGridEngineTree());
-    const plan = planLayoutInvalidation(graph, {kind: "style", nodeId: "item-c", field: "gridItem.minContribution"});
+    const plan = planLayoutInvalidation(graph, {kind: "style", nodeId: "span-ab", field: "gridItem.minContribution"});
 
     expect(plan.seedPhaseIds).toEqual(["root:grid-tracks"]);
-    expect(plan.dirtyPhaseIds).toContain("item-a:inline-size");
-    expect(plan.dirtyPhaseIds).toContain("item-b:position");
+    expect(plan.dirtyPhaseIds).toContain("span-ab:inline-size");
+    expect(plan.dirtyPhaseIds).toContain("span-ab:geometry");
+    expect(plan.dirtyPhaseIds).toContain("item-c:position");
     expect(plan.dirtyPhaseIds).toContain("item-c:geometry");
     expect(plan.dirtyPhaseIds).not.toContain("root:block-size");
   });
 
+  test("keeps a Grid placement-only change local when the item has no sizing contribution", () => {
+    const graph = buildLayoutInvalidationGraph(buildGridEngineTree());
+    const plan = planLayoutInvalidation(graph, {kind: "style", nodeId: "item-c", field: "gridItem.columnStart"});
+
+    expect(sorted(plan.seedPhaseIds)).toEqual(sorted(["item-c:inline-size", "item-c:position"]));
+    expect(sorted(plan.dirtyPhaseIds)).toEqual(sorted([
+      "item-c:inline-size",
+      "item-c:position",
+      "item-c:geometry",
+    ]));
+    expect(plan.dirtyPhaseIds).not.toContain("root:grid-tracks");
+    expect(plan.dirtyPhaseIds).not.toContain("span-ab:geometry");
+  });
+
   test("requires graph rebuild for child-list mutations and dirties the current formatting context", () => {
     const blockGraph = buildLayoutInvalidationGraph(buildBlockLayoutTree());
-    const flexGraph = buildLayoutInvalidationGraph(buildFlexEngineTree());
+    const flexGraph = buildLayoutInvalidationGraph(buildFlexLayoutTree());
 
     const blockPlan = planLayoutInvalidation(blockGraph, {kind: "children", parentId: "block-root", operation: "reorder"});
     expect(blockPlan.requiresGraphRebuild).toBe(true);
