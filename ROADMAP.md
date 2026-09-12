@@ -35,7 +35,7 @@
 - [x] Backface visibility
 - [x] Stacking contexts, paint order, and z-index interaction with browser overlap sampling
 - [x] Hit-testing versus transformed visual geometry
-- [ ] Compositing-layer observations where browser APIs expose useful evidence
+- [x] Compositing-layer observations where browser APIs expose useful evidence
 
 ## H4 — Explain the algorithms
 
