@@ -20,10 +20,15 @@ export function LayoutTreeInspector({
     ? buildFlexLayoutTree(innerSize, gapSize)
     : buildGridLayoutTree(innerSize, gapSize);
   const snapshots = flattenLayoutTree(tree);
-  const adapter = scenario === "flex" ? adaptFlexTree(tree) : adaptGridTree(tree);
   const adapterSummary = scenario === "flex"
-    ? `${adapter.items.length} flex items · ${adapter.innerSize}px main size · ${adapter.gapSize}px gap`
-    : `${adapter.tracks.length} grid tracks · ${adapter.contributions.length} spanning contribution · ${adapter.innerSize}px inline size`;
+    ? (() => {
+        const adapter = adaptFlexTree(tree);
+        return `${adapter.items.length} flex items · ${adapter.innerSize}px main size · ${adapter.gapSize}px gap`;
+      })()
+    : (() => {
+        const adapter = adaptGridTree(tree);
+        return `${adapter.tracks.length} grid tracks · ${adapter.contributions.length} spanning contribution · ${adapter.innerSize}px inline size`;
+      })();
 
   return (
     <section className="layout-tree-inspector" aria-labelledby="layout-tree-title">
