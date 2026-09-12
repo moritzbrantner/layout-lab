@@ -59,4 +59,29 @@ describe("experiment URL state", () => {
     expect(normalizeExperimentUrlValue(scale, "1.15")).toBe("1.15");
     expect(normalizeExperimentUrlValue(scale, "1.17")).toBeUndefined();
   });
+
+  test("persists the algorithm zoo selector and shared explorer dimensions", () => {
+    const schema = experimentUrlSchemas["algorithm-pipeline"]!;
+    const search = writeExperimentUrlState(
+      "?utm=lab",
+      "algorithm-pipeline",
+      schema,
+      {width: "640", gap: "20", algorithm: "grid-row"},
+    );
+    const state = readExperimentUrlState(search, "algorithm-pipeline", schema);
+
+    expect(state).toEqual({width: "640", gap: "20", algorithm: "grid-row"});
+    expect(new URLSearchParams(search).get("utm")).toBe("lab");
+  });
+
+  test("rejects unknown algorithm zoo ids from URL state", () => {
+    const schema = experimentUrlSchemas["algorithm-pipeline"]!;
+    const state = readExperimentUrlState(
+      "?algorithm-pipeline.algorithm=not-real",
+      "algorithm-pipeline",
+      schema,
+    );
+
+    expect(state.algorithm).toBe("block-flow");
+  });
 });
