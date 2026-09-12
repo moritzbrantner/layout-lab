@@ -18,6 +18,7 @@ export type Experiment = {
     | "grid-intrinsic"
     | "grid-auto-repeat"
     | "algorithm-pipeline"
+    | "paint-order-visualization"
     | "origins-3d"
     | "context-3d"
     | "stacking-contexts"
@@ -141,6 +142,13 @@ export const experiments: readonly Experiment[] = [
     area: "2D",
     summary: "Trace real Flexbox and Grid resolver inputs through constraints, iterative feedback, and final geometry as an explicit dependency graph.",
     properties: ["dependency graph", "free space", "freezing", "minmax", "fr", "resolved geometry"],
+  },
+  {
+    id: "paint-order-visualization",
+    title: "Paint-order visualization",
+    area: "2D",
+    summary: "Visualize a scoped CSS paint-phase sequence and compare the model with the browser's ordered hit-test stack at a shared overlap point.",
+    properties: ["paint order", "z-index", "position", "inline", "isolation", "elementsFromPoint"],
   },
   {
     id: "origins-3d",

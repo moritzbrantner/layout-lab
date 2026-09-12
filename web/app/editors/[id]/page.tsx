@@ -11,6 +11,7 @@ import {FlowFormattingExperiment} from "@/components/FlowFormattingExperiment";
 import {GridDepth} from "@/components/GridDepth";
 import {LayoutLab} from "@/components/LayoutLab";
 import {LogicalWritingModesExperiment} from "@/components/LogicalWritingModesExperiment";
+import {PaintOrderVisualizationExperiment} from "@/components/PaintOrderVisualizationExperiment";
 import {PositioningBoundariesExperiment} from "@/components/PositioningBoundariesExperiment";
 import {SizingDepth} from "@/components/SizingDepth";
 import {ThreeDDepth} from "@/components/ThreeDDepth";
@@ -26,6 +27,7 @@ export function generateStaticParams() {
 function EditorCollection({collection, current}: {collection: EditorCollectionName; current: Experiment["id"]}) {
   if (collection === "foundation") return <LayoutLab />;
   if (collection === "algorithms") return <AlgorithmPipelineExperiment />;
+  if (collection === "rendering") return <PaintOrderVisualizationExperiment />;
   if (collection === "sizing" && current === "flex-auto-minimum") return <FlexAutomaticMinimumExperiment />;
   if (collection === "sizing" && current === "flow-formatting") return <FlowFormattingExperiment />;
   if (collection === "sizing" && current === "positioning-boundaries") return <PositioningBoundariesExperiment />;

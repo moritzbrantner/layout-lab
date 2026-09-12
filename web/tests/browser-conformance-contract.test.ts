@@ -24,4 +24,12 @@ describe("browser conformance CI contract", () => {
     expect(runner).toContain("summary-${browserName}.json");
     expect(runner).toContain("process.exitCode = 1");
   });
+
+  test("verifies the scoped paint-order model with an ordered browser hit stack", () => {
+    expect(runner).toContain("createPaintOrderFixture");
+    expect(runner).toContain("topToBottomPaintIds");
+    expect(runner).toContain("elementsFromPoint");
+    expect(runner).toContain('type: "paint-order"');
+    expect(runner).toContain("mismatch-scoped-paint-order.json");
+  });
 });

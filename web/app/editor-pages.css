@@ -132,6 +132,7 @@
 .single-editor-selection[data-editor="grid-track-sizing"] #grid-track-sizing,
 .single-editor-selection[data-editor="grid-intrinsic"] #grid-intrinsic,
 .single-editor-selection[data-editor="grid-auto-repeat"] #grid-auto-repeat,
+.single-editor-selection[data-editor="paint-order-visualization"] #paint-order-visualization,
 .single-editor-selection[data-editor="origins-3d"] #origins-3d,
 .single-editor-selection[data-editor="context-3d"] #context-3d,
 .single-editor-selection[data-editor="stacking-contexts"] #stacking-contexts,

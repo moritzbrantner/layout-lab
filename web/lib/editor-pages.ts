@@ -1,6 +1,6 @@
 import type {Experiment} from "@/lib/experiments";
 
-export type EditorCollection = "foundation" | "sizing" | "grid" | "algorithms" | "three-d" | "compositing";
+export type EditorCollection = "foundation" | "sizing" | "grid" | "algorithms" | "rendering" | "three-d" | "compositing";
 
 export const editorCollectionById: Record<Experiment["id"], EditorCollection> = {
   flex: "foundation",
@@ -19,6 +19,7 @@ export const editorCollectionById: Record<Experiment["id"], EditorCollection> = 
   "grid-intrinsic": "grid",
   "grid-auto-repeat": "grid",
   "algorithm-pipeline": "algorithms",
+  "paint-order-visualization": "rendering",
   "origins-3d": "three-d",
   "context-3d": "three-d",
   "stacking-contexts": "compositing",
