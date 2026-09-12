@@ -1,6 +1,7 @@
 "use client";
 
 import {useState} from "react";
+import {AlgorithmTraceStepper} from "@/components/AlgorithmTraceStepper";
 import {
   algorithmRegistryDefinitions,
   getAlgorithmRegistryDefinition,
@@ -14,8 +15,14 @@ function formatNumber(value: number) {
 
 export function AlgorithmZooExplorer() {
   const [algorithmId, setAlgorithmId] = useState<AlgorithmRegistryId>("block-flow");
+  const [activeStep, setActiveStep] = useState(0);
   const definition = getAlgorithmRegistryDefinition(algorithmId);
   const execution = runRegistryAlgorithm(algorithmId);
+
+  const selectAlgorithm = (nextId: AlgorithmRegistryId) => {
+    setAlgorithmId(nextId);
+    setActiveStep(0);
+  };
 
   return (
     <section className="algorithm-zoo" aria-labelledby="algorithm-zoo-title">
@@ -32,7 +39,7 @@ export function AlgorithmZooExplorer() {
       <div className="algorithm-zoo-selector">
         <label>
           <span>algorithm</span>
-          <select value={algorithmId} onChange={(event) => setAlgorithmId(event.target.value as AlgorithmRegistryId)}>
+          <select value={algorithmId} onChange={(event) => selectAlgorithm(event.target.value as AlgorithmRegistryId)}>
             {algorithmRegistryDefinitions.map((algorithm) => (
               <option key={algorithm.id} value={algorithm.id}>{algorithm.title}</option>
             ))}
@@ -85,19 +92,11 @@ export function AlgorithmZooExplorer() {
           </div>
         </div>
 
-        <div className="algorithm-zoo-trace">
-          <h4>Common trace output</h4>
-          {execution.trace.length > 0 ? (
-            <ol>
-              {execution.trace.map((step) => (
-                <li key={step.id}>
-                  <strong>{step.label}</strong>
-                  <span>{step.summary}</span>
-                </li>
-              ))}
-            </ol>
-          ) : <p>No intermediate trace steps for this fixture.</p>}
-        </div>
+        <AlgorithmTraceStepper
+          trace={execution.trace}
+          activeStep={activeStep}
+          onStepChange={setActiveStep}
+        />
       </div>
 
       {execution.diagnostics.length > 0 ? (
@@ -110,7 +109,7 @@ export function AlgorithmZooExplorer() {
       ) : null}
 
       <p className="algorithm-zoo-boundary">
-        Constraint solving, line breaking, packing, tidy trees, layered DAG layout, and seeded force-directed graph layout now use this shared result contract. The remaining H7 work is the shared step-through and same-fixture comparison experience.
+        Every H7 family now uses the same selectable intermediate-state navigator. The remaining H7 work is side-by-side comparison for algorithms that solve the same fixture.
       </p>
     </section>
   );
