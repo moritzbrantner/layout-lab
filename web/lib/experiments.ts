@@ -12,6 +12,7 @@ export type Experiment = {
     | "flow-formatting"
     | "positioning-boundaries"
     | "aspect-overflow"
+    | "logical-writing-modes"
     | "grid-track-sizing"
     | "grid-intrinsic"
     | "grid-auto-repeat"
@@ -96,6 +97,13 @@ export const experiments: readonly Experiment[] = [
     area: "2D",
     summary: "Compare explicit aspect-ratio arithmetic, replaced-element intrinsic sizing, and browser-owned overflow geometry and scrolling.",
     properties: ["aspect-ratio", "width", "height", "img", "overflow", "scrollWidth", "scrollLeft"],
+  },
+  {
+    id: "logical-writing-modes",
+    title: "Logical properties and writing modes",
+    area: "2D",
+    summary: "Map logical inline/block axes, sizes, and start insets onto physical browser geometry across horizontal and vertical writing modes.",
+    properties: ["writing-mode", "direction", "inline-size", "block-size", "inset-inline-start", "inset-block-start"],
   },
   {
     id: "grid-track-sizing",
