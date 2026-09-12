@@ -60,23 +60,24 @@ describe("experiment URL state", () => {
     expect(normalizeExperimentUrlValue(scale, "1.17")).toBeUndefined();
   });
 
-  test("persists the algorithm zoo selector and shared explorer dimensions", () => {
+  test("persists algorithm, comparison, and shared explorer dimensions", () => {
     const schema = experimentUrlSchemas["algorithm-pipeline"]!;
     const search = writeExperimentUrlState(
       "?utm=lab",
       "algorithm-pipeline",
       schema,
-      {width: "640", gap: "20", algorithm: "graph-force"},
+      {width: "640", gap: "20", algorithm: "graph-force", comparison: "packing"},
     );
     const state = readExperimentUrlState(search, "algorithm-pipeline", schema);
 
-    expect(state).toEqual({width: "640", gap: "20", algorithm: "graph-force"});
+    expect(state).toEqual({width: "640", gap: "20", algorithm: "graph-force", comparison: "packing"});
     expect(new URLSearchParams(search).get("utm")).toBe("lab");
   });
 
-  test("accepts all currently registered non-default algorithm families", () => {
+  test("accepts all currently registered non-default algorithm families and comparison groups", () => {
     const schema = experimentUrlSchemas["algorithm-pipeline"]!;
     const algorithm = schema.find((control) => control.key === "algorithm")!;
+    const comparison = schema.find((control) => control.key === "comparison")!;
 
     expect(normalizeExperimentUrlValue(algorithm, "constraint-cassowary")).toBe("constraint-cassowary");
     expect(normalizeExperimentUrlValue(algorithm, "line-greedy")).toBe("line-greedy");
@@ -86,16 +87,18 @@ describe("experiment URL state", () => {
     expect(normalizeExperimentUrlValue(algorithm, "tree-tidy")).toBe("tree-tidy");
     expect(normalizeExperimentUrlValue(algorithm, "dag-sugiyama")).toBe("dag-sugiyama");
     expect(normalizeExperimentUrlValue(algorithm, "graph-force")).toBe("graph-force");
+    expect(normalizeExperimentUrlValue(comparison, "packing")).toBe("packing");
   });
 
-  test("rejects unknown algorithm zoo ids from URL state", () => {
+  test("rejects unknown algorithm and comparison ids from URL state", () => {
     const schema = experimentUrlSchemas["algorithm-pipeline"]!;
     const state = readExperimentUrlState(
-      "?algorithm-pipeline.algorithm=not-real",
+      "?algorithm-pipeline.algorithm=not-real&algorithm-pipeline.comparison=not-real",
       "algorithm-pipeline",
       schema,
     );
 
     expect(state.algorithm).toBe("block-flow");
+    expect(state.comparison).toBe("line-breaking");
   });
 });
