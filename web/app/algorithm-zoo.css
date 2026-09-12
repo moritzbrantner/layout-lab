@@ -4,14 +4,16 @@
   border-top: 1px solid var(--line);
 }
 
-.algorithm-zoo-selector {
+.algorithm-zoo-selector,
+.algorithm-comparison-selector {
   display: grid;
   grid-template-columns: minmax(180px, 0.55fr) minmax(0, 1.2fr) minmax(180px, 0.55fr);
   border-top: 1px solid var(--line);
   border-left: 1px solid var(--line);
 }
 
-.algorithm-zoo-selector > * {
+.algorithm-zoo-selector > *,
+.algorithm-comparison-selector > * {
   min-width: 0;
   padding: 14px;
   border-right: 1px solid var(--line);
@@ -19,18 +21,23 @@
 }
 
 .algorithm-zoo-selector label,
-.algorithm-zoo-selector > div {
+.algorithm-zoo-selector > div,
+.algorithm-comparison-selector label,
+.algorithm-comparison-selector > div {
   display: grid;
   gap: 5px;
 }
 
 .algorithm-zoo-selector label span,
-.algorithm-zoo-selector > div > strong {
+.algorithm-zoo-selector > div > strong,
+.algorithm-comparison-selector label span,
+.algorithm-comparison-selector > div > strong {
   font-size: 0.72rem;
   font-weight: 800;
 }
 
-.algorithm-zoo-selector select {
+.algorithm-zoo-selector select,
+.algorithm-comparison-selector select {
   width: 100%;
   padding: 7px 9px;
   border: 1px solid var(--line);
@@ -38,7 +45,8 @@
   color: var(--text);
 }
 
-.algorithm-zoo-selector > div > span {
+.algorithm-zoo-selector > div > span,
+.algorithm-comparison-selector > div > span {
   color: var(--muted);
   font-size: 0.76rem;
   line-height: 1.45;
@@ -68,18 +76,21 @@
   margin-top: 22px;
 }
 
-.algorithm-zoo-output h4 {
+.algorithm-zoo-output h4,
+.algorithm-comparison h4 {
   margin: 0 0 10px;
   font-size: 0.86rem;
 }
 
-.algorithm-zoo-table-wrap {
+.algorithm-zoo-table-wrap,
+.algorithm-comparison-table-wrap {
   overflow-x: auto;
   border-top: 1px solid var(--line);
   border-left: 1px solid var(--line);
 }
 
-.algorithm-zoo-table-wrap table {
+.algorithm-zoo-table-wrap table,
+.algorithm-comparison-table-wrap table {
   width: 100%;
   min-width: 520px;
   border-collapse: collapse;
@@ -87,7 +98,9 @@
 }
 
 .algorithm-zoo-table-wrap th,
-.algorithm-zoo-table-wrap td {
+.algorithm-zoo-table-wrap td,
+.algorithm-comparison-table-wrap th,
+.algorithm-comparison-table-wrap td {
   padding: 9px 11px;
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
@@ -95,14 +108,16 @@
   font-variant-numeric: tabular-nums;
 }
 
-.algorithm-zoo-table-wrap thead th {
+.algorithm-zoo-table-wrap thead th,
+.algorithm-comparison-table-wrap thead th {
   color: var(--muted);
   font-size: 0.64rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.algorithm-zoo-table-wrap code {
+.algorithm-zoo-table-wrap code,
+.algorithm-comparison-table-wrap code {
   color: var(--accent);
 }
 
@@ -208,6 +223,59 @@
   white-space: nowrap;
 }
 
+.algorithm-comparison {
+  margin-top: 34px;
+  padding-top: 26px;
+  border-top: 1px solid var(--line);
+}
+
+.algorithm-comparison-table-wrap {
+  margin-top: 18px;
+}
+
+.algorithm-comparison-work {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 22px;
+}
+
+.algorithm-comparison-work section {
+  min-width: 0;
+}
+
+.algorithm-comparison-work dl {
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+
+.algorithm-comparison-work dl > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.algorithm-comparison-work dt,
+.algorithm-comparison-work dd {
+  margin: 0;
+  font-size: 0.73rem;
+}
+
+.algorithm-comparison-work dt {
+  color: var(--muted);
+}
+
+.algorithm-comparison-work dd {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.algorithm-comparison-geometry {
+  margin-top: 24px;
+}
+
 .algorithm-zoo-boundary {
   margin: 22px 0 0;
   padding-top: 12px;
@@ -216,7 +284,9 @@
 
 @media (max-width: 820px) {
   .algorithm-zoo-selector,
-  .algorithm-zoo-output {
+  .algorithm-zoo-output,
+  .algorithm-comparison-selector,
+  .algorithm-comparison-work {
     grid-template-columns: 1fr;
   }
 }
