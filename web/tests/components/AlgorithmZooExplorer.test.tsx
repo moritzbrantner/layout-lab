@@ -17,6 +17,7 @@ describe("AlgorithmZooExplorer", () => {
     expect(markup).toContain('<option value="packing-shortest-column">Shortest-column masonry</option>');
     expect(markup).toContain('<option value="packing-first-fit">First-fit packing</option>');
     expect(markup).toContain('<option value="tree-tidy">Tidy tree</option>');
+    expect(markup).toContain('<option value="dag-sugiyama">Layered DAG</option>');
   });
 
   test("renders default block execution through the common geometry and trace surfaces", () => {
@@ -33,8 +34,8 @@ describe("AlgorithmZooExplorer", () => {
   test("states implemented families and the remaining future-family boundary", () => {
     const markup = renderToStaticMarkup(<AlgorithmZooExplorer />);
 
-    expect(markup).toContain("Reingold–Tilford-style tidy trees now use this shared result contract");
-    expect(markup).toContain("DAG and force-directed algorithms");
-    expect(markup).toContain("same surface");
+    expect(markup).toContain("layered DAG layout now use this shared result contract");
+    expect(markup).toContain("seeded force-directed layout");
+    expect(markup).toContain("same registry");
   });
 });
