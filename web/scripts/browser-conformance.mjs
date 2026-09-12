@@ -100,7 +100,7 @@ function paintOrderHtml(fixture) {
     html,body{margin:0;padding:0;background:#fff;}
     #root{position:relative;isolation:isolate;width:360px;height:300px;margin:20px;background:#eee;}
     [data-paint-id]{box-sizing:border-box;}
-    .layer{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);}
+    .layer{position:absolute;inset:0;margin:auto;}
     #negative-a{width:320px;height:260px;z-index:${z["negative-a"]};background:rgba(240,142,170,.08);}
     #negative-b{width:300px;height:240px;z-index:${z["negative-b"]};background:rgba(229,180,122,.1);}
     #block{width:260px;height:180px;margin:60px auto 0;background:rgba(133,167,255,.12);text-align:center;line-height:180px;}
