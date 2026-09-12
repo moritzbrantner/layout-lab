@@ -61,12 +61,19 @@ const transforms3dSchema: ExperimentUrlSchema = [
   {key: "depth", label: "Z separation", kind: "number", defaultValue: "70", min: 20, max: 140, step: 1},
 ];
 
+const algorithmPipelineSchema: ExperimentUrlSchema = [
+  {key: "width", label: "Container size", kind: "number", defaultValue: "520", min: 360, max: 760, step: 10},
+  {key: "gap", label: "Gap", kind: "number", defaultValue: "16", min: 0, max: 40, step: 2},
+  {key: "algorithm", label: "algorithm", kind: "select", defaultValue: "block-flow", options: ["block-flow", "flex-row", "grid-row"]},
+];
+
 export const experimentUrlSchemas: Partial<Record<Experiment["id"], ExperimentUrlSchema>> = {
   flex: flexSchema,
   grid: gridSchema,
   "intrinsic-sizing": intrinsicSizingSchema,
   positioning: positioningSchema,
   "transforms-3d": transforms3dSchema,
+  "algorithm-pipeline": algorithmPipelineSchema,
 };
 
 function parameterName(experimentId: Experiment["id"], control: ExperimentUrlControl): string {
