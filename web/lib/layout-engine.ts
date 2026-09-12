@@ -55,17 +55,17 @@ function clamp(value: number, minimum = 0, maximum = Number.POSITIVE_INFINITY) {
   return Math.min(Math.max(value, minimum), maximum);
 }
 
-function resolveWidth(node: LayoutNode, containingWidth: number) {
+export function resolveLayoutWidth(node: LayoutNode, containingWidth: number) {
   const candidate = node.style.width ?? containingWidth;
   return clamp(candidate, node.style.minWidth ?? 0, node.style.maxWidth ?? Number.POSITIVE_INFINITY);
 }
 
-function resolveHeight(node: LayoutNode, contentHeight: number) {
+export function resolveLayoutHeight(node: LayoutNode, contentHeight: number) {
   const candidate = node.style.height ?? contentHeight;
   return clamp(candidate, node.style.minHeight ?? 0, node.style.maxHeight ?? Number.POSITIVE_INFINITY);
 }
 
-function flattenBoxes(root: LayoutBox) {
+export function flattenLayoutBoxes(root: LayoutBox) {
   const boxes: LayoutBox[] = [];
   const visit = (box: LayoutBox) => {
     boxes.push(box);
@@ -98,7 +98,7 @@ export function layoutBlockTree(root: LayoutNode): BlockLayoutResult {
     originX: number,
     originY: number,
   ): LayoutBox => {
-    const width = resolveWidth(node, containingWidth);
+    const width = resolveLayoutWidth(node, containingWidth);
     const children: LayoutBox[] = [];
     let cursor = 0;
     let previousAfter = 0;
@@ -133,7 +133,7 @@ export function layoutBlockTree(root: LayoutNode): BlockLayoutResult {
     });
 
     const contentHeight = node.children.length > 0 ? cursor + previousAfter : 0;
-    const height = resolveHeight(node, contentHeight);
+    const height = resolveLayoutHeight(node, contentHeight);
 
     return {
       id: node.id,
@@ -144,7 +144,7 @@ export function layoutBlockTree(root: LayoutNode): BlockLayoutResult {
   };
 
   const rootBox = visit(root, root.style.width, 0, 0);
-  const boxes = flattenBoxes(rootBox);
+  const boxes = flattenLayoutBoxes(rootBox);
 
   return {
     root: rootBox,
@@ -172,7 +172,7 @@ export function layoutFlexTree(root: LayoutNode): FlexLayoutResult {
   let cursor = 0;
   const children = root.children.map((child, index): LayoutBox => {
     const item = resolution.items[index]!;
-    const height = resolveHeight(child, 0);
+    const height = resolveLayoutHeight(child, 0);
     const box: LayoutBox = {
       id: child.id,
       label: child.label,
@@ -189,7 +189,7 @@ export function layoutFlexTree(root: LayoutNode): FlexLayoutResult {
   });
 
   const derivedHeight = children.reduce((maximum, child) => Math.max(maximum, child.rect.height), 0);
-  const rootHeight = resolveHeight(root, derivedHeight);
+  const rootHeight = resolveLayoutHeight(root, derivedHeight);
   const rootBox: LayoutBox = {
     id: root.id,
     label: root.label,
@@ -201,7 +201,7 @@ export function layoutFlexTree(root: LayoutNode): FlexLayoutResult {
     },
     children,
   };
-  const boxes = flattenBoxes(rootBox);
+  const boxes = flattenLayoutBoxes(rootBox);
 
   return {
     root: rootBox,
@@ -255,14 +255,14 @@ export function layoutGridTree(root: LayoutNode): GridLayoutResult {
         x: trackStarts[item.columnStart]!,
         y: 0,
         width,
-        height: resolveHeight(child, 0),
+        height: resolveLayoutHeight(child, 0),
       },
       children: [],
     };
   });
 
   const derivedHeight = children.reduce((maximum, child) => Math.max(maximum, child.rect.height), 0);
-  const rootHeight = resolveHeight(root, derivedHeight);
+  const rootHeight = resolveLayoutHeight(root, derivedHeight);
   const rootBox: LayoutBox = {
     id: root.id,
     label: root.label,
@@ -274,7 +274,7 @@ export function layoutGridTree(root: LayoutNode): GridLayoutResult {
     },
     children,
   };
-  const boxes = flattenBoxes(rootBox);
+  const boxes = flattenLayoutBoxes(rootBox);
 
   return {
     root: rootBox,

@@ -3,25 +3,29 @@ import {renderToStaticMarkup} from "react-dom/server";
 import {LayoutInvalidationExplorer} from "../../components/LayoutInvalidationExplorer";
 
 describe("LayoutInvalidationExplorer", () => {
-  test("renders block invalidation from the typed dependency graph", () => {
+  test("renders block invalidation, reuse, and actual traversal evidence", () => {
     const markup = renderToStaticMarkup(<LayoutInvalidationExplorer />);
 
-    expect(markup).toContain("Typed dependency graph and dirty-set planner");
+    expect(markup).toContain("Invalidation, reuse, and partial execution");
     expect(markup).toContain('<option value="block" selected="">Block flow</option>');
     expect(markup).toContain("Content height changes");
     expect(markup).toContain("content.height");
     expect(markup).toContain("content:block-size");
-    expect(markup).toContain("footer");
-    expect(markup).toContain("dirty");
-    expect(markup).toContain("reusable");
+    expect(markup).toContain("3</strong><span>recomputed nodes");
+    expect(markup).toContain("1</strong><span>reused nodes");
+    expect(markup).toContain("4</strong><span>visited nodes");
+    expect(markup).toContain("0</strong><span>solver passes");
+    expect(markup).toContain("identical</strong><span>incremental vs clean geometry");
+    expect(markup).toContain("recomputed");
+    expect(markup).toContain("reused from cache");
   });
 
-  test("states the planning boundary before incremental execution exists", () => {
+  test("keeps structural mutations explicit as a graph-rebuild boundary", () => {
     const markup = renderToStaticMarkup(<LayoutInvalidationExplorer />);
 
-    expect(markup).toContain("plans invalidation only");
-    expect(markup).toContain("does not yet claim incremental execution");
-    expect(markup).toContain("H8 recomputation will consume this dirty set");
+    expect(markup).toContain("Children reorder");
+    expect(markup).toContain("Structural insert/remove/reorder remains a fail-closed boundary");
+    expect(markup).toContain("dependency graph is rebuilt for the new tree shape");
   });
 
   test("offers block, Flex, and Grid mutation families on the same surface", () => {

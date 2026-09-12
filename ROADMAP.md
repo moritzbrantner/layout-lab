@@ -81,9 +81,9 @@ Build a common experiment contract so substantially different layout algorithms 
 
 - [x] Represent layout dependencies as an invalidation graph tied to the typed layout tree
 - [x] Map style/tree mutations to the smallest dirty dependency set
-- [ ] Recompute only affected subtrees or algorithm phases
-- [ ] Visualize reused versus recomputed nodes after each mutation
-- [ ] Verify incremental output is identical to a clean full recomputation
+- [x] Recompute only affected subtrees or algorithm phases
+- [x] Visualize reused versus recomputed nodes after each mutation
+- [x] Verify incremental output is identical to a clean full recomputation
 - [ ] Add deterministic mutation workloads for resize, content changes, insertion, removal, and reordering
 - [ ] Measure relayout work by visited nodes and algorithm iterations before adding wall-clock claims
 
