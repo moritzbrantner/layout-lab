@@ -1,5 +1,9 @@
 import {describe, expect, test} from "bun:test";
-import {compareLayoutGeometry} from "./browser-layout-adapter";
+import {
+  compareLayoutGeometry,
+  compareLayoutGeometryWithPolicy,
+  DEFAULT_GEOMETRY_POLICY,
+} from "./browser-layout-adapter";
 import type {LayoutBox} from "./layout-engine";
 
 const engineBoxes: readonly LayoutBox[] = [
@@ -45,7 +49,34 @@ describe("browser layout adapter", () => {
     expect(result.find((comparison) => comparison.id === "browser-only")?.matches).toBe(false);
   });
 
-  test("rejects invalid tolerance values", () => {
+  test("uses a versioned per-field policy with fixed normalization precision", () => {
+    const result = compareLayoutGeometryWithPolicy(engineBoxes, [
+      {id: "root", x: 0, y: 0, width: 300.50004, height: 100},
+      {id: "a", x: 0.50004, y: 0, width: 120, height: 80.50006},
+    ], DEFAULT_GEOMETRY_POLICY);
+
+    expect(DEFAULT_GEOMETRY_POLICY).toEqual({
+      version: "layout-geometry-v1",
+      tolerance: {x: 0.5, y: 0.5, width: 0.5, height: 0.5},
+      roundingDecimals: 4,
+    });
+    expect(result.find((comparison) => comparison.id === "root")?.fields.find((field) => field.field === "width"))
+      .toMatchObject({engine: 300, browser: 300.5, delta: 0.5, matches: true});
+    expect(result.find((comparison) => comparison.id === "a")?.fields.find((field) => field.field === "height"))
+      .toMatchObject({browser: 80.5001, delta: 0.5001, matches: false});
+  });
+
+  test("rejects invalid tolerance values and malformed policy values", () => {
     expect(() => compareLayoutGeometry(engineBoxes, [], -1)).toThrow("geometry tolerance must be finite and non-negative");
+    expect(() => compareLayoutGeometryWithPolicy(engineBoxes, [], {
+      version: "bad",
+      tolerance: {x: -1, y: 0, width: 0, height: 0},
+      roundingDecimals: 4,
+    })).toThrow("x geometry tolerance must be finite and non-negative");
+    expect(() => compareLayoutGeometryWithPolicy(engineBoxes, [], {
+      version: "bad",
+      tolerance: {x: 0, y: 0, width: 0, height: 0},
+      roundingDecimals: 13,
+    })).toThrow("geometry roundingDecimals must be an integer between 0 and 12");
   });
 });
