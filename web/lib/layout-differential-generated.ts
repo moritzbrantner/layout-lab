@@ -114,6 +114,16 @@ function makeCase({
   };
 }
 
+export function createGeneratedLayoutCase(input: {
+  seed: number;
+  index: number;
+  kind: GeneratedLayoutKind;
+  innerSize: number;
+  gapSize: number;
+}) {
+  return makeCase(input);
+}
+
 function createRandom(seed: number) {
   let state = normalizeSeed(seed) || 0x6d2b79f5;
   return () => {
@@ -248,6 +258,22 @@ export function minimizeGeneratedLayoutMismatch(
     if (candidate.innerSize === original.innerSize && candidate.gapSize === original.gapSize) continue;
     attemptedCases += 1;
     if (mismatchOracle(candidate)) {
+      return {original, minimized: candidate, attemptedCases};
+    }
+  }
+  return {original, minimized: original, attemptedCases};
+}
+
+export async function minimizeGeneratedLayoutMismatchAsync(
+  original: GeneratedLayoutCase,
+  mismatchOracle: (candidate: GeneratedLayoutCase) => Promise<boolean>,
+): Promise<DifferentialMinimizationResult> {
+  if (!(await mismatchOracle(original))) throw new Error(`${original.id}: original case does not reproduce the mismatch`);
+  let attemptedCases = 1;
+  for (const candidate of candidateCases(original)) {
+    if (candidate.innerSize === original.innerSize && candidate.gapSize === original.gapSize) continue;
+    attemptedCases += 1;
+    if (await mismatchOracle(candidate)) {
       return {original, minimized: candidate, attemptedCases};
     }
   }
