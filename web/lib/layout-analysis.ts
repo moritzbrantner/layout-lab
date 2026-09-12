@@ -261,6 +261,15 @@ export type GridContributionStep = {
   after: number[];
 };
 
+export type GridFlexIteration = {
+  iteration: number;
+  activeTracks: readonly string[];
+  fixedSize: number;
+  factorSum: number;
+  flexFraction: number;
+  newlyFrozen: readonly string[];
+};
+
 export type GridTrackResult = GridTrackInput & {
   baseSize: number;
   targetSize: number;
@@ -277,6 +286,7 @@ export type MinMaxGridResolution = {
   overflow: number;
   unusedSpace: number;
   contributionSteps: GridContributionStep[];
+  flexIterations: GridFlexIteration[];
   tracks: GridTrackResult[];
 };
 
@@ -335,6 +345,7 @@ export function resolveMinMaxFractionTracks({
 
   const targetSizes = [...baseSizes];
   const frozen = normalized.map((track) => track.fr <= 0);
+  const flexIterations: GridFlexIteration[] = [];
   let flexFraction = 0;
 
   for (let iteration = 0; iteration <= normalized.length; iteration += 1) {
@@ -349,6 +360,14 @@ export function resolveMinMaxFractionTracks({
     const factorSum = active.reduce((sum, index) => sum + normalized[index]!.fr, 0);
     flexFraction = factorSum > 0 ? Math.max(0, (availableForTracks - fixedSize) / factorSum) : 0;
     const undersized = active.filter((index) => flexFraction * normalized[index]!.fr < baseSizes[index]!);
+    flexIterations.push({
+      iteration: iteration + 1,
+      activeTracks: active.map((index) => normalized[index]!.label),
+      fixedSize,
+      factorSum,
+      flexFraction,
+      newlyFrozen: undersized.map((index) => normalized[index]!.label),
+    });
 
     if (undersized.length === 0) {
       active.forEach((index) => {
@@ -378,6 +397,7 @@ export function resolveMinMaxFractionTracks({
     overflow,
     unusedSpace,
     contributionSteps,
+    flexIterations,
     tracks: normalized.map((track, index) => ({
       ...track,
       baseSize: baseSizes[index]!,
