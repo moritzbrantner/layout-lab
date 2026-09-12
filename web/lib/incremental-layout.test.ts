@@ -35,13 +35,13 @@ describe("incremental layout execution", () => {
     expect(geometry(incremental.cache.boxes)).toEqual(geometry(clean.boxes));
     expect(incremental.recomputedNodeIds).toEqual(["block-root", "content", "footer"]);
     expect(incremental.reusedNodeIds).toEqual(["header"]);
-    expect(incremental.work.visitedNodes).toBe(3);
+    expect(incremental.work.visitedNodes).toBe(4);
     expect(incremental.work.reusedNodes).toBe(1);
     expect(incremental.work.solverPasses).toBe(0);
     expect(cache.boxes.find((box) => box.id === "content")?.rect.height).toBe(132);
   });
 
-  test("keeps a block width mutation to one node and reuses the rest of the cached tree", () => {
+  test("keeps block recomputation to one node even though flow traversal reads cached siblings", () => {
     const before = buildBlockLayoutTree();
     const cache = createIncrementalLayoutCache(before);
     const next = updateNode(before, "content", (node) => ({
@@ -59,7 +59,7 @@ describe("incremental layout execution", () => {
     expect(geometry(incremental.cache.boxes)).toEqual(geometry(clean.boxes));
     expect(incremental.recomputedNodeIds).toEqual(["content"]);
     expect(incremental.reusedNodeIds).toEqual(["block-root", "header", "footer"]);
-    expect(incremental.work.visitedNodes).toBe(1);
+    expect(incremental.work.visitedNodes).toBe(4);
   });
 
   test("reruns Flex line resolution for a grow mutation while reusing cross sizes", () => {
@@ -79,6 +79,7 @@ describe("incremental layout execution", () => {
 
     expect(geometry(incremental.cache.boxes)).toEqual(geometry(clean.boxes));
     expect(incremental.work.solverPasses).toBeGreaterThan(0);
+    expect(incremental.work.visitedNodes).toBe(4);
     expect(incremental.plan.dirtyPhaseIds).not.toContain("item-a:block-size");
     expect(incremental.plan.dirtyPhaseIds).not.toContain("root:block-size");
     expect(incremental.cache.flexResolution).toEqual(clean.resolution);
@@ -101,6 +102,7 @@ describe("incremental layout execution", () => {
 
     expect(geometry(incremental.cache.boxes)).toEqual(geometry(clean.boxes));
     expect(incremental.recomputedNodeIds).toEqual(["root", "item-b"]);
+    expect(incremental.work.visitedNodes).toBe(4);
     expect(incremental.work.solverPasses).toBe(0);
     expect(incremental.plan.dirtyPhaseIds).not.toContain("root:flex-line");
   });
@@ -124,6 +126,7 @@ describe("incremental layout execution", () => {
     expect(incremental.plan.dirtyPhaseIds).toEqual([]);
     expect(incremental.work.visitedNodes).toBe(0);
     expect(incremental.work.solverPasses).toBe(0);
+    expect(incremental.cache.root).toBe(cache.root);
   });
 
   test("reruns Grid track sizing when a spanning contribution changes", () => {
@@ -145,6 +148,7 @@ describe("incremental layout execution", () => {
     const clean = layoutGridTree(next);
 
     expect(geometry(incremental.cache.boxes)).toEqual(geometry(clean.boxes));
+    expect(incremental.work.visitedNodes).toBe(3);
     expect(incremental.work.solverPasses).toBe(1);
     expect(incremental.cache.gridResolution).toEqual(clean.resolution);
     expect(incremental.cache.gridTrackStarts).toEqual(clean.trackStarts);
@@ -171,6 +175,7 @@ describe("incremental layout execution", () => {
     expect(geometry(incremental.cache.boxes)).toEqual(geometry(clean.boxes));
     expect(incremental.recomputedNodeIds).toEqual(["item-c"]);
     expect(incremental.reusedNodeIds).toEqual(["root", "span-ab"]);
+    expect(incremental.work.visitedNodes).toBe(3);
     expect(incremental.work.solverPasses).toBe(0);
     expect(incremental.cache.gridResolution).toBe(cache.gridResolution);
   });
@@ -184,6 +189,6 @@ describe("incremental layout execution", () => {
       kind: "children",
       parentId: "root",
       operation: "reorder",
-    })).toThrow();
+    })).toThrow("structural mutations require rebuilding the invalidation graph");
   });
 });
