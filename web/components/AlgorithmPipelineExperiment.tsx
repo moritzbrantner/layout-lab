@@ -1,6 +1,7 @@
 "use client";
 
 import {useState} from "react";
+import {AlgorithmZooExplorer} from "@/components/AlgorithmZooExplorer";
 import {BrowserEngineComparison} from "@/components/BrowserEngineComparison";
 import {LayoutTreeInspector} from "@/components/LayoutTreeInspector";
 import {algorithmCorpusCases} from "@/lib/algorithm-corpus";
@@ -230,6 +231,7 @@ export function AlgorithmPipelineExperiment() {
 
       <LayoutTreeInspector scenario={scenario} innerSize={innerSize} gapSize={gapSize} />
       <BrowserEngineComparison scenario={scenario} innerSize={innerSize} gapSize={gapSize} />
+      <AlgorithmZooExplorer />
 
       <AlgorithmEvidence pipeline={pipeline} />
 
