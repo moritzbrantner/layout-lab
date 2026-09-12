@@ -2,6 +2,7 @@ import {notFound} from "next/navigation";
 import {AlgorithmPipelineExperiment} from "@/components/AlgorithmPipelineExperiment";
 import {AspectOverflowExperiment} from "@/components/AspectOverflowExperiment";
 import {CompositingDepth} from "@/components/CompositingDepth";
+import {CompositingObservationsExperiment} from "@/components/CompositingObservationsExperiment";
 import {ContainerQueriesContainmentExperiment} from "@/components/ContainerQueriesContainmentExperiment";
 import {EditorPageHeader} from "@/components/EditorNavigation";
 import {ExperimentUrlState} from "@/components/ExperimentUrlState";
@@ -34,6 +35,7 @@ function EditorCollection({collection, current}: {collection: EditorCollectionNa
   if (collection === "sizing") return <SizingDepth />;
   if (collection === "grid") return <GridDepth />;
   if (collection === "three-d") return <ThreeDDepth />;
+  if (collection === "compositing" && current === "compositing-observations") return <CompositingObservationsExperiment />;
   return <CompositingDepth />;
 }
 
