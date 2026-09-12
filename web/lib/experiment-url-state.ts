@@ -83,6 +83,13 @@ const algorithmPipelineSchema: ExperimentUrlSchema = [
       "graph-force",
     ],
   },
+  {
+    key: "comparison",
+    label: "comparison",
+    kind: "select",
+    defaultValue: "line-breaking",
+    options: ["line-breaking", "packing"],
+  },
 ];
 
 export const experimentUrlSchemas: Partial<Record<Experiment["id"], ExperimentUrlSchema>> = {

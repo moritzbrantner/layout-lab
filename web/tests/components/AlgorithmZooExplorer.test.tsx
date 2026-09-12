@@ -35,11 +35,14 @@ describe("AlgorithmZooExplorer", () => {
     expect(markup).toContain("Next step");
   });
 
-  test("states that same-fixture comparison is the remaining H7 work", () => {
+  test("renders same-fixture side-by-side comparison as the final H7 surface", () => {
     const markup = renderToStaticMarkup(<AlgorithmZooExplorer />);
 
-    expect(markup).toContain("Every H7 family now uses the same selectable intermediate-state navigator");
-    expect(markup).toContain("remaining H7 work");
-    expect(markup).toContain("side-by-side comparison");
+    expect(markup).toContain("Side-by-side algorithms");
+    expect(markup).toContain("exact input match");
+    expect(markup).toContain("paragraph height");
+    expect(markup).toContain("Greedy line breaking");
+    expect(markup).toContain("Knuth–Plass line breaking");
+    expect(markup).toContain("H7 now has one execution contract, one shared step-through surface, and explicit same-fixture comparisons");
   });
 });
