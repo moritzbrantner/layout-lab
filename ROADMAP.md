@@ -26,7 +26,7 @@
 - [x] Absolute, sticky, and fixed positioning containing blocks
 - [x] Aspect ratio, replaced elements, overflow, and scroll containers
 - [x] Logical properties and writing modes
-- [ ] Container queries and containment
+- [x] Container queries and containment
 
 ## H3 — 3D layout and compositing
 

@@ -13,6 +13,7 @@ export type Experiment = {
     | "positioning-boundaries"
     | "aspect-overflow"
     | "logical-writing-modes"
+    | "container-queries-containment"
     | "grid-track-sizing"
     | "grid-intrinsic"
     | "grid-auto-repeat"
@@ -104,6 +105,13 @@ export const experiments: readonly Experiment[] = [
     area: "2D",
     summary: "Map logical inline/block axes, sizes, and start insets onto physical browser geometry across horizontal and vertical writing modes.",
     properties: ["writing-mode", "direction", "inline-size", "block-size", "inset-inline-start", "inset-block-start"],
+  },
+  {
+    id: "container-queries-containment",
+    title: "Container queries and containment",
+    area: "2D",
+    summary: "Observe named inline-size query activation and how inline-size containment changes intrinsic sizing while browser layout remains authoritative.",
+    properties: ["container-type", "container-name", "@container", "contain", "contain-intrinsic-inline-size"],
   },
   {
     id: "grid-track-sizing",
