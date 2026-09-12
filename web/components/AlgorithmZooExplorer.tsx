@@ -3,6 +3,7 @@
 import {useState} from "react";
 import {AlgorithmComparisonExplorer} from "@/components/AlgorithmComparisonExplorer";
 import {AlgorithmTraceStepper} from "@/components/AlgorithmTraceStepper";
+import {LayoutInvalidationExplorer} from "@/components/LayoutInvalidationExplorer";
 import {
   algorithmRegistryDefinitions,
   getAlgorithmRegistryDefinition,
@@ -114,6 +115,8 @@ export function AlgorithmZooExplorer() {
       <p className="algorithm-zoo-boundary">
         H7 now has one execution contract, one shared step-through surface, and explicit same-fixture comparisons where multiple algorithms solve identical input.
       </p>
+
+      <LayoutInvalidationExplorer />
     </section>
   );
 }
