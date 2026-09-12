@@ -87,4 +87,20 @@ describe("CassowarySolver", () => {
       new LinearConstraint("x = 20", expression(-20, [x, 1]), "=="),
     )).toThrow("unsatisfiable required constraint");
   });
+
+  test("remains usable after a failed required inequality insertion", () => {
+    const solver = new CassowarySolver();
+    const x = new ConstraintVariable("x");
+    const lower = new LinearConstraint("x >= 10", expression(-10, [x, 1]), ">=");
+    const impossibleUpper = new LinearConstraint("x <= 5", expression(-5, [x, 1]), "<=");
+    const preferred = new LinearConstraint("prefer x = 12", expression(-12, [x, 1]), "==", ConstraintStrength.strong);
+
+    solver.addConstraint(lower);
+    expect(() => solver.addConstraint(impossibleUpper)).toThrow("unsatisfiable required constraint");
+    solver.addConstraint(preferred);
+    solver.updateVariables();
+
+    approximately(x.value, 12);
+    expect(solver.constraintCount).toBe(2);
+  });
 });
