@@ -129,7 +129,10 @@ export function runAlgorithmComparison(id: AlgorithmComparisonId): AlgorithmComp
   };
 }
 
-export function algorithmComparisonTitles(id: AlgorithmComparisonId) {
+export function algorithmComparisonTitles(id: AlgorithmComparisonId): readonly [string, string] {
   const comparison = runAlgorithmComparison(id);
-  return comparison.executions.map((execution) => getAlgorithmRegistryDefinition(execution.algorithmId).title) as readonly [string, string];
+  return [
+    getAlgorithmRegistryDefinition(comparison.executions[0].algorithmId).title,
+    getAlgorithmRegistryDefinition(comparison.executions[1].algorithmId).title,
+  ];
 }
