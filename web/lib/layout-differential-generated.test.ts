@@ -12,6 +12,7 @@ import {
   GENERATED_WIDTH_STEP,
   materializeGeneratedLayoutFixture,
   minimizeGeneratedLayoutMismatch,
+  minimizeGeneratedLayoutMismatchAsync,
   replayGeneratedEngineGeometry,
   replayGeneratedLayoutCase,
 } from "./layout-differential-generated";
@@ -94,6 +95,19 @@ describe("generated layout differential cases", () => {
     );
 
     expect(result.minimized.kind).toBe(original!.kind);
+    expect(result.minimized.innerSize).toBe(600);
+    expect(result.minimized.gapSize).toBe(20);
+    expect(result.attemptedCases).toBeGreaterThan(1);
+  });
+
+  test("supports the same bounded minimization with an asynchronous browser oracle", async () => {
+    const original = generateLayoutDifferentialCases(0xdeadbeef, 512)
+      .find((layoutCase) => layoutCase.innerSize >= 600 && layoutCase.gapSize >= 20)!;
+    const result = await minimizeGeneratedLayoutMismatchAsync(
+      original,
+      async (candidate) => candidate.innerSize >= 600 && candidate.gapSize >= 20,
+    );
+
     expect(result.minimized.innerSize).toBe(600);
     expect(result.minimized.gapSize).toBe(20);
     expect(result.attemptedCases).toBeGreaterThan(1);
