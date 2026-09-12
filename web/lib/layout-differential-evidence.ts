@@ -16,10 +16,7 @@ export type BrowserConformanceReplay =
     }
   | {
       type: "generated";
-      generatorVersion: string;
-      seed: number;
-      index: number;
-      replayKey: string;
+      case: GeneratedLayoutCase;
       originalReplayKey?: string;
       minimizationAttempts?: number;
     };
@@ -57,10 +54,7 @@ export function generatedReplay(
 ): BrowserConformanceReplay {
   return {
     type: "generated",
-    generatorVersion: layoutCase.generatorVersion,
-    seed: layoutCase.seed,
-    index: layoutCase.index,
-    replayKey: layoutCase.replayKey,
+    case: layoutCase,
     ...options,
   };
 }
