@@ -17,6 +17,7 @@ import "./algorithm-evidence.css";
 import "./layout-tree.css";
 import "./browser-engine-comparison.css";
 import "./algorithm-zoo.css";
+import "./layout-invalidation.css";
 import "./grid-depth.css";
 import "./three-d-depth.css";
 import "./compositing-depth.css";
