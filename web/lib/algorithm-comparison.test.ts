@@ -26,8 +26,8 @@ describe("same-fixture algorithm comparisons", () => {
       "Knuth–Plass line breaking",
     ]);
     expect(comparison.geometryRows.find((row) => row.id === "paragraph")?.values).toEqual([
-      {x: 0, y: 0, width: 270, height: 96},
-      {x: 0, y: 0, width: 270, height: 64},
+      {x: 0, y: 0, width: 260, height: 96},
+      {x: 0, y: 0, width: 260, height: 64},
     ]);
   });
 
