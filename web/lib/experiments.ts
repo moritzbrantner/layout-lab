@@ -21,7 +21,8 @@ export type Experiment = {
     | "origins-3d"
     | "context-3d"
     | "stacking-contexts"
-    | "hit-testing";
+    | "hit-testing"
+    | "compositing-observations";
   title: string;
   area: ExperimentArea;
   summary: string;
@@ -168,5 +169,12 @@ export const experiments: readonly Experiment[] = [
     area: "3D",
     summary: "Compare the transformed painted shape with its axis-aligned bounding rectangle and inspect browser hit targets.",
     properties: ["transform", "getBoundingClientRect", "elementFromPoint", "pointer events"],
+  },
+  {
+    id: "compositing-observations",
+    title: "Compositing observations",
+    area: "3D",
+    summary: "Inspect portable rendering signals and paint-containment consequences while keeping the browser's internal compositor-layer tree explicitly out of scope.",
+    properties: ["transform", "opacity", "filter", "will-change", "contain", "getAnimations", "elementFromPoint"],
   },
 ] as const;
