@@ -4,6 +4,7 @@ import {useState} from "react";
 import {AlgorithmComparisonExplorer} from "@/components/AlgorithmComparisonExplorer";
 import {AlgorithmTraceStepper} from "@/components/AlgorithmTraceStepper";
 import {LayoutInvalidationExplorer} from "@/components/LayoutInvalidationExplorer";
+import {LayoutMutationWorkloadExplorer} from "@/components/LayoutMutationWorkloadExplorer";
 import {
   algorithmRegistryDefinitions,
   getAlgorithmRegistryDefinition,
@@ -117,6 +118,7 @@ export function AlgorithmZooExplorer() {
       </p>
 
       <LayoutInvalidationExplorer />
+      <LayoutMutationWorkloadExplorer />
     </section>
   );
 }

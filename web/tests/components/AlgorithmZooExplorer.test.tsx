@@ -45,4 +45,15 @@ describe("AlgorithmZooExplorer", () => {
     expect(markup).toContain("Knuth–Plass line breaking");
     expect(markup).toContain("H7 now has one execution contract, one shared step-through surface, and explicit same-fixture comparisons");
   });
+
+  test("renders H8 incremental and deterministic workload evidence on the same Pages surface", () => {
+    const markup = renderToStaticMarkup(<AlgorithmZooExplorer />);
+
+    expect(markup).toContain("Invalidation, reuse, and partial execution");
+    expect(markup).toContain("Mutation traces and relayout work");
+    expect(markup).toContain("Block structural trace");
+    expect(markup).toContain("Visited / clean");
+    expect(markup).toContain("Solver work / clean");
+    expect(markup).toContain("all identical");
+  });
 });
