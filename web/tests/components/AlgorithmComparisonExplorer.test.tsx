@@ -22,8 +22,8 @@ describe("AlgorithmComparisonExplorer", () => {
     expect(markup).toContain(">96px<");
     expect(markup).toContain(">64px<");
     expect(markup).toContain("Geometry from the same fixture");
-    expect(markup).toContain("x 0 · y 0 · 270×96");
-    expect(markup).toContain("x 0 · y 0 · 270×64");
+    expect(markup).toContain("x 0 · y 0 · 260×96");
+    expect(markup).toContain("x 0 · y 0 · 260×64");
   });
 
   test("states that the comparison isolates algorithm choice rather than fixture drift", () => {
