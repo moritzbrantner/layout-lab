@@ -88,6 +88,12 @@ class Row {
     return row;
   }
 
+  copyFrom(other: Row) {
+    this.constant = other.constant;
+    this.cells.clear();
+    other.cells.forEach((coefficient, symbol) => this.cells.set(symbol, coefficient));
+  }
+
   insertSymbol(symbol: SolverSymbol, coefficient = 1) {
     const next = (this.cells.get(symbol) ?? 0) + coefficient;
     if (nearZero(next)) this.cells.delete(symbol);
@@ -135,6 +141,17 @@ class Row {
   }
 }
 
+type SolverSnapshot = {
+  constraints: Map<LinearConstraint, ConstraintTag>;
+  rows: Map<SolverSymbol, Row>;
+  variables: Map<ConstraintVariable, SolverSymbol>;
+  objective: Row;
+  artificial: Row | null;
+  nextSymbolId: number;
+  pivotCount: number;
+  operationLogLength: number;
+};
+
 export class CassowarySolver {
   private readonly constraints = new Map<LinearConstraint, ConstraintTag>();
   private readonly rows = new Map<SolverSymbol, Row>();
@@ -163,59 +180,103 @@ export class CassowarySolver {
 
   addConstraint(constraint: LinearConstraint) {
     if (this.constraints.has(constraint)) throw new Error(`duplicate constraint: ${constraint.label}`);
+    const snapshot = this.snapshotState();
     const pivotStart = this.pivotCountValue;
-    const tag: ConstraintTag = {marker: INVALID_SYMBOL, other: INVALID_SYMBOL};
-    const row = this.createRow(constraint, tag);
-    let subject = this.chooseSubject(row, tag);
 
-    if (subject.type === "invalid" && this.allDummies(row)) {
-      if (!nearZero(row.constant)) throw new Error(`unsatisfiable required constraint: ${constraint.label}`);
-      subject = tag.marker;
-    }
+    try {
+      const tag: ConstraintTag = {marker: INVALID_SYMBOL, other: INVALID_SYMBOL};
+      const row = this.createRow(constraint, tag);
+      let subject = this.chooseSubject(row, tag);
 
-    if (subject.type === "invalid") {
-      if (!this.addWithArtificialVariable(row)) {
-        throw new Error(`unsatisfiable required constraint: ${constraint.label}`);
+      if (subject.type === "invalid" && this.allDummies(row)) {
+        if (!nearZero(row.constant)) throw new Error(`unsatisfiable required constraint: ${constraint.label}`);
+        subject = tag.marker;
       }
-    } else {
-      row.solveFor(subject);
-      this.substitute(subject, row);
-      this.rows.set(subject, row);
-    }
 
-    this.constraints.set(constraint, tag);
-    this.optimize(this.objective);
-    this.recordOperation("add", constraint.label, pivotStart);
+      if (subject.type === "invalid") {
+        if (!this.addWithArtificialVariable(row)) {
+          throw new Error(`unsatisfiable required constraint: ${constraint.label}`);
+        }
+      } else {
+        row.solveFor(subject);
+        this.substitute(subject, row);
+        this.rows.set(subject, row);
+      }
+
+      this.constraints.set(constraint, tag);
+      this.optimize(this.objective);
+      this.recordOperation("add", constraint.label, pivotStart);
+    } catch (error) {
+      this.restoreState(snapshot);
+      throw error;
+    }
   }
 
   removeConstraint(constraint: LinearConstraint) {
     const tag = this.constraints.get(constraint);
     if (!tag) throw new Error(`unknown constraint: ${constraint.label}`);
+    const snapshot = this.snapshotState();
     const pivotStart = this.pivotCountValue;
-    this.constraints.delete(constraint);
-    this.removeConstraintEffects(constraint, tag);
 
-    if (this.rows.has(tag.marker)) {
-      this.rows.delete(tag.marker);
-    } else {
-      const leaving = this.getMarkerLeavingSymbol(tag.marker);
-      if (leaving.type === "invalid") {
-        throw new Error(`failed to find leaving row for ${constraint.label}`);
+    try {
+      this.constraints.delete(constraint);
+      this.removeConstraintEffects(constraint, tag);
+
+      if (this.rows.has(tag.marker)) {
+        this.rows.delete(tag.marker);
+      } else {
+        const leaving = this.getMarkerLeavingSymbol(tag.marker);
+        if (leaving.type === "invalid") {
+          throw new Error(`failed to find leaving row for ${constraint.label}`);
+        }
+        const row = this.rows.get(leaving)!;
+        this.rows.delete(leaving);
+        row.solveForSymbols(leaving, tag.marker);
+        this.substitute(tag.marker, row);
       }
-      const row = this.rows.get(leaving)!;
-      this.rows.delete(leaving);
-      row.solveForSymbols(leaving, tag.marker);
-      this.substitute(tag.marker, row);
-    }
 
-    this.optimize(this.objective);
-    this.recordOperation("remove", constraint.label, pivotStart);
+      this.optimize(this.objective);
+      this.recordOperation("remove", constraint.label, pivotStart);
+    } catch (error) {
+      this.restoreState(snapshot);
+      throw error;
+    }
   }
 
   updateVariables() {
     this.variables.forEach((symbol, variable) => {
       variable.value = this.rows.get(symbol)?.constant ?? 0;
     });
+  }
+
+  private snapshotState(): SolverSnapshot {
+    return {
+      constraints: new Map(this.constraints),
+      rows: new Map(Array.from(this.rows, ([symbol, row]) => [symbol, row.clone()])),
+      variables: new Map(this.variables),
+      objective: this.objective.clone(),
+      artificial: this.artificial?.clone() ?? null,
+      nextSymbolId: this.nextSymbolId,
+      pivotCount: this.pivotCountValue,
+      operationLogLength: this.operationLog.length,
+    };
+  }
+
+  private restoreState(snapshot: SolverSnapshot) {
+    this.constraints.clear();
+    snapshot.constraints.forEach((tag, constraint) => this.constraints.set(constraint, tag));
+
+    this.rows.clear();
+    snapshot.rows.forEach((row, symbol) => this.rows.set(symbol, row.clone()));
+
+    this.variables.clear();
+    snapshot.variables.forEach((symbol, variable) => this.variables.set(variable, symbol));
+
+    this.objective.copyFrom(snapshot.objective);
+    this.artificial = snapshot.artificial?.clone() ?? null;
+    this.nextSymbolId = snapshot.nextSymbolId;
+    this.pivotCountValue = snapshot.pivotCount;
+    this.operationLog.length = snapshot.operationLogLength;
   }
 
   private recordOperation(kind: CassowaryOperation["kind"], constraint: string, pivotStart: number) {
