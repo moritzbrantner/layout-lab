@@ -202,6 +202,7 @@ function fullRecomputedNodeIds(tree: LayoutNode) {
 export function runMutationWorkload(id: MutationWorkloadId): MutationWorkloadResult {
   const definition = getMutationWorkloadDefinition(id);
   let cache = createIncrementalLayoutCache(definition.createTree());
+  let graph = buildLayoutInvalidationGraph(cache.tree);
   const evidence: MutationWorkloadStepEvidence[] = [];
 
   for (const step of definition.steps) {
@@ -209,12 +210,17 @@ export function runMutationWorkload(id: MutationWorkloadId): MutationWorkloadRes
     const clean = createIncrementalLayoutCache(nextTree);
 
     if (step.mutation.kind === "children") {
-      const graph = buildLayoutInvalidationGraph(cache.tree);
       const plan = planLayoutInvalidation(graph, step.mutation);
       if (!plan.requiresGraphRebuild) {
         throw new Error(`${definition.id}/${step.id}: structural mutation did not require a graph rebuild`);
       }
+
       const rebuilt = createIncrementalLayoutCache(nextTree);
+      graph = buildLayoutInvalidationGraph(nextTree);
+      if (graph.rootId !== nextTree.id) {
+        throw new Error(`${definition.id}/${step.id}: rebuilt graph does not match the mutated tree root`);
+      }
+
       const recomputedNodeIds = fullRecomputedNodeIds(nextTree);
       evidence.push({
         id: step.id,
