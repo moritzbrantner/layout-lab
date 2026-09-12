@@ -19,6 +19,7 @@ import "./browser-engine-comparison.css";
 import "./algorithm-zoo.css";
 import "./layout-invalidation.css";
 import "./layout-workload.css";
+import "./layout-complexity.css";
 import "./grid-depth.css";
 import "./three-d-depth.css";
 import "./compositing-depth.css";
