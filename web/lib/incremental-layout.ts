@@ -120,14 +120,14 @@ export function createIncrementalLayoutCache(tree: LayoutNode): IncrementalLayou
 function assertIncrementalBoundary(cache: IncrementalLayoutCache, nextTree: LayoutNode, mutation: LayoutMutation) {
   const errors = validateLayoutTree(nextTree);
   if (errors.length > 0) throw new Error(errors.join("; "));
+  if (mutation.kind === "children") {
+    throw new Error("structural mutations require rebuilding the invalidation graph before incremental execution");
+  }
   if (contextForTree(nextTree) !== cache.context) {
     throw new Error("incremental layout cannot change the root formatting context");
   }
   if (treeShape(nextTree) !== treeShape(cache.tree)) {
     throw new Error("incremental style execution requires an unchanged layout-tree shape");
-  }
-  if (mutation.kind === "children") {
-    throw new Error("structural mutations require rebuilding the invalidation graph before incremental execution");
   }
 }
 
@@ -338,22 +338,41 @@ export function recomputeIncrementalLayout(
     throw new Error("structural mutations require rebuilding the invalidation graph before incremental execution");
   }
 
-  const partial = cache.context === "block"
-    ? recomputeBlock(cache, nextTree, plan)
-    : cache.context === "flex"
-      ? recomputeFlex(cache, nextTree, plan)
-      : recomputeGrid(cache, nextTree, plan);
   const sets = nodeSets(nextTree, plan);
+  let nextCache: IncrementalLayoutCache;
+  let solverPasses: number;
 
-  const nextCache: IncrementalLayoutCache = {
-    context: cache.context,
-    tree: nextTree,
-    root: partial.root,
-    boxes: partial.boxes,
-    flexResolution: "resolution" in partial && cache.context === "flex" ? partial.resolution : cache.flexResolution,
-    gridResolution: "resolution" in partial && cache.context === "grid" ? partial.resolution : cache.gridResolution,
-    gridTrackStarts: "trackStarts" in partial ? partial.trackStarts : cache.gridTrackStarts,
-  };
+  if (cache.context === "block") {
+    const partial = recomputeBlock(cache, nextTree, plan);
+    nextCache = {
+      context: "block",
+      tree: nextTree,
+      root: partial.root,
+      boxes: partial.boxes,
+    };
+    solverPasses = partial.solverPasses;
+  } else if (cache.context === "flex") {
+    const partial = recomputeFlex(cache, nextTree, plan);
+    nextCache = {
+      context: "flex",
+      tree: nextTree,
+      root: partial.root,
+      boxes: partial.boxes,
+      flexResolution: partial.resolution,
+    };
+    solverPasses = partial.solverPasses;
+  } else {
+    const partial = recomputeGrid(cache, nextTree, plan);
+    nextCache = {
+      context: "grid",
+      tree: nextTree,
+      root: partial.root,
+      boxes: partial.boxes,
+      gridResolution: partial.resolution,
+      gridTrackStarts: partial.trackStarts,
+    };
+    solverPasses = partial.solverPasses;
+  }
 
   return {
     cache: nextCache,
@@ -365,7 +384,7 @@ export function recomputeIncrementalLayout(
       reusedPhaseCount: graph.nodes.length - plan.dirtyPhaseIds.length,
       visitedNodes: sets.recomputedNodeIds.length,
       reusedNodes: sets.reusedNodeIds.length,
-      solverPasses: partial.solverPasses,
+      solverPasses,
     },
   };
 }
