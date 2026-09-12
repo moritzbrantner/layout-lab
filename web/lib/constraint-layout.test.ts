@@ -27,8 +27,10 @@ describe("constraint layout fixture", () => {
     expect(result.pivots).toBeGreaterThan(0);
   });
 
-  test("rejects fixture sizes that cannot satisfy the required panel minimums", () => {
+  test("rejects fixture sizes that cannot complete the full required-cap demonstration", () => {
     expect(() => solveConstraintLayout(400, 16)).toThrow("at least 420px");
     expect(() => solveConstraintLayout(640, 400)).toThrow("room for both panels");
+    expect(() => solveConstraintLayout(420, 60)).toThrow("temporary cap");
+    expect(() => solveConstraintLayout(420, 10)).not.toThrow();
   });
 });
