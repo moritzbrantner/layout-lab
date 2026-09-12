@@ -191,7 +191,7 @@ function geometrySignature(cache: IncrementalLayoutCache) {
 
 function fullAlgorithmIterations(cache: IncrementalLayoutCache) {
   if (cache.context === "flex") return cache.flexResolution?.iterations.length ?? 0;
-  if (cache.context === "grid") return (cache.gridResolution?.contributionSteps.length ?? 0) + 1;
+  if (cache.context === "grid") return cache.gridResolution ? 1 : 0;
   return 0;
 }
 
