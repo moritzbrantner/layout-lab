@@ -1,4 +1,5 @@
-.layout-tree-inspector {
+.layout-tree-inspector,
+.block-engine-baseline {
   margin-top: 36px;
   padding-top: 30px;
   border-top: 1px solid var(--line);
@@ -69,6 +70,89 @@
   font-size: 0.74rem;
 }
 
+.block-engine-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  margin: 0 0 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.block-engine-summary > div {
+  display: flex;
+  gap: 7px;
+  align-items: baseline;
+}
+
+.block-engine-summary strong {
+  font-size: 0.78rem;
+}
+
+.block-engine-summary span {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.block-engine-table-wrap {
+  overflow-x: auto;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.block-engine-table-wrap table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.block-engine-table-wrap th,
+.block-engine-table-wrap td {
+  padding: 11px 13px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.block-engine-table-wrap thead th {
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.block-engine-table-wrap tbody th code {
+  margin-left: 7px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 500;
+}
+
+.block-margin-evidence {
+  display: grid;
+  gap: 0;
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.block-margin-evidence p {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.76rem;
+}
+
+.block-margin-evidence p span {
+  color: var(--muted);
+  text-align: right;
+}
+
 @media (max-width: 760px) {
   .layout-tree-contract {
     grid-template-columns: 1fr;
@@ -76,5 +160,14 @@
 
   .layout-tree-list li {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .block-margin-evidence p {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .block-margin-evidence p span {
+    text-align: left;
   }
 }

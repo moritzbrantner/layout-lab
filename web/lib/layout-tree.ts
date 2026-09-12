@@ -6,6 +6,11 @@ export type LayoutBoxStyle = {
   width?: number;
   minWidth?: number;
   maxWidth?: number;
+  height?: number;
+  minHeight?: number;
+  maxHeight?: number;
+  marginBlockBefore?: number;
+  marginBlockAfter?: number;
 };
 
 export type LayoutFlexContainerStyle = {
@@ -76,6 +81,18 @@ function finiteNonNegative(value: number | undefined) {
   return value === undefined || (Number.isFinite(value) && value >= 0);
 }
 
+function validateMinMax(
+  nodeId: string,
+  minimum: number | undefined,
+  maximum: number | undefined,
+  axis: "Width" | "Height",
+  errors: string[],
+) {
+  if (minimum !== undefined && maximum !== undefined && maximum < minimum) {
+    errors.push(`${nodeId}: max${axis} must be greater than or equal to min${axis}`);
+  }
+}
+
 function validateNodeStyle(node: LayoutNode, errors: string[]) {
   const path = node.id || "<missing-id>";
   const {style} = node;
@@ -83,13 +100,13 @@ function validateNodeStyle(node: LayoutNode, errors: string[]) {
   if (!finiteNonNegative(style.width)) errors.push(`${path}: width must be finite and non-negative`);
   if (!finiteNonNegative(style.minWidth)) errors.push(`${path}: minWidth must be finite and non-negative`);
   if (!finiteNonNegative(style.maxWidth)) errors.push(`${path}: maxWidth must be finite and non-negative`);
-  if (
-    style.minWidth !== undefined
-    && style.maxWidth !== undefined
-    && style.maxWidth < style.minWidth
-  ) {
-    errors.push(`${path}: maxWidth must be greater than or equal to minWidth`);
-  }
+  if (!finiteNonNegative(style.height)) errors.push(`${path}: height must be finite and non-negative`);
+  if (!finiteNonNegative(style.minHeight)) errors.push(`${path}: minHeight must be finite and non-negative`);
+  if (!finiteNonNegative(style.maxHeight)) errors.push(`${path}: maxHeight must be finite and non-negative`);
+  if (!finiteNonNegative(style.marginBlockBefore)) errors.push(`${path}: marginBlockBefore must be finite and non-negative`);
+  if (!finiteNonNegative(style.marginBlockAfter)) errors.push(`${path}: marginBlockAfter must be finite and non-negative`);
+  validateMinMax(path, style.minWidth, style.maxWidth, "Width", errors);
+  validateMinMax(path, style.minHeight, style.maxHeight, "Height", errors);
 
   if (style.display === "flex") {
     if (!style.flexContainer) errors.push(`${path}: flex containers require flexContainer settings`);
@@ -290,6 +307,34 @@ export function buildGridLayoutTree(innerSize = 560, gapSize = 16): LayoutNode {
         id: "span-ab",
         label: "span A+B",
         style: {display: "block", gridItem: {columnStart: 0, columnSpan: 2, minContribution: 300}},
+        children: [],
+      },
+    ],
+  };
+}
+
+export function buildBlockLayoutTree(width = 420): LayoutNode {
+  return {
+    id: "block-root",
+    label: "Block root",
+    style: {display: "block", width},
+    children: [
+      {
+        id: "header",
+        label: "Header",
+        style: {display: "block", height: 56, marginBlockAfter: 20},
+        children: [],
+      },
+      {
+        id: "content",
+        label: "Content",
+        style: {display: "block", minWidth: 240, maxWidth: 360, height: 132, marginBlockBefore: 12, marginBlockAfter: 18},
+        children: [],
+      },
+      {
+        id: "footer",
+        label: "Footer",
+        style: {display: "block", width: 280, height: 44, marginBlockBefore: 24},
         children: [],
       },
     ],

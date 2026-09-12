@@ -1,11 +1,80 @@
+import {layoutBlockTree} from "@/lib/layout-engine";
 import {
   adaptFlexTree,
   adaptGridTree,
+  buildBlockLayoutTree,
   buildFlexLayoutTree,
   buildGridLayoutTree,
   flattenLayoutTree,
 } from "@/lib/layout-tree";
 import type {AlgorithmScenario} from "@/lib/algorithm-pipeline";
+
+function BlockLayoutBaseline() {
+  const result = layoutBlockTree(buildBlockLayoutTree());
+
+  return (
+    <section className="block-engine-baseline" aria-labelledby="block-engine-title">
+      <div className="algorithm-section-heading">
+        <div>
+          <div className="eyebrow">H5 block engine</div>
+          <h3 id="block-engine-title">Deterministic block layout baseline</h3>
+        </div>
+        <p>
+          Block-only trees resolve widths, vertical flow, derived heights, and positive adjacent sibling margins without reading the DOM.
+        </p>
+      </div>
+
+      <div className="block-engine-summary">
+        <div>
+          <strong>{result.visitedNodes}</strong>
+          <span>visited tree nodes</span>
+        </div>
+        <div>
+          <strong>{result.root.rect.width}px × {result.root.rect.height}px</strong>
+          <span>derived root geometry</span>
+        </div>
+        <div>
+          <strong>{result.marginCollapses.length}</strong>
+          <span>adjacent margin collapses</span>
+        </div>
+      </div>
+
+      <div className="block-engine-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Box</th>
+              <th scope="col">X</th>
+              <th scope="col">Y</th>
+              <th scope="col">Width</th>
+              <th scope="col">Height</th>
+            </tr>
+          </thead>
+          <tbody>
+            {result.boxes.map((box) => (
+              <tr key={box.id}>
+                <th scope="row">{box.label} <code>{box.id}</code></th>
+                <td>{box.rect.x}px</td>
+                <td>{box.rect.y}px</td>
+                <td>{box.rect.width}px</td>
+                <td>{box.rect.height}px</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="block-margin-evidence" aria-label="Block margin collapse evidence">
+        {result.marginCollapses.map((collapse) => (
+          <p key={`${collapse.beforeId}-${collapse.afterId}`}>
+            <strong>{collapse.beforeId} → {collapse.afterId}</strong>
+            <span>{collapse.beforeMargin}px vs {collapse.afterMargin}px → {collapse.resolvedGap}px collapsed gap</span>
+          </p>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export function LayoutTreeInspector({
   scenario,
@@ -31,42 +100,46 @@ export function LayoutTreeInspector({
       })();
 
   return (
-    <section className="layout-tree-inspector" aria-labelledby="layout-tree-title">
-      <div className="algorithm-section-heading">
-        <div>
-          <div className="eyebrow">H5 engine boundary</div>
-          <h3 id="layout-tree-title">Typed layout tree</h3>
+    <>
+      <section className="layout-tree-inspector" aria-labelledby="layout-tree-title">
+        <div className="algorithm-section-heading">
+          <div>
+            <div className="eyebrow">H5 engine boundary</div>
+            <h3 id="layout-tree-title">Typed layout tree</h3>
+          </div>
+          <p>
+            The engine tree is plain typed data with stable node IDs and no DOM references. The current Flex/Grid algorithms consume it only through narrow, fail-closed adapters.
+          </p>
         </div>
-        <p>
-          The engine tree is plain typed data with stable node IDs and no DOM references. The current Flex/Grid algorithms consume it only through narrow, fail-closed adapters.
-        </p>
-      </div>
 
-      <div className="layout-tree-contract">
-        <div>
-          <strong>Tree contract</strong>
-          <span>node → style → children</span>
+        <div className="layout-tree-contract">
+          <div>
+            <strong>Tree contract</strong>
+            <span>node → style → children</span>
+          </div>
+          <div>
+            <strong>Adapter result</strong>
+            <span>{adapterSummary}</span>
+          </div>
+          <div>
+            <strong>Measurement boundary</strong>
+            <span>intrinsic text/content sizes remain explicit browser-owned inputs</span>
+          </div>
         </div>
-        <div>
-          <strong>Adapter result</strong>
-          <span>{adapterSummary}</span>
-        </div>
-        <div>
-          <strong>Measurement boundary</strong>
-          <span>intrinsic text/content sizes remain explicit browser-owned inputs</span>
-        </div>
-      </div>
 
-      <ol className="layout-tree-list" aria-label={`${scenario} typed layout tree`}>
-        {snapshots.map((node) => (
-          <li key={node.id} style={{paddingInlineStart: `${node.depth * 22 + 14}px`}}>
-            <code>{node.id}</code>
-            <strong>{node.label}</strong>
-            <span>{node.display}</span>
-            <span>{node.childCount} {node.childCount === 1 ? "child" : "children"}</span>
-          </li>
-        ))}
-      </ol>
-    </section>
+        <ol className="layout-tree-list" aria-label={`${scenario} typed layout tree`}>
+          {snapshots.map((node) => (
+            <li key={node.id} style={{paddingInlineStart: `${node.depth * 22 + 14}px`}}>
+              <code>{node.id}</code>
+              <strong>{node.label}</strong>
+              <span>{node.display}</span>
+              <span>{node.childCount} {node.childCount === 1 ? "child" : "children"}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <BlockLayoutBaseline />
+    </>
   );
 }

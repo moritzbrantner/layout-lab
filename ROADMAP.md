@@ -50,7 +50,7 @@
 ## H5 — Small layout engine
 
 - [x] Typed layout tree independent of the DOM
-- [ ] Deterministic block layout baseline
+- [x] Deterministic block layout baseline
 - [ ] Deterministic flex subset
 - [ ] Deterministic grid subset
 - [ ] Compare engine output against browser fixtures

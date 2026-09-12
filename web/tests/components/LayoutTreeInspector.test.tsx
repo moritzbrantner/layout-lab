@@ -24,4 +24,16 @@ describe("LayoutTreeInspector", () => {
     expect(markup).toContain("span-ab");
     expect(markup).toContain("Grid container");
   });
+
+  test("shows deterministic block geometry and margin collapse evidence", () => {
+    const markup = renderToStaticMarkup(
+      <LayoutTreeInspector scenario="flex" innerSize={520} gapSize={16} />,
+    );
+
+    expect(markup).toContain("Deterministic block layout baseline");
+    expect(markup).toContain("420px × 276px");
+    expect(markup).toContain("Content <code>content</code>");
+    expect(markup).toContain("header → content");
+    expect(markup).toContain("20px vs 12px → 20px collapsed gap");
+  });
 });
