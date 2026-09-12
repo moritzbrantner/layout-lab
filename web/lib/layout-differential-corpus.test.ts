@@ -54,6 +54,19 @@ describe("layout differential corpus", () => {
     expect(grid.engineBoxes.find((box) => box.id === "root")?.rect.width).toBe(620);
   });
 
+  test("keeps the explicit teaching span contribution outside Grid CSS conformance", () => {
+    const grid = createLayoutDifferentialCorpus({gridInnerSize: 360, gridGapSize: 0})
+      .find((fixture) => fixture.id === "grid-engine")!;
+    const span = grid.browserTree.children.find((node) => node.id === "span-ab")!;
+    const itemC = grid.engineBoxes.find((box) => box.id === "item-c")!;
+    const spanBox = grid.engineBoxes.find((box) => box.id === "span-ab")!;
+
+    expect(span.style).not.toHaveProperty("minWidth");
+    expect(itemC.rect).toEqual({x: 260, y: 0, width: 100, height: 96});
+    expect(spanBox.rect).toEqual({x: 0, y: 0, width: 260, height: 80});
+    expect(grid.summary).toContain("teaching-only explicit spanning contribution is deliberately outside");
+  });
+
   test("surfaces a deterministic field-level mismatch record", () => {
     const fixture = getLayoutDifferentialFixture("block-baseline");
     const browser = engineGeometryForDifferentialFixture(fixture).map((geometry) =>
