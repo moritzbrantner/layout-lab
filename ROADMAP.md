@@ -63,6 +63,64 @@
 - [ ] Optional WebGPU/3D renderer only where it teaches a boundary CSS alone cannot show
 - [ ] Performance experiments for large layout trees and incremental relayout
 
+## H7 — Layout algorithm zoo
+
+Build a common experiment contract so substantially different layout algorithms can consume comparable inputs, expose intermediate decisions, and produce inspectable geometry.
+
+- [ ] Common algorithm input/output contract and selector in the algorithm explorer
+- [ ] Constraint-based layout with a Cassowary-style incremental linear constraint solver
+- [ ] Line breaking comparison: greedy wrapping versus Knuth–Plass paragraph optimization
+- [ ] Masonry / packing comparison: shortest-column placement versus deterministic first-fit packing
+- [ ] Tidy tree layout using a Reingold–Tilford-style algorithm
+- [ ] Layered DAG layout with an inspectable Sugiyama-style pipeline: ranking, crossing reduction, coordinate assignment
+- [ ] Optional force-directed graph layout with seeded deterministic initialization and convergence evidence
+- [ ] Shared step-through view for algorithm-specific intermediate state
+- [ ] Side-by-side comparison where multiple algorithms can solve the same fixture
+
+## H8 — Incremental relayout and invalidation
+
+- [ ] Represent layout dependencies as an invalidation graph tied to the typed layout tree
+- [ ] Map style/tree mutations to the smallest dirty dependency set
+- [ ] Recompute only affected subtrees or algorithm phases
+- [ ] Visualize reused versus recomputed nodes after each mutation
+- [ ] Verify incremental output is identical to a clean full recomputation
+- [ ] Add deterministic mutation workloads for resize, content changes, insertion, removal, and reordering
+- [ ] Measure relayout work by visited nodes and algorithm iterations before adding wall-clock claims
+
+## H9 — Differential and conformance laboratory
+
+- [ ] Promote browser fixtures into a reusable differential-testing corpus
+- [ ] Compare the small engine with browser-owned geometry for supported CSS subsets
+- [ ] Add Chromium, Firefox, and WebKit comparison where CI can provide stable evidence
+- [ ] Make numeric tolerance and rounding rules explicit instead of silently accepting drift
+- [ ] Generate bounded layout cases from typed inputs and replay them deterministically
+- [ ] Minimize mismatching generated cases into small regression fixtures
+- [ ] Preserve a replayable evidence record for every discovered mismatch
+
+## H10 — Complexity and performance laboratory
+
+- [ ] Benchmark algorithmic work independently from DOM measurement and rendering cost
+- [ ] Scale fixtures by nodes, tracks, constraints, spans, and mutation size
+- [ ] Track deterministic work counters such as passes, freezes, constraint pivots, and visited nodes
+- [ ] Add pathological cases that expose worst-case or near-worst-case behavior
+- [ ] Compare full layout versus incremental relayout on identical mutation traces
+- [ ] Expose benchmark methodology and raw samples on GitHub Pages rather than decorative summary counters
+
+## H11 — Portable engine core
+
+Only pursue this after the H5 TypeScript model and fixtures establish stable semantics.
+
+- [ ] Define a language-neutral layout-tree and geometry contract from the H5 model
+- [ ] Implement the deterministic core in Rust without changing the established semantics
+- [ ] Run the same conformance and edge-case corpus against TypeScript and Rust implementations
+- [ ] Expose the Rust core to the browser through WASM behind the existing adapter boundary
+- [ ] Differentially verify TypeScript, Rust/WASM, and browser geometry for supported cases
+- [ ] Keep one authoritative behavior contract so the implementations cannot silently fork
+
+## Sequencing rule
+
+H5 remains the immediate engine milestone. H7 should start only once the typed tree and reusable geometry contract are stable enough that new algorithms do not invent incompatible representations. H8–H10 then use those common contracts for incremental work, differential verification, and performance evidence. H11 is an implementation-portability milestone, not a reason to duplicate semantics early.
+
 ## Scope rule
 
 Prefer experiments that expose a layout rule, an intermediate decision, or measurable geometry. Keep simplified explanatory models visibly scoped and compare them against browser evidence. Browser-native text measurement remains browser-owned rather than being reimplemented approximately. Avoid adding graphics infrastructure merely to make the site visually impressive; rendering technology belongs here only when it clarifies a layout or compositing boundary.
