@@ -66,11 +66,11 @@ describe("experiment URL state", () => {
       "?utm=lab",
       "algorithm-pipeline",
       schema,
-      {width: "640", gap: "20", algorithm: "line-knuth-plass"},
+      {width: "640", gap: "20", algorithm: "packing-first-fit"},
     );
     const state = readExperimentUrlState(search, "algorithm-pipeline", schema);
 
-    expect(state).toEqual({width: "640", gap: "20", algorithm: "line-knuth-plass"});
+    expect(state).toEqual({width: "640", gap: "20", algorithm: "packing-first-fit"});
     expect(new URLSearchParams(search).get("utm")).toBe("lab");
   });
 
@@ -81,6 +81,8 @@ describe("experiment URL state", () => {
     expect(normalizeExperimentUrlValue(algorithm, "constraint-cassowary")).toBe("constraint-cassowary");
     expect(normalizeExperimentUrlValue(algorithm, "line-greedy")).toBe("line-greedy");
     expect(normalizeExperimentUrlValue(algorithm, "line-knuth-plass")).toBe("line-knuth-plass");
+    expect(normalizeExperimentUrlValue(algorithm, "packing-shortest-column")).toBe("packing-shortest-column");
+    expect(normalizeExperimentUrlValue(algorithm, "packing-first-fit")).toBe("packing-first-fit");
   });
 
   test("rejects unknown algorithm zoo ids from URL state", () => {
