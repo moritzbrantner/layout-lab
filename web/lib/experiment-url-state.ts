@@ -69,7 +69,16 @@ const algorithmPipelineSchema: ExperimentUrlSchema = [
     label: "algorithm",
     kind: "select",
     defaultValue: "block-flow",
-    options: ["block-flow", "flex-row", "grid-row", "constraint-cassowary", "line-greedy", "line-knuth-plass"],
+    options: [
+      "block-flow",
+      "flex-row",
+      "grid-row",
+      "constraint-cassowary",
+      "line-greedy",
+      "line-knuth-plass",
+      "packing-shortest-column",
+      "packing-first-fit",
+    ],
   },
 ];
 
