@@ -64,7 +64,13 @@ const transforms3dSchema: ExperimentUrlSchema = [
 const algorithmPipelineSchema: ExperimentUrlSchema = [
   {key: "width", label: "Container size", kind: "number", defaultValue: "520", min: 360, max: 760, step: 10},
   {key: "gap", label: "Gap", kind: "number", defaultValue: "16", min: 0, max: 40, step: 2},
-  {key: "algorithm", label: "algorithm", kind: "select", defaultValue: "block-flow", options: ["block-flow", "flex-row", "grid-row"]},
+  {
+    key: "algorithm",
+    label: "algorithm",
+    kind: "select",
+    defaultValue: "block-flow",
+    options: ["block-flow", "flex-row", "grid-row", "constraint-cassowary", "line-greedy", "line-knuth-plass"],
+  },
 ];
 
 export const experimentUrlSchemas: Partial<Record<Experiment["id"], ExperimentUrlSchema>> = {

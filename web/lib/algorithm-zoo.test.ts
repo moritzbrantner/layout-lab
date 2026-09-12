@@ -13,6 +13,8 @@ describe("algorithm zoo contract", () => {
       ["flex-row", "layout-tree"],
       ["grid-row", "layout-tree"],
       ["constraint-cassowary", "constraint-system"],
+      ["line-greedy", "line-break"],
+      ["line-knuth-plass", "line-break"],
     ]);
     expect(new Set(algorithmDefinitions.map((definition) => definition.id)).size).toBe(algorithmDefinitions.length);
   });
@@ -32,9 +34,11 @@ describe("algorithm zoo contract", () => {
     expect(runAlgorithm("flex-row").trace.map((step) => step.summary).join(" ")).toContain("freeze B");
     expect(runAlgorithm("grid-row").trace.map((step) => step.summary).join(" ")).toContain("frozen at minimum");
     expect(runAlgorithm("constraint-cassowary").trace.map((step) => step.label).join(" ")).toContain("remove temporary A width cap");
+    expect(runAlgorithm("line-greedy").trace[0]?.label).toContain("layout engines");
+    expect(runAlgorithm("line-knuth-plass").trace[0]?.summary).toContain("ratio -0.625");
   });
 
-  test("keeps the common geometry output deterministic for engine and constraint fixtures", () => {
+  test("keeps the common geometry output deterministic across algorithm families", () => {
     expect(runAlgorithm("block-flow").geometry.find((box) => box.id === "content")).toMatchObject({
       x: 0,
       y: 76,
@@ -52,12 +56,30 @@ describe("algorithm zoo contract", () => {
       width: 249.6,
       height: 140,
     });
+    expect(runAlgorithm("line-knuth-plass").geometry.find((box) => box.id === "balance")).toMatchObject({
+      x: 190,
+      y: 0,
+      width: 70,
+    });
   });
 
-  test("surfaces soft-constraint residuals as diagnostics", () => {
-    const execution = runAlgorithm("constraint-cassowary");
-    expect(execution.diagnostics).toContain("medium B width preference: 62.4px residual");
-    expect(execution.work.find((counter) => counter.key === "pivots")?.value).toBeGreaterThan(0);
+  test("exposes the greedy versus global line-break difference on one shared fixture", () => {
+    const greedy = runAlgorithm("line-greedy");
+    const optimized = runAlgorithm("line-knuth-plass");
+
+    expect(greedy.input).toEqual(optimized.input);
+    expect(greedy.geometry.find((box) => box.id === "paragraph")?.height).toBe(96);
+    expect(optimized.geometry.find((box) => box.id === "paragraph")?.height).toBe(64);
+    expect(optimized.work.find((counter) => counter.key === "states")?.value).toBeGreaterThan(1);
+  });
+
+  test("surfaces algorithm-specific diagnostics", () => {
+    const constraint = runAlgorithm("constraint-cassowary");
+    expect(constraint.diagnostics).toContain("medium B width preference: 62.4px residual");
+    expect(constraint.work.find((counter) => counter.key === "pivots")?.value).toBeGreaterThan(0);
+
+    const lineBreak = runAlgorithm("line-knuth-plass");
+    expect(lineBreak.diagnostics.join(" ")).toContain("glyph shaping and hyphenation remain outside this model");
   });
 
   test("rejects unknown registry ids at the lookup boundary", () => {

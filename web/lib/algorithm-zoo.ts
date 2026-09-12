@@ -2,10 +2,17 @@ import {solveConstraintLayout} from "./constraint-layout";
 import {buildFlexEngineTree, buildGridEngineTree} from "./layout-engine-fixtures";
 import {layoutBlockTree, layoutFlexTree, layoutGridTree, type LayoutBox} from "./layout-engine";
 import {buildBlockLayoutTree, type LayoutNode} from "./layout-tree";
+import {breakLinesGreedy, breakLinesKnuthPlass, buildLineBreakingFixture, type LineBreakInput} from "./line-breaking";
 
-export type AlgorithmZooId = "block-flow" | "flex-row" | "grid-row" | "constraint-cassowary";
-export type AlgorithmFamily = "flow" | "flex" | "grid" | "constraint";
-export type AlgorithmInputKind = "layout-tree" | "constraint-system";
+export type AlgorithmZooId =
+  | "block-flow"
+  | "flex-row"
+  | "grid-row"
+  | "constraint-cassowary"
+  | "line-greedy"
+  | "line-knuth-plass";
+export type AlgorithmFamily = "flow" | "flex" | "grid" | "constraint" | "line-breaking";
+export type AlgorithmInputKind = "layout-tree" | "constraint-system" | "line-break";
 
 export type LayoutTreeAlgorithmInput = {
   kind: "layout-tree";
@@ -20,7 +27,13 @@ export type ConstraintSystemAlgorithmInput = {
   gap: number;
 };
 
-export type AlgorithmExperimentInput = LayoutTreeAlgorithmInput | ConstraintSystemAlgorithmInput;
+export type LineBreakAlgorithmInput = {
+  kind: "line-break";
+  fixtureId: string;
+  paragraph: LineBreakInput;
+};
+
+export type AlgorithmExperimentInput = LayoutTreeAlgorithmInput | ConstraintSystemAlgorithmInput | LineBreakAlgorithmInput;
 
 export type AlgorithmGeometry = {
   id: string;
@@ -73,6 +86,11 @@ function requireLayoutTreeInput(input: AlgorithmExperimentInput): LayoutTreeAlgo
 
 function requireConstraintSystemInput(input: AlgorithmExperimentInput): ConstraintSystemAlgorithmInput {
   if (input.kind !== "constraint-system") throw new Error(`expected constraint-system input, received ${input.kind}`);
+  return input;
+}
+
+function requireLineBreakInput(input: AlgorithmExperimentInput): LineBreakAlgorithmInput {
+  if (input.kind !== "line-break") throw new Error(`expected line-break input, received ${input.kind}`);
   return input;
 }
 
@@ -199,11 +217,77 @@ const constraintDefinition: AlgorithmDefinition = {
   },
 };
 
+function lineBreakInput(): LineBreakAlgorithmInput {
+  return {kind: "line-break", fixtureId: "premeasured-paragraph", paragraph: buildLineBreakingFixture()};
+}
+
+const greedyLineDefinition: AlgorithmDefinition = {
+  id: "line-greedy",
+  family: "line-breaking",
+  title: "Greedy line breaking",
+  summary: "Commits to the widest natural-width word prefix that fits each line, without revisiting earlier breaks.",
+  inputKind: "line-break",
+  createInput: lineBreakInput,
+  run: (input) => {
+    const typedInput = requireLineBreakInput(input);
+    const result = breakLinesGreedy(typedInput.paragraph);
+    return {
+      algorithmId: "line-greedy",
+      input: typedInput,
+      geometry: result.geometry,
+      trace: result.lines.map((line) => ({
+        id: `line-${line.index + 1}`,
+        label: `line ${line.index + 1}: ${line.wordIds.join(" ")}`,
+        summary: `natural ${line.naturalWidth}px; ${typedInput.paragraph.lineWidth - line.naturalWidth}px unused`,
+      })),
+      work: [
+        {key: "candidates", label: "candidate fits", value: result.candidateEvaluations},
+        {key: "lines", label: "output lines", value: result.lines.length},
+      ],
+      diagnostics: ["word widths are pre-measured; glyph shaping and hyphenation remain outside this model"],
+    };
+  },
+};
+
+const knuthPlassDefinition: AlgorithmDefinition = {
+  id: "line-knuth-plass",
+  family: "line-breaking",
+  title: "Knuth–Plass line breaking",
+  summary: "Globally chooses breakpoints using dynamic-programming demerits over pre-measured word boxes and stretchable/shrinkable glue.",
+  inputKind: "line-break",
+  createInput: lineBreakInput,
+  run: (input) => {
+    const typedInput = requireLineBreakInput(input);
+    const result = breakLinesKnuthPlass(typedInput.paragraph);
+    return {
+      algorithmId: "line-knuth-plass",
+      input: typedInput,
+      geometry: result.geometry,
+      trace: result.lines.map((line) => ({
+        id: `line-${line.index + 1}`,
+        label: `line ${line.index + 1}: ${line.wordIds.join(" ")}`,
+        summary: `natural ${line.naturalWidth}px; glue ${line.adjustedSpaceWidth}px; ratio ${line.adjustmentRatio}; badness ${line.badness}; demerits ${line.demerits}`,
+      })),
+      work: [
+        {key: "candidates", label: "candidate lines", value: result.candidateEvaluations},
+        {key: "states", label: "dynamic states", value: result.dynamicStates},
+        {key: "lines", label: "output lines", value: result.lines.length},
+      ],
+      diagnostics: [
+        `paragraph demerits: ${result.totalDemerits}`,
+        "word widths are pre-measured; glyph shaping and hyphenation remain outside this model",
+      ],
+    };
+  },
+};
+
 export const algorithmDefinitions: readonly AlgorithmDefinition[] = [
   blockDefinition,
   flexDefinition,
   gridDefinition,
   constraintDefinition,
+  greedyLineDefinition,
+  knuthPlassDefinition,
 ] as const;
 
 export function getAlgorithmDefinition(id: AlgorithmZooId): AlgorithmDefinition {

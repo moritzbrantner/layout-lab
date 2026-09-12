@@ -12,6 +12,8 @@ describe("AlgorithmZooExplorer", () => {
     expect(markup).toContain('<option value="flex-row">Flex row</option>');
     expect(markup).toContain('<option value="grid-row">Grid row</option>');
     expect(markup).toContain('<option value="constraint-cassowary">Incremental constraints</option>');
+    expect(markup).toContain('<option value="line-greedy">Greedy line breaking</option>');
+    expect(markup).toContain('<option value="line-knuth-plass">Knuth–Plass line breaking</option>');
   });
 
   test("renders default block execution through the common geometry and trace surfaces", () => {
@@ -25,11 +27,11 @@ describe("AlgorithmZooExplorer", () => {
     expect(markup).toContain("resolves to 20px");
   });
 
-  test("states the implemented constraint family and future-family boundary", () => {
+  test("states implemented families and the remaining future-family boundary", () => {
     const markup = renderToStaticMarkup(<AlgorithmZooExplorer />);
 
-    expect(markup).toContain("Constraint solving now uses this shared result contract");
-    expect(markup).toContain("line-breaking, packing, tree, DAG, and force-directed algorithms");
+    expect(markup).toContain("Constraint solving and greedy/Knuth–Plass-style line breaking now use this shared result contract");
+    expect(markup).toContain("packing, tree, DAG, and force-directed algorithms");
     expect(markup).toContain("same surface");
   });
 });

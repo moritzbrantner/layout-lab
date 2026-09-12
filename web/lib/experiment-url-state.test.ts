@@ -66,12 +66,21 @@ describe("experiment URL state", () => {
       "?utm=lab",
       "algorithm-pipeline",
       schema,
-      {width: "640", gap: "20", algorithm: "grid-row"},
+      {width: "640", gap: "20", algorithm: "line-knuth-plass"},
     );
     const state = readExperimentUrlState(search, "algorithm-pipeline", schema);
 
-    expect(state).toEqual({width: "640", gap: "20", algorithm: "grid-row"});
+    expect(state).toEqual({width: "640", gap: "20", algorithm: "line-knuth-plass"});
     expect(new URLSearchParams(search).get("utm")).toBe("lab");
+  });
+
+  test("accepts all currently registered non-default algorithm families", () => {
+    const schema = experimentUrlSchemas["algorithm-pipeline"]!;
+    const algorithm = schema.find((control) => control.key === "algorithm")!;
+
+    expect(normalizeExperimentUrlValue(algorithm, "constraint-cassowary")).toBe("constraint-cassowary");
+    expect(normalizeExperimentUrlValue(algorithm, "line-greedy")).toBe("line-greedy");
+    expect(normalizeExperimentUrlValue(algorithm, "line-knuth-plass")).toBe("line-knuth-plass");
   });
 
   test("rejects unknown algorithm zoo ids from URL state", () => {
