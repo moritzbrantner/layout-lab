@@ -1,0 +1,122 @@
+.browser-engine-comparison {
+  margin-top: 36px;
+  padding-top: 30px;
+  border-top: 1px solid var(--line);
+}
+
+.browser-engine-fixtures {
+  display: grid;
+  gap: 28px;
+}
+
+.browser-engine-fixture {
+  min-width: 0;
+  border-top: 1px solid var(--line);
+}
+
+.browser-engine-fixture > header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: start;
+  padding: 14px 0;
+}
+
+.browser-engine-fixture > header strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.86rem;
+}
+
+.browser-engine-fixture > header p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.browser-engine-fixture > header > span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.browser-engine-fixture > header > span[data-browser-comparison-status="match"] {
+  color: var(--text);
+}
+
+.browser-engine-fixture > header > span[data-browser-comparison-status="mismatch"] {
+  color: var(--text);
+  font-weight: 760;
+}
+
+.browser-engine-fixture-scroll {
+  overflow-x: auto;
+  padding: 12px 0 18px;
+}
+
+.browser-engine-fixture-frame {
+  display: inline-block;
+  min-width: max-content;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.browser-engine-fixture-frame [data-layout-engine-node] {
+  background: transparent;
+}
+
+.browser-engine-fixture-frame [data-layout-engine-node] > [data-layout-engine-node] {
+  outline: 1px solid var(--line);
+  outline-offset: -1px;
+}
+
+.browser-engine-comparison-table-wrap {
+  overflow-x: auto;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.browser-engine-comparison-table-wrap table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.browser-engine-comparison-table-wrap th,
+.browser-engine-comparison-table-wrap td {
+  padding: 10px 12px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.browser-engine-comparison-table-wrap thead th {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.browser-engine-comparison-table-wrap tbody th code {
+  color: var(--accent);
+  font-size: 0.72rem;
+}
+
+.browser-engine-comparison-table-wrap tr[data-match="false"] td:last-child {
+  font-weight: 760;
+}
+
+@media (max-width: 700px) {
+  .browser-engine-fixture > header {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .browser-engine-fixture > header > span {
+    white-space: normal;
+  }
+}

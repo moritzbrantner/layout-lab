@@ -53,8 +53,8 @@
 - [x] Deterministic block layout baseline
 - [x] Deterministic flex subset
 - [x] Deterministic grid subset
-- [ ] Compare engine output against browser fixtures
-- [ ] Keep browser integration as an adapter so algorithms remain reusable
+- [x] Compare engine output against browser fixtures
+- [x] Keep browser integration as an adapter so algorithms remain reusable
 
 ## H6 — Layout to rendering
 
