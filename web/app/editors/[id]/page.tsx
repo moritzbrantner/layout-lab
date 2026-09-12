@@ -1,4 +1,5 @@
 import {notFound} from "next/navigation";
+import {AlgorithmPipelineExperiment} from "@/components/AlgorithmPipelineExperiment";
 import {AspectOverflowExperiment} from "@/components/AspectOverflowExperiment";
 import {CompositingDepth} from "@/components/CompositingDepth";
 import {EditorPageHeader} from "@/components/EditorNavigation";
@@ -21,6 +22,7 @@ export function generateStaticParams() {
 
 function EditorCollection({collection, current}: {collection: EditorCollectionName; current: Experiment["id"]}) {
   if (collection === "foundation") return <LayoutLab />;
+  if (collection === "algorithms") return <AlgorithmPipelineExperiment />;
   if (collection === "sizing" && current === "flex-auto-minimum") return <FlexAutomaticMinimumExperiment />;
   if (collection === "sizing" && current === "flow-formatting") return <FlowFormattingExperiment />;
   if (collection === "sizing" && current === "positioning-boundaries") return <PositioningBoundariesExperiment />;
