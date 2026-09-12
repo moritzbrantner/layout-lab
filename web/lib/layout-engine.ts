@@ -1,6 +1,11 @@
 import {resolveAdjacentPositiveMargins} from "./flow-formatting";
-import {resolveFlexLine, type FlexLineResolution} from "./layout-analysis";
-import {adaptFlexTree, validateLayoutTree, type LayoutNode} from "./layout-tree";
+import {
+  resolveFlexLine,
+  resolveMinMaxFractionTracks,
+  type FlexLineResolution,
+  type MinMaxGridResolution,
+} from "./layout-analysis";
+import {adaptFlexTree, adaptGridTree, validateLayoutTree, type LayoutNode} from "./layout-tree";
 
 export type LayoutRect = {
   x: number;
@@ -36,6 +41,14 @@ export type FlexLayoutResult = {
   boxes: readonly LayoutBox[];
   visitedNodes: number;
   resolution: FlexLineResolution;
+};
+
+export type GridLayoutResult = {
+  root: LayoutBox;
+  boxes: readonly LayoutBox[];
+  visitedNodes: number;
+  resolution: MinMaxGridResolution;
+  trackStarts: readonly number[];
 };
 
 function clamp(value: number, minimum = 0, maximum = Number.POSITIVE_INFINITY) {
@@ -195,5 +208,79 @@ export function layoutFlexTree(root: LayoutNode): FlexLayoutResult {
     boxes,
     visitedNodes: boxes.length,
     resolution,
+  };
+}
+
+export function layoutGridTree(root: LayoutNode): GridLayoutResult {
+  const errors = validateLayoutTree(root);
+  if (errors.length > 0) throw new Error(errors.join("; "));
+  const input = adaptGridTree(root);
+
+  root.children.forEach((child) => {
+    if (child.style.display !== "block") {
+      throw new Error(`${child.id}: grid baseline supports block leaf items only`);
+    }
+    if (child.children.length > 0) {
+      throw new Error(`${child.id}: grid baseline does not yet lay out nested item contents`);
+    }
+    if (!child.style.gridItem) {
+      throw new Error(`${child.id}: grid baseline requires explicit column placement`);
+    }
+    const end = child.style.gridItem.columnStart + child.style.gridItem.columnSpan;
+    if (end > input.tracks.length) {
+      throw new Error(`${child.id}: grid placement exceeds the explicit column set`);
+    }
+  });
+
+  const resolution = resolveMinMaxFractionTracks(input);
+  const trackStarts: number[] = [];
+  let cursor = 0;
+  resolution.tracks.forEach((track) => {
+    trackStarts.push(cursor);
+    cursor += track.targetSize + input.gapSize;
+  });
+
+  const children = root.children.map((child): LayoutBox => {
+    const item = child.style.gridItem!;
+    const trackSizes = resolution.tracks
+      .slice(item.columnStart, item.columnStart + item.columnSpan)
+      .map((track) => track.targetSize);
+    const width = trackSizes.reduce((sum, size) => sum + size, 0)
+      + Math.max(0, item.columnSpan - 1) * input.gapSize;
+
+    return {
+      id: child.id,
+      label: child.label,
+      rect: {
+        x: trackStarts[item.columnStart]!,
+        y: 0,
+        width,
+        height: resolveHeight(child, 0),
+      },
+      children: [],
+    };
+  });
+
+  const derivedHeight = children.reduce((maximum, child) => Math.max(maximum, child.rect.height), 0);
+  const rootHeight = resolveHeight(root, derivedHeight);
+  const rootBox: LayoutBox = {
+    id: root.id,
+    label: root.label,
+    rect: {
+      x: 0,
+      y: 0,
+      width: input.innerSize,
+      height: rootHeight,
+    },
+    children,
+  };
+  const boxes = flattenBoxes(rootBox);
+
+  return {
+    root: rootBox,
+    boxes,
+    visitedNodes: boxes.length,
+    resolution,
+    trackStarts,
   };
 }
