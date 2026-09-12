@@ -29,7 +29,8 @@ export type ConstraintLayoutResult = {
 };
 
 function round(value: number) {
-  return Math.round(value * 100) / 100;
+  const rounded = Math.round(value * 100) / 100;
+  return Object.is(rounded, -0) ? 0 : rounded;
 }
 
 export function solveConstraintLayout(containerWidth = 640, gap = 16): ConstraintLayoutResult {
