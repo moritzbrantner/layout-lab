@@ -17,7 +17,9 @@ describe("LayoutComplexityLab", () => {
     expect(markup).toContain("grid-64");
     expect(markup).toContain("constraints-32");
     expect(markup).toContain("incremental-16-16-8");
-    expect(markup).not.toContain("ms");
+    expect(markup).not.toContain("milliseconds");
+    expect(markup).not.toContain("duration:");
+    expect(markup).not.toContain("elapsed time");
   });
 
   test("exposes deterministic passes, freezes, pivots, and visited-node evidence", () => {
