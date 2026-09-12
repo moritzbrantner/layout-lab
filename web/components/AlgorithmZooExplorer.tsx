@@ -110,7 +110,7 @@ export function AlgorithmZooExplorer() {
       ) : null}
 
       <p className="algorithm-zoo-boundary">
-        Constraint solving, line breaking, and shortest-column/first-fit packing now use this shared result contract. Planned tree, DAG, and force-directed algorithms will plug into the same surface rather than adding one-off visualization models.
+        Constraint solving, line breaking, packing, and Reingold–Tilford-style tidy trees now use this shared result contract. Planned DAG and force-directed algorithms will plug into the same surface rather than adding one-off visualization models.
       </p>
     </section>
   );
