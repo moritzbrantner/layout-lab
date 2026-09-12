@@ -117,6 +117,14 @@ describe("resolveMinMaxFractionTracks", () => {
 
     expect(result.availableForTracks).toBe(560);
     expect(result.flexFraction).toBeCloseTo(186.666667, 5);
+    expect(result.flexIterations).toEqual([{
+      iteration: 1,
+      activeTracks: ["1", "2", "3"],
+      fixedSize: 0,
+      factorSum: 3,
+      flexFraction: result.flexFraction,
+      newlyFrozen: [],
+    }]);
     expect(result.tracks.map((track) => track.targetSize)).toEqual([
       result.flexFraction,
       result.flexFraction,
@@ -136,6 +144,11 @@ describe("resolveMinMaxFractionTracks", () => {
     });
 
     expect(result.availableForTracks).toBe(380);
+    expect(result.flexIterations).toHaveLength(2);
+    expect(result.flexIterations[0]?.newlyFrozen).toEqual(["2"]);
+    expect(result.flexIterations[1]?.newlyFrozen).toEqual([]);
+    expect(result.flexIterations[1]?.activeTracks).toEqual(["1", "3"]);
+    expect(result.flexIterations[1]?.fixedSize).toBe(220);
     expect(result.tracks.map((track) => track.targetSize)).toEqual([80, 220, 80]);
     expect(result.tracks[1]?.frozen).toBe(true);
     expect(result.overflow).toBe(0);
@@ -155,6 +168,9 @@ describe("resolveMinMaxFractionTracks", () => {
 
     expect(result.contributionSteps[0]?.deficit).toBe(120);
     expect(result.contributionSteps[0]?.after).toEqual([140, 140]);
+    expect(result.flexIterations).toHaveLength(2);
+    expect(result.flexIterations[0]?.newlyFrozen).toEqual(["1", "2"]);
+    expect(result.flexIterations[1]?.activeTracks).toEqual(["3"]);
     expect(result.tracks.map((track) => track.targetSize)).toEqual([140, 140, 80]);
   });
 });

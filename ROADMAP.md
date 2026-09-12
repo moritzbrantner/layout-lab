@@ -99,12 +99,12 @@ Build a common experiment contract so substantially different layout algorithms 
 
 ## H10 — Complexity and performance laboratory
 
-- [ ] Benchmark algorithmic work independently from DOM measurement and rendering cost
-- [ ] Scale fixtures by nodes, tracks, constraints, spans, and mutation size
-- [ ] Track deterministic work counters such as passes, freezes, constraint pivots, and visited nodes
-- [ ] Add pathological cases that expose worst-case or near-worst-case behavior
-- [ ] Compare full layout versus incremental relayout on identical mutation traces
-- [ ] Expose benchmark methodology and raw samples on GitHub Pages rather than decorative summary counters
+- [x] Benchmark algorithmic work independently from DOM measurement and rendering cost
+- [x] Scale fixtures by nodes, tracks, constraints, spans, and mutation size
+- [x] Track deterministic work counters such as passes, freezes, constraint pivots, and visited nodes
+- [x] Add pathological cases that expose worst-case or near-worst-case behavior
+- [x] Compare full layout versus incremental relayout on identical mutation traces
+- [x] Expose benchmark methodology and raw samples on GitHub Pages rather than decorative summary counters
 
 ## H11 — Portable engine core
 
