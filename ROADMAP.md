@@ -69,7 +69,7 @@ Build a common experiment contract so substantially different layout algorithms 
 
 - [x] Common algorithm input/output contract and selector in the algorithm explorer
 - [x] Constraint-based layout with a Cassowary-style incremental linear constraint solver
-- [ ] Line breaking comparison: greedy wrapping versus Knuth–Plass paragraph optimization
+- [x] Line breaking comparison: greedy wrapping versus Knuth–Plass paragraph optimization
 - [ ] Masonry / packing comparison: shortest-column placement versus deterministic first-fit packing
 - [ ] Tidy tree layout using a Reingold–Tilford-style algorithm
 - [ ] Layered DAG layout with an inspectable Sugiyama-style pipeline: ranking, crossing reduction, coordinate assignment
