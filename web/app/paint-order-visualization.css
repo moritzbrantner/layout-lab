@@ -20,8 +20,6 @@
 .paint-order-block,
 .paint-order-inline {
   box-sizing: border-box;
-  display: grid;
-  place-items: center;
   border-radius: 12px;
   font-size: 0.7rem;
   font-weight: 850;
@@ -31,6 +29,8 @@
   position: absolute;
   inset: 0;
   margin: auto;
+  display: grid;
+  place-items: center;
 }
 
 .paint-order-negative-a {
@@ -50,6 +50,7 @@
 }
 
 .paint-order-block {
+  display: block;
   width: 260px;
   height: 180px;
   margin: 60px auto 0;
@@ -64,6 +65,7 @@
   width: 210px;
   height: 140px;
   display: inline-grid;
+  place-items: center;
   vertical-align: middle;
   border: 1px solid rgba(132, 211, 176, 0.72);
   background: rgba(132, 211, 176, 0.14);
