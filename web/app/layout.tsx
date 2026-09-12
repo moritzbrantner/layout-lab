@@ -26,6 +26,7 @@ import "./grid-depth.css";
 import "./three-d-depth.css";
 import "./compositing-depth.css";
 import "./compositing-observations.css";
+import "./paint-order-visualization.css";
 import "./visual-fixtures.css";
 
 export const metadata: Metadata = {
