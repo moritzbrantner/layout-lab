@@ -2,20 +2,20 @@
 
 import {useState} from "react";
 import {
-  algorithmDefinitions,
-  getAlgorithmDefinition,
-  runAlgorithm,
-  type AlgorithmZooId,
-} from "@/lib/algorithm-zoo";
+  algorithmRegistryDefinitions,
+  getAlgorithmRegistryDefinition,
+  runRegistryAlgorithm,
+  type AlgorithmRegistryId,
+} from "@/lib/algorithm-zoo-registry";
 
 function formatNumber(value: number) {
   return Math.round(value * 100) / 100;
 }
 
 export function AlgorithmZooExplorer() {
-  const [algorithmId, setAlgorithmId] = useState<AlgorithmZooId>("block-flow");
-  const definition = getAlgorithmDefinition(algorithmId);
-  const execution = runAlgorithm(algorithmId);
+  const [algorithmId, setAlgorithmId] = useState<AlgorithmRegistryId>("block-flow");
+  const definition = getAlgorithmRegistryDefinition(algorithmId);
+  const execution = runRegistryAlgorithm(algorithmId);
 
   return (
     <section className="algorithm-zoo" aria-labelledby="algorithm-zoo-title">
@@ -32,8 +32,8 @@ export function AlgorithmZooExplorer() {
       <div className="algorithm-zoo-selector">
         <label>
           <span>algorithm</span>
-          <select value={algorithmId} onChange={(event) => setAlgorithmId(event.target.value as AlgorithmZooId)}>
-            {algorithmDefinitions.map((algorithm) => (
+          <select value={algorithmId} onChange={(event) => setAlgorithmId(event.target.value as AlgorithmRegistryId)}>
+            {algorithmRegistryDefinitions.map((algorithm) => (
               <option key={algorithm.id} value={algorithm.id}>{algorithm.title}</option>
             ))}
           </select>
@@ -110,7 +110,7 @@ export function AlgorithmZooExplorer() {
       ) : null}
 
       <p className="algorithm-zoo-boundary">
-        Constraint solving, line breaking, packing, and Reingold–Tilford-style tidy trees now use this shared result contract. Planned DAG and force-directed algorithms will plug into the same surface rather than adding one-off visualization models.
+        Constraint solving, line breaking, packing, tidy trees, and layered DAG layout now use this shared result contract. A seeded force-directed layout can plug into the same registry without adding a one-off visualization model.
       </p>
     </section>
   );

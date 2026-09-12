@@ -79,6 +79,7 @@ const algorithmPipelineSchema: ExperimentUrlSchema = [
       "packing-shortest-column",
       "packing-first-fit",
       "tree-tidy",
+      "dag-sugiyama",
     ],
   },
 ];
