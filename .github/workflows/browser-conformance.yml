@@ -1,0 +1,46 @@
+name: browser-conformance
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    name: ${{ matrix.browser }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.0
+      - run: bun install --frozen-lockfile
+      - name: Install pinned Playwright runner
+        run: bun add --no-save playwright@1.63.0
+      - name: Install ${{ matrix.browser }} runtime
+        run: bunx playwright@1.63.0 install --with-deps ${{ matrix.browser }}
+      - name: Run layout conformance corpus
+        env:
+          BROWSER: ${{ matrix.browser }}
+          LAYOUT_CONFORMANCE_SEED: "12648430"
+          LAYOUT_CONFORMANCE_CASES: "16"
+          LAYOUT_CONFORMANCE_EVIDENCE_DIR: browser-evidence/${{ matrix.browser }}
+        run: bun scripts/browser-conformance.mjs
+      - name: Upload conformance evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: layout-conformance-${{ matrix.browser }}
+          path: web/browser-evidence/${{ matrix.browser }}
+          if-no-files-found: error
+          retention-days: 14
