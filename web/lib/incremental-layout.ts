@@ -13,6 +13,7 @@ import {
   buildLayoutInvalidationGraph,
   invalidationPhaseId,
   planLayoutInvalidation,
+  type LayoutInvalidationGraph,
   type LayoutInvalidationPlan,
   type LayoutMutation,
 } from "./layout-invalidation";
@@ -74,7 +75,16 @@ function computeTrackStarts(resolution: MinMaxGridResolution, gap: number) {
   return starts;
 }
 
-function nodeSets(root: LayoutNode, plan: LayoutInvalidationPlan) {
+function dirtyLayoutNodeIds(graph: LayoutInvalidationGraph, plan: LayoutInvalidationPlan) {
+  const dirtyPhases = new Set(plan.dirtyPhaseIds);
+  return new Set(
+    graph.nodes
+      .filter((node) => dirtyPhases.has(node.id))
+      .map((node) => node.layoutNodeId),
+  );
+}
+
+function nodeSets(root: LayoutNode, graph: LayoutInvalidationGraph, plan: LayoutInvalidationPlan) {
   const all: string[] = [];
   const visit = (node: LayoutNode) => {
     all.push(node.id);
@@ -82,7 +92,7 @@ function nodeSets(root: LayoutNode, plan: LayoutInvalidationPlan) {
   };
   visit(root);
 
-  const recomputed = new Set(plan.dirtyPhaseIds.map((phase) => phase.slice(0, phase.lastIndexOf(":"))));
+  const recomputed = dirtyLayoutNodeIds(graph, plan);
   return {
     recomputedNodeIds: all.filter((id) => recomputed.has(id)),
     reusedNodeIds: all.filter((id) => !recomputed.has(id)),
@@ -134,11 +144,15 @@ function assertIncrementalBoundary(cache: IncrementalLayoutCache, nextTree: Layo
 function recomputeBlock(
   cache: IncrementalLayoutCache,
   nextTree: LayoutNode,
+  graph: LayoutInvalidationGraph,
   plan: LayoutInvalidationPlan,
 ) {
+  if (plan.dirtyPhaseIds.length === 0) {
+    return {root: cache.root, boxes: cache.boxes, solverPasses: 0, visitedNodes: 0};
+  }
+
   const oldBoxes = indexBoxes(cache.boxes);
-  const graph = buildLayoutInvalidationGraph(cache.tree);
-  const dirtyNodes = new Set(plan.dirtyPhaseIds.map((phase) => phase.slice(0, phase.lastIndexOf(":"))));
+  const dirtyNodes = dirtyLayoutNodeIds(graph, plan);
   const dirtySubtree = new Set(dirtyNodes);
   dirtyNodes.forEach((nodeId) => {
     let parentId = graph.parentByNodeId[nodeId];
@@ -147,6 +161,7 @@ function recomputeBlock(
       parentId = graph.parentByNodeId[parentId];
     }
   });
+  let visitedNodes = 0;
 
   const visit = (
     node: LayoutNode,
@@ -154,6 +169,7 @@ function recomputeBlock(
     proposedX: number,
     proposedY: number,
   ): LayoutBox => {
+    visitedNodes += 1;
     const old = oldBoxes.get(node.id);
     if (!old) throw new Error(`${node.id}: missing cached block geometry`);
     if (!dirtySubtree.has(node.id)) return old;
@@ -206,6 +222,7 @@ function recomputeBlock(
     root,
     boxes: flattenLayoutBoxes(root),
     solverPasses: 0,
+    visitedNodes,
   };
 }
 
@@ -214,6 +231,17 @@ function recomputeFlex(
   nextTree: LayoutNode,
   plan: LayoutInvalidationPlan,
 ) {
+  if (plan.dirtyPhaseIds.length === 0) {
+    if (!cache.flexResolution) throw new Error("missing cached Flex resolution");
+    return {
+      root: cache.root,
+      boxes: cache.boxes,
+      resolution: cache.flexResolution,
+      solverPasses: 0,
+      visitedNodes: 0,
+    };
+  }
+
   const oldBoxes = indexBoxes(cache.boxes);
   const lineDirty = dirty(plan, nextTree.id, "flex-line");
   const input = lineDirty ? adaptFlexTree(nextTree) : undefined;
@@ -259,6 +287,7 @@ function recomputeFlex(
     boxes: flattenLayoutBoxes(root),
     resolution,
     solverPasses: lineDirty ? resolution.iterations.length : 0,
+    visitedNodes: 1 + nextTree.children.length,
   };
 }
 
@@ -267,6 +296,18 @@ function recomputeGrid(
   nextTree: LayoutNode,
   plan: LayoutInvalidationPlan,
 ) {
+  if (plan.dirtyPhaseIds.length === 0) {
+    if (!cache.gridResolution || !cache.gridTrackStarts) throw new Error("missing cached Grid evidence");
+    return {
+      root: cache.root,
+      boxes: cache.boxes,
+      resolution: cache.gridResolution,
+      trackStarts: cache.gridTrackStarts,
+      solverPasses: 0,
+      visitedNodes: 0,
+    };
+  }
+
   const oldBoxes = indexBoxes(cache.boxes);
   const tracksDirty = dirty(plan, nextTree.id, "grid-tracks");
   const input = tracksDirty ? adaptGridTree(nextTree) : undefined;
@@ -323,6 +364,7 @@ function recomputeGrid(
     resolution,
     trackStarts,
     solverPasses: tracksDirty ? 1 : 0,
+    visitedNodes: 1 + nextTree.children.length,
   };
 }
 
@@ -338,12 +380,13 @@ export function recomputeIncrementalLayout(
     throw new Error("structural mutations require rebuilding the invalidation graph before incremental execution");
   }
 
-  const sets = nodeSets(nextTree, plan);
+  const sets = nodeSets(nextTree, graph, plan);
   let nextCache: IncrementalLayoutCache;
   let solverPasses: number;
+  let visitedNodes: number;
 
   if (cache.context === "block") {
-    const partial = recomputeBlock(cache, nextTree, plan);
+    const partial = recomputeBlock(cache, nextTree, graph, plan);
     nextCache = {
       context: "block",
       tree: nextTree,
@@ -351,6 +394,7 @@ export function recomputeIncrementalLayout(
       boxes: partial.boxes,
     };
     solverPasses = partial.solverPasses;
+    visitedNodes = partial.visitedNodes;
   } else if (cache.context === "flex") {
     const partial = recomputeFlex(cache, nextTree, plan);
     nextCache = {
@@ -361,6 +405,7 @@ export function recomputeIncrementalLayout(
       flexResolution: partial.resolution,
     };
     solverPasses = partial.solverPasses;
+    visitedNodes = partial.visitedNodes;
   } else {
     const partial = recomputeGrid(cache, nextTree, plan);
     nextCache = {
@@ -372,6 +417,7 @@ export function recomputeIncrementalLayout(
       gridTrackStarts: partial.trackStarts,
     };
     solverPasses = partial.solverPasses;
+    visitedNodes = partial.visitedNodes;
   }
 
   return {
@@ -382,7 +428,7 @@ export function recomputeIncrementalLayout(
     work: {
       recomputedPhaseCount: plan.dirtyPhaseIds.length,
       reusedPhaseCount: graph.nodes.length - plan.dirtyPhaseIds.length,
-      visitedNodes: sets.recomputedNodeIds.length,
+      visitedNodes,
       reusedNodes: sets.reusedNodeIds.length,
       solverPasses,
     },
