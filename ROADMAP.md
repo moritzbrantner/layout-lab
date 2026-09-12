@@ -43,7 +43,7 @@
 - [x] Step-through Flexbox resolution with frozen/flexible item states for explicit numeric bounds
 - [x] Step-through Grid base-growth and flexible-track phases for the supported subset
 - [x] Auto-repeat capacity/collapse model with browser computed-track comparison
-- [ ] Constraint graph representation for layout dependencies
+- [x] Constraint graph representation for layout dependencies
 - [ ] Side-by-side declared style, resolved style, and final geometry
 - [ ] Edge-case corpus with expected geometry
 
