@@ -8,11 +8,12 @@ import {
   type AlgorithmWorkCounter,
   type AlgorithmZooId,
 } from "./algorithm-zoo";
+import {buildForceDirectedFixture, layoutForceDirected, type ForceDirectedInput} from "./force-directed";
 import {buildSugiyamaFixture, layoutSugiyama, type SugiyamaInput} from "./sugiyama";
 
-export type AlgorithmRegistryId = AlgorithmZooId | "dag-sugiyama";
-export type AlgorithmRegistryFamily = AlgorithmDefinition["family"] | "dag";
-export type AlgorithmRegistryInputKind = AlgorithmDefinition["inputKind"] | "dag";
+export type AlgorithmRegistryId = AlgorithmZooId | "dag-sugiyama" | "graph-force";
+export type AlgorithmRegistryFamily = AlgorithmDefinition["family"] | "dag" | "graph";
+export type AlgorithmRegistryInputKind = AlgorithmDefinition["inputKind"] | "dag" | "graph";
 
 export type DagAlgorithmInput = {
   kind: "dag";
@@ -20,7 +21,13 @@ export type DagAlgorithmInput = {
   dag: SugiyamaInput;
 };
 
-export type AlgorithmRegistryInput = AlgorithmExperimentInput | DagAlgorithmInput;
+export type GraphAlgorithmInput = {
+  kind: "graph";
+  fixtureId: string;
+  graph: ForceDirectedInput;
+};
+
+export type AlgorithmRegistryInput = AlgorithmExperimentInput | DagAlgorithmInput | GraphAlgorithmInput;
 
 export type AlgorithmRegistryExecution = {
   algorithmId: AlgorithmRegistryId;
@@ -46,8 +53,8 @@ function adaptBaseDefinition(definition: AlgorithmDefinition): AlgorithmRegistry
     ...definition,
     createInput: () => definition.createInput(),
     run: (input) => {
-      if (input.kind === "dag") {
-        throw new Error(`${definition.id}: expected ${definition.inputKind} input, received dag`);
+      if (input.kind === "dag" || input.kind === "graph") {
+        throw new Error(`${definition.id}: expected ${definition.inputKind} input, received ${input.kind}`);
       }
       return definition.run(input);
     },
@@ -104,9 +111,45 @@ const sugiyamaDefinition: AlgorithmRegistryDefinition = {
   },
 };
 
+const forceDefinition: AlgorithmRegistryDefinition = {
+  id: "graph-force",
+  family: "graph",
+  title: "Seeded force-directed graph",
+  summary: "Fruchterman–Reingold-style graph layout with seeded initialization, pairwise repulsion, edge attraction, bounded displacement, deterministic cooling, and sampled convergence evidence.",
+  inputKind: "graph",
+  createInput: () => ({kind: "graph", fixtureId: "two-cluster-bridge", graph: buildForceDirectedFixture()}),
+  run: (input) => {
+    if (input.kind !== "graph") throw new Error(`graph-force: expected graph input, received ${input.kind}`);
+    const result = layoutForceDirected(input.graph);
+    return {
+      algorithmId: "graph-force",
+      input,
+      geometry: result.geometry,
+      trace: result.samples.map((sample) => ({
+        id: `iteration-${sample.iteration}`,
+        label: `iteration ${sample.iteration}`,
+        summary: `temperature ${sample.temperature}; max move ${sample.maxDisplacement}px; total move ${sample.totalDisplacement}px; mean edge ${sample.meanEdgeLength}px`,
+      })),
+      work: [
+        {key: "nodes", label: "graph nodes", value: input.graph.nodes.length},
+        {key: "edges", label: "graph edges", value: input.graph.edges.length},
+        {key: "iterations", label: "fixed iterations", value: result.iterations},
+        {key: "repulsions", label: "pairwise repulsion evaluations", value: result.repulsionPairs},
+        {key: "attractions", label: "edge attraction evaluations", value: result.attractionEvaluations},
+      ],
+      diagnostics: [
+        `seed: ${input.graph.seed}`,
+        `characteristic length: ${result.characteristicLength}px`,
+        "convergence evidence is sampled from a fixed replayable iteration budget; no wall-clock stopping criterion is used",
+      ],
+    };
+  },
+};
+
 export const algorithmRegistryDefinitions: readonly AlgorithmRegistryDefinition[] = [
   ...baseDefinitions.map(adaptBaseDefinition),
   sugiyamaDefinition,
+  forceDefinition,
 ] as const;
 
 export function getAlgorithmRegistryDefinition(id: AlgorithmRegistryId): AlgorithmRegistryDefinition {

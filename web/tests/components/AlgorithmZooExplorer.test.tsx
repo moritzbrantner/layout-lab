@@ -18,6 +18,7 @@ describe("AlgorithmZooExplorer", () => {
     expect(markup).toContain('<option value="packing-first-fit">First-fit packing</option>');
     expect(markup).toContain('<option value="tree-tidy">Tidy tree</option>');
     expect(markup).toContain('<option value="dag-sugiyama">Layered DAG</option>');
+    expect(markup).toContain('<option value="graph-force">Seeded force-directed graph</option>');
   });
 
   test("renders default block execution through the common geometry and trace surfaces", () => {
@@ -31,11 +32,12 @@ describe("AlgorithmZooExplorer", () => {
     expect(markup).toContain("resolves to 20px");
   });
 
-  test("states implemented families and the remaining future-family boundary", () => {
+  test("states that all H7 algorithm families now share the registry", () => {
     const markup = renderToStaticMarkup(<AlgorithmZooExplorer />);
 
-    expect(markup).toContain("layered DAG layout now use this shared result contract");
-    expect(markup).toContain("seeded force-directed layout");
-    expect(markup).toContain("same registry");
+    expect(markup).toContain("seeded force-directed graph layout now use this shared result contract");
+    expect(markup).toContain("remaining H7 work");
+    expect(markup).toContain("step-through");
+    expect(markup).toContain("same-fixture comparison");
   });
 });
