@@ -15,6 +15,7 @@ export type Experiment = {
     | "grid-track-sizing"
     | "grid-intrinsic"
     | "grid-auto-repeat"
+    | "algorithm-pipeline"
     | "origins-3d"
     | "context-3d"
     | "stacking-contexts"
@@ -116,6 +117,13 @@ export const experiments: readonly Experiment[] = [
     area: "2D",
     summary: "Compare auto-fit and auto-fill by making explicit capacity, empty tracks, collapse, and redistributed free space visible.",
     properties: ["repeat", "auto-fit", "auto-fill", "minmax", "fr", "gap"],
+  },
+  {
+    id: "algorithm-pipeline",
+    title: "Layout algorithm pipeline",
+    area: "2D",
+    summary: "Trace real Flexbox and Grid resolver inputs through constraints, iterative feedback, and final geometry as an explicit dependency graph.",
+    properties: ["dependency graph", "free space", "freezing", "minmax", "fr", "resolved geometry"],
   },
   {
     id: "origins-3d",
