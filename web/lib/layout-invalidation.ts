@@ -29,6 +29,8 @@ export type LayoutInvalidationGraph = {
   parentByNodeId: Readonly<Record<string, string | null>>;
   childIdsByNodeId: Readonly<Record<string, readonly string[]>>;
   displayByNodeId: Readonly<Record<string, LayoutNode["style"]["display"]>>;
+  autoBlockSizeByNodeId: Readonly<Record<string, boolean>>;
+  gridContributionByNodeId: Readonly<Record<string, boolean>>;
 };
 
 export type LayoutMutationField =
@@ -61,7 +63,7 @@ export type LayoutInvalidationPlan = {
   requiresGraphRebuild: boolean;
 };
 
-function phaseId(nodeId: string, phase: InvalidationPhase) {
+export function invalidationPhaseId(nodeId: string, phase: InvalidationPhase) {
   return `${nodeId}:${phase}`;
 }
 
@@ -82,10 +84,12 @@ export function buildLayoutInvalidationGraph(root: LayoutNode): LayoutInvalidati
   const parentByNodeId: Record<string, string | null> = {};
   const childIdsByNodeId: Record<string, readonly string[]> = {};
   const displayByNodeId: Record<string, LayoutNode["style"]["display"]> = {};
+  const autoBlockSizeByNodeId: Record<string, boolean> = {};
+  const gridContributionByNodeId: Record<string, boolean> = {};
   const sourceById = new Map<string, LayoutNode>();
 
   const addPhase = (node: LayoutNode, phase: InvalidationPhase, label: string) => {
-    const id = phaseId(node.id, phase);
+    const id = invalidationPhaseId(node.id, phase);
     if (nodeIds.has(id)) return;
     nodeIds.add(id);
     nodes.push({id, layoutNodeId: node.id, phase, label});
@@ -106,11 +110,14 @@ export function buildLayoutInvalidationGraph(root: LayoutNode): LayoutInvalidati
     parentByNodeId[node.id] = parentId;
     childIdsByNodeId[node.id] = node.children.map((child) => child.id);
     displayByNodeId[node.id] = node.style.display;
+    autoBlockSizeByNodeId[node.id] = node.style.height === undefined;
+    gridContributionByNodeId[node.id] = node.style.gridItem?.minContribution !== undefined;
+
     addPhase(node, "inline-size", `${node.label} inline size`);
     addPhase(node, "block-size", `${node.label} block size`);
     addPhase(node, "position", `${node.label} position`);
     addPhase(node, "geometry", `${node.label} geometry`);
-    if (node.style.display === "block" && node.children.length > 0) addPhase(node, "flow", `${node.label} block flow`);
+    if (node.style.display === "block") addPhase(node, "flow", `${node.label} block flow`);
     if (node.style.display === "flex") addPhase(node, "flex-line", `${node.label} flex line`);
     if (node.style.display === "grid") addPhase(node, "grid-tracks", `${node.label} grid tracks`);
     node.children.forEach((child) => indexTree(child, node.id));
@@ -118,58 +125,80 @@ export function buildLayoutInvalidationGraph(root: LayoutNode): LayoutInvalidati
   indexTree(root, null);
 
   for (const node of sourceById.values()) {
-    addEdge(phaseId(node.id, "inline-size"), phaseId(node.id, "geometry"), "inline size contributes to the final box");
-    addEdge(phaseId(node.id, "block-size"), phaseId(node.id, "geometry"), "block size contributes to the final box");
-    addEdge(phaseId(node.id, "position"), phaseId(node.id, "geometry"), "position contributes to the final box");
+    addEdge(invalidationPhaseId(node.id, "inline-size"), invalidationPhaseId(node.id, "geometry"), "inline size contributes to the final box");
+    addEdge(invalidationPhaseId(node.id, "block-size"), invalidationPhaseId(node.id, "geometry"), "block size contributes to the final box");
+    addEdge(invalidationPhaseId(node.id, "position"), invalidationPhaseId(node.id, "geometry"), "position contributes to the final box");
 
     const parentId = parentByNodeId[node.id];
     if (parentId !== null) {
-      addEdge(phaseId(parentId, "geometry"), phaseId(node.id, "geometry"), "ancestor geometry moves descendant absolute geometry");
+      addEdge(
+        invalidationPhaseId(parentId, "position"),
+        invalidationPhaseId(node.id, "position"),
+        "ancestor position moves descendant absolute geometry",
+      );
     }
 
-    if (node.style.display === "block" && node.children.length > 0) {
-      const flow = phaseId(node.id, "flow");
+    if (node.style.display === "block") {
+      const flow = invalidationPhaseId(node.id, "flow");
       if (node.style.height === undefined) {
-        addEdge(flow, phaseId(node.id, "block-size"), "auto block height derives from child flow");
+        addEdge(flow, invalidationPhaseId(node.id, "block-size"), "auto block height derives from child flow");
       }
 
       node.children.forEach((child, index) => {
         if (child.style.width === undefined) {
-          addEdge(phaseId(node.id, "inline-size"), phaseId(child.id, "inline-size"), "auto block width uses the containing inline size");
+          addEdge(
+            invalidationPhaseId(node.id, "inline-size"),
+            invalidationPhaseId(child.id, "inline-size"),
+            "auto block width uses the containing inline size",
+          );
         }
-        addEdge(phaseId(child.id, "position"), flow, "child position contributes to block flow extent");
-        addEdge(phaseId(child.id, "block-size"), flow, "child block size contributes to block flow extent");
+        addEdge(invalidationPhaseId(child.id, "position"), flow, "child position contributes to block flow extent");
+        addEdge(invalidationPhaseId(child.id, "block-size"), flow, "child block size contributes to block flow extent");
 
-        if (index === 0) {
-          addEdge(phaseId(node.id, "position"), phaseId(child.id, "position"), "first child starts from the parent flow origin");
-        } else {
+        if (index > 0) {
           const previous = node.children[index - 1]!;
-          addEdge(phaseId(previous.id, "position"), phaseId(child.id, "position"), "following block position depends on the previous sibling position");
-          addEdge(phaseId(previous.id, "block-size"), phaseId(child.id, "position"), "following block position depends on the previous sibling block size");
+          addEdge(
+            invalidationPhaseId(previous.id, "position"),
+            invalidationPhaseId(child.id, "position"),
+            "following block position depends on the previous sibling position",
+          );
+          addEdge(
+            invalidationPhaseId(previous.id, "block-size"),
+            invalidationPhaseId(child.id, "position"),
+            "following block position depends on the previous sibling block size",
+          );
         }
       });
     }
 
     if (node.style.display === "flex") {
-      const line = phaseId(node.id, "flex-line");
-      addEdge(phaseId(node.id, "inline-size"), line, "available main-axis size feeds flex resolution");
+      const line = invalidationPhaseId(node.id, "flex-line");
+      addEdge(invalidationPhaseId(node.id, "inline-size"), line, "available main-axis size feeds flex resolution");
       node.children.forEach((child) => {
-        addEdge(line, phaseId(child.id, "inline-size"), "flex resolution assigns the item main size");
-        addEdge(line, phaseId(child.id, "position"), "flex resolution and item order assign the item main position");
+        addEdge(line, invalidationPhaseId(child.id, "inline-size"), "flex resolution assigns the item main size");
+        addEdge(line, invalidationPhaseId(child.id, "position"), "flex resolution and item order assign the item main position");
         if (node.style.height === undefined) {
-          addEdge(phaseId(child.id, "block-size"), phaseId(node.id, "block-size"), "auto flex cross size uses the tallest item");
+          addEdge(
+            invalidationPhaseId(child.id, "block-size"),
+            invalidationPhaseId(node.id, "block-size"),
+            "auto flex cross size uses the tallest item",
+          );
         }
       });
     }
 
     if (node.style.display === "grid") {
-      const tracks = phaseId(node.id, "grid-tracks");
-      addEdge(phaseId(node.id, "inline-size"), tracks, "available inline size feeds Grid track resolution");
+      const tracks = invalidationPhaseId(node.id, "grid-tracks");
+      addEdge(invalidationPhaseId(node.id, "inline-size"), tracks, "available inline size feeds Grid track resolution");
       node.children.forEach((child) => {
-        addEdge(tracks, phaseId(child.id, "inline-size"), "resolved tracks determine Grid item width");
-        addEdge(tracks, phaseId(child.id, "position"), "resolved track starts determine Grid item position");
+        addEdge(tracks, invalidationPhaseId(child.id, "inline-size"), "resolved tracks determine Grid item width");
+        addEdge(tracks, invalidationPhaseId(child.id, "position"), "resolved track starts determine Grid item position");
         if (node.style.height === undefined) {
-          addEdge(phaseId(child.id, "block-size"), phaseId(node.id, "block-size"), "auto Grid row height uses the tallest item");
+          addEdge(
+            invalidationPhaseId(child.id, "block-size"),
+            invalidationPhaseId(node.id, "block-size"),
+            "auto Grid row height uses the tallest item",
+          );
         }
       });
     }
@@ -182,6 +211,8 @@ export function buildLayoutInvalidationGraph(root: LayoutNode): LayoutInvalidati
     parentByNodeId,
     childIdsByNodeId,
     displayByNodeId,
+    autoBlockSizeByNodeId,
+    gridContributionByNodeId,
   };
 }
 
@@ -189,16 +220,11 @@ function requireNode(graph: LayoutInvalidationGraph, nodeId: string) {
   if (!(nodeId in graph.parentByNodeId)) throw new Error(`unknown layout node: ${nodeId}`);
 }
 
-function parentContextSeed(graph: LayoutInvalidationGraph, nodeId: string): string | undefined {
-  const parentId = graph.parentByNodeId[nodeId];
-  if (parentId === null || parentId === undefined) return undefined;
-  const display = graph.displayByNodeId[parentId];
-  if (display === "flex") return phaseId(parentId, "flex-line");
-  if (display === "grid") return phaseId(parentId, "grid-tracks");
-  return undefined;
-}
-
-function blockMarginSeeds(graph: LayoutInvalidationGraph, nodeId: string, field: "marginBlockBefore" | "marginBlockAfter") {
+function blockMarginSeeds(
+  graph: LayoutInvalidationGraph,
+  nodeId: string,
+  field: "marginBlockBefore" | "marginBlockAfter",
+) {
   const parentId = graph.parentByNodeId[nodeId];
   if (parentId === null || parentId === undefined || graph.displayByNodeId[parentId] !== "block") return [];
   const siblings = graph.childIdsByNodeId[parentId] ?? [];
@@ -206,10 +232,12 @@ function blockMarginSeeds(graph: LayoutInvalidationGraph, nodeId: string, field:
   if (index < 0) return [];
 
   if (field === "marginBlockBefore") {
-    return [phaseId(nodeId, "position")];
+    return [invalidationPhaseId(nodeId, "position")];
   }
   const nextId = siblings[index + 1];
-  return nextId ? [phaseId(nextId, "position")] : [phaseId(parentId, "flow")];
+  return nextId
+    ? [invalidationPhaseId(nextId, "position")]
+    : [invalidationPhaseId(parentId, "flow")];
 }
 
 function styleMutationSeeds(graph: LayoutInvalidationGraph, nodeId: string, field: LayoutMutationField) {
@@ -219,57 +247,69 @@ function styleMutationSeeds(graph: LayoutInvalidationGraph, nodeId: string, fiel
   const ownDisplay = graph.displayByNodeId[nodeId];
 
   if (field === "height" || field === "minHeight" || field === "maxHeight") {
-    return [phaseId(nodeId, "block-size")];
+    return [invalidationPhaseId(nodeId, "block-size")];
   }
   if (field === "marginBlockBefore" || field === "marginBlockAfter") {
     return blockMarginSeeds(graph, nodeId, field);
   }
   if (field === "flexContainer.gap") {
     if (ownDisplay !== "flex") throw new Error(`${nodeId}: flexContainer.gap requires a flex container`);
-    return [phaseId(nodeId, "flex-line")];
+    return [invalidationPhaseId(nodeId, "flex-line")];
   }
   if (field === "gridContainer.gap" || field === "gridContainer.columns") {
     if (ownDisplay !== "grid") throw new Error(`${nodeId}: ${field} requires a grid container`);
-    return [phaseId(nodeId, "grid-tracks")];
+    return [invalidationPhaseId(nodeId, "grid-tracks")];
   }
   if (field === "flexItem.basis" || field === "flexItem.grow" || field === "flexItem.shrink") {
     if (parentDisplay !== "flex") throw new Error(`${nodeId}: ${field} requires a flex-item parent context`);
-    return [phaseId(parentId!, "flex-line")];
+    return [invalidationPhaseId(parentId!, "flex-line")];
   }
-  if (field === "gridItem.columnStart" || field === "gridItem.columnSpan" || field === "gridItem.minContribution") {
+  if (field === "gridItem.minContribution") {
     if (parentDisplay !== "grid") throw new Error(`${nodeId}: ${field} requires a grid-item parent context`);
-    return [phaseId(parentId!, "grid-tracks")];
+    return [invalidationPhaseId(parentId!, "grid-tracks")];
+  }
+  if (field === "gridItem.columnStart" || field === "gridItem.columnSpan") {
+    if (parentDisplay !== "grid") throw new Error(`${nodeId}: ${field} requires a grid-item parent context`);
+    if (graph.gridContributionByNodeId[nodeId]) {
+      return [invalidationPhaseId(parentId!, "grid-tracks")];
+    }
+    return field === "gridItem.columnStart"
+      ? [invalidationPhaseId(nodeId, "inline-size"), invalidationPhaseId(nodeId, "position")]
+      : [invalidationPhaseId(nodeId, "inline-size")];
   }
 
   if (field === "width" || field === "minWidth" || field === "maxWidth") {
     if (parentDisplay === "flex") {
       if (field === "width") return [];
-      return [phaseId(parentId!, "flex-line")];
+      return [invalidationPhaseId(parentId!, "flex-line")];
     }
     if (parentDisplay === "grid") {
       return [];
     }
-    return [phaseId(nodeId, "inline-size")];
+    return [invalidationPhaseId(nodeId, "inline-size")];
   }
 
-  const context = parentContextSeed(graph, nodeId);
-  return context ? [context] : [];
+  return [];
 }
 
 function childMutationSeeds(graph: LayoutInvalidationGraph, parentId: string) {
   requireNode(graph, parentId);
   const display = graph.displayByNodeId[parentId];
   if (display === "flex") {
-    const seeds = [phaseId(parentId, "flex-line")];
-    if (graph.nodes.some((node) => node.id === phaseId(parentId, "block-size"))) seeds.push(phaseId(parentId, "block-size"));
+    const seeds = [invalidationPhaseId(parentId, "flex-line")];
+    if (graph.autoBlockSizeByNodeId[parentId]) seeds.push(invalidationPhaseId(parentId, "block-size"));
     return seeds;
   }
   if (display === "grid") {
-    const seeds = [phaseId(parentId, "grid-tracks")];
-    if (graph.nodes.some((node) => node.id === phaseId(parentId, "block-size"))) seeds.push(phaseId(parentId, "block-size"));
+    const seeds = [invalidationPhaseId(parentId, "grid-tracks")];
+    if (graph.autoBlockSizeByNodeId[parentId]) seeds.push(invalidationPhaseId(parentId, "block-size"));
     return seeds;
   }
-  return graph.nodes.some((node) => node.id === phaseId(parentId, "flow")) ? [phaseId(parentId, "flow")] : [];
+
+  return [
+    invalidationPhaseId(parentId, "flow"),
+    ...(graph.childIdsByNodeId[parentId] ?? []).map((childId) => invalidationPhaseId(childId, "position")),
+  ];
 }
 
 function downstream(graph: LayoutInvalidationGraph, seedIds: readonly string[]) {
@@ -282,11 +322,12 @@ function downstream(graph: LayoutInvalidationGraph, seedIds: readonly string[]) 
 
   const dirty: string[] = [];
   const seen = new Set<string>();
+  const nodeIds = new Set(graph.nodes.map((node) => node.id));
   const queue = [...seedIds];
   while (queue.length > 0) {
     const current = queue.shift()!;
     if (seen.has(current)) continue;
-    if (!graph.nodes.some((node) => node.id === current)) throw new Error(`unknown invalidation phase: ${current}`);
+    if (!nodeIds.has(current)) throw new Error(`unknown invalidation phase: ${current}`);
     addUnique(dirty, seen, current);
     (outgoing.get(current) ?? []).forEach((target) => {
       if (!seen.has(target)) queue.push(target);
