@@ -1,6 +1,7 @@
 "use client";
 
 import {useState} from "react";
+import {AlgorithmComparisonExplorer} from "@/components/AlgorithmComparisonExplorer";
 import {AlgorithmTraceStepper} from "@/components/AlgorithmTraceStepper";
 import {
   algorithmRegistryDefinitions,
@@ -108,8 +109,10 @@ export function AlgorithmZooExplorer() {
         </div>
       ) : null}
 
+      <AlgorithmComparisonExplorer />
+
       <p className="algorithm-zoo-boundary">
-        Every H7 family now uses the same selectable intermediate-state navigator. The remaining H7 work is side-by-side comparison for algorithms that solve the same fixture.
+        H7 now has one execution contract, one shared step-through surface, and explicit same-fixture comparisons where multiple algorithms solve identical input.
       </p>
     </section>
   );
