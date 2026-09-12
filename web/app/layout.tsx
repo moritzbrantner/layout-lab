@@ -25,6 +25,7 @@ import "./layout-complexity.css";
 import "./grid-depth.css";
 import "./three-d-depth.css";
 import "./compositing-depth.css";
+import "./compositing-observations.css";
 import "./visual-fixtures.css";
 
 export const metadata: Metadata = {

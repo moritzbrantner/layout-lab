@@ -1,0 +1,133 @@
+.compositing-observation-stage {
+  position: relative;
+  min-height: 390px;
+  display: grid;
+  place-items: center;
+  overflow: visible;
+}
+
+.compositing-candidate {
+  position: relative;
+  left: 0;
+  width: 220px;
+  height: 140px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  border: 2px solid var(--series-a);
+  border-radius: 14px;
+  background: rgba(132, 211, 176, 0.2);
+  color: var(--series-a);
+  text-align: center;
+}
+
+.compositing-candidate > span {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.compositing-overflow-child {
+  position: absolute;
+  top: 40px;
+  right: -72px;
+  width: 96px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border: 1px solid var(--series-e);
+  border-radius: 10px;
+  background: rgba(240, 142, 170, 0.92);
+  color: #17101a;
+  font-size: 0.66rem;
+  font-weight: 850;
+}
+
+.compositing-probe-marker {
+  position: absolute;
+  z-index: 8;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--text);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.compositing-probe-marker::before,
+.compositing-probe-marker::after {
+  position: absolute;
+  content: "";
+  background: var(--text);
+}
+
+.compositing-probe-marker::before {
+  top: 4px;
+  left: -10px;
+  width: 28px;
+  height: 1px;
+}
+
+.compositing-probe-marker::after {
+  top: -10px;
+  left: 4px;
+  width: 1px;
+  height: 28px;
+}
+
+.compositing-probe-marker span {
+  position: absolute;
+  top: 14px;
+  left: 10px;
+  width: max-content;
+  color: var(--muted);
+  font-size: 0.6rem;
+}
+
+.compositing-observation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-bottom: 1px solid var(--line);
+}
+
+.compositing-observation-grid > div {
+  min-width: 0;
+  padding: 11px 14px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.compositing-observation-grid > div:nth-child(2n) {
+  border-right: 0;
+}
+
+.compositing-observation-grid span,
+.compositing-observation-grid code {
+  display: block;
+}
+
+.compositing-observation-grid span {
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 700;
+}
+
+.compositing-observation-grid code {
+  overflow-x: auto;
+  font-size: 0.66rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .compositing-observation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compositing-observation-grid > div,
+  .compositing-observation-grid > div:nth-child(2n) {
+    border-right: 0;
+  }
+}

@@ -23,4 +23,5 @@ export const editorCollectionById: Record<Experiment["id"], EditorCollection> = 
   "context-3d": "three-d",
   "stacking-contexts": "compositing",
   "hit-testing": "compositing",
+  "compositing-observations": "compositing",
 };

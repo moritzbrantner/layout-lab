@@ -135,7 +135,8 @@
 .single-editor-selection[data-editor="origins-3d"] #origins-3d,
 .single-editor-selection[data-editor="context-3d"] #context-3d,
 .single-editor-selection[data-editor="stacking-contexts"] #stacking-contexts,
-.single-editor-selection[data-editor="hit-testing"] #hit-testing {
+.single-editor-selection[data-editor="hit-testing"] #hit-testing,
+.single-editor-selection[data-editor="compositing-observations"] #compositing-observations {
   display: block;
 }
 
