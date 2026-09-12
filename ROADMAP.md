@@ -79,8 +79,8 @@ Build a common experiment contract so substantially different layout algorithms 
 
 ## H8 — Incremental relayout and invalidation
 
-- [ ] Represent layout dependencies as an invalidation graph tied to the typed layout tree
-- [ ] Map style/tree mutations to the smallest dirty dependency set
+- [x] Represent layout dependencies as an invalidation graph tied to the typed layout tree
+- [x] Map style/tree mutations to the smallest dirty dependency set
 - [ ] Recompute only affected subtrees or algorithm phases
 - [ ] Visualize reused versus recomputed nodes after each mutation
 - [ ] Verify incremental output is identical to a clean full recomputation
