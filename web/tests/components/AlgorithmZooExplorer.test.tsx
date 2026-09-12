@@ -21,23 +21,25 @@ describe("AlgorithmZooExplorer", () => {
     expect(markup).toContain('<option value="graph-force">Seeded force-directed graph</option>');
   });
 
-  test("renders default block execution through the common geometry and trace surfaces", () => {
+  test("renders default block execution through geometry and shared step-through surfaces", () => {
     const markup = renderToStaticMarkup(<AlgorithmZooExplorer />);
 
     expect(markup).toContain("Common geometry output");
-    expect(markup).toContain("Common trace output");
+    expect(markup).toContain("Shared step-through");
+    expect(markup).toContain("Step 1 of 2");
     expect(markup).toContain("block-baseline");
     expect(markup).toContain("content");
     expect(markup).toContain("header → content");
     expect(markup).toContain("resolves to 20px");
+    expect(markup).toContain("Previous step");
+    expect(markup).toContain("Next step");
   });
 
-  test("states that all H7 algorithm families now share the registry", () => {
+  test("states that same-fixture comparison is the remaining H7 work", () => {
     const markup = renderToStaticMarkup(<AlgorithmZooExplorer />);
 
-    expect(markup).toContain("seeded force-directed graph layout now use this shared result contract");
+    expect(markup).toContain("Every H7 family now uses the same selectable intermediate-state navigator");
     expect(markup).toContain("remaining H7 work");
-    expect(markup).toContain("step-through");
-    expect(markup).toContain("same-fixture comparison");
+    expect(markup).toContain("side-by-side comparison");
   });
 });

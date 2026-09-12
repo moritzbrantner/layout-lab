@@ -74,7 +74,7 @@ Build a common experiment contract so substantially different layout algorithms 
 - [x] Tidy tree layout using a Reingold–Tilford-style algorithm
 - [x] Layered DAG layout with an inspectable Sugiyama-style pipeline: ranking, crossing reduction, coordinate assignment
 - [x] Optional force-directed graph layout with seeded deterministic initialization and convergence evidence
-- [ ] Shared step-through view for algorithm-specific intermediate state
+- [x] Shared step-through view for algorithm-specific intermediate state
 - [ ] Side-by-side comparison where multiple algorithms can solve the same fixture
 
 ## H8 — Incremental relayout and invalidation
