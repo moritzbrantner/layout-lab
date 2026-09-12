@@ -62,7 +62,7 @@ function flexScalingSample(itemCount: number): ComplexitySample {
     grow: 1 + (index % 4),
     shrink: 1,
     minSize: 40,
-    maxSize: index % 5 === 0 ? 135 : Number.POSITIVE_INFINITY,
+    maxSize: index % 5 === 0 ? 110 : Number.POSITIVE_INFINITY,
   }));
   const result = resolveFlexLine({
     innerSize: itemCount * 160,
