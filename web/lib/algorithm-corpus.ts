@@ -1,4 +1,5 @@
 import {buildFlexAlgorithmPipeline, buildGridAlgorithmPipeline, type AlgorithmScenario} from "./algorithm-pipeline";
+import type {FlexItemInput, GridSpanContribution, GridTrackInput} from "./layout-analysis";
 
 export type AlgorithmCorpusCase = {
   id: string;
@@ -18,11 +19,7 @@ function flexCase(
   definition: Omit<AlgorithmCorpusCase, "actualGeometry" | "passes"> & {
     innerSize: number;
     gapSize: number;
-    items: Parameters<typeof buildFlexAlgorithmPipeline>[0] extends infer Options
-      ? Options extends {items?: infer Items}
-        ? Items
-        : never
-      : never;
+    items: readonly FlexItemInput[];
   },
 ): AlgorithmCorpusCase {
   const {innerSize, gapSize, items, ...metadata} = definition;
@@ -38,16 +35,8 @@ function gridCase(
   definition: Omit<AlgorithmCorpusCase, "actualGeometry" | "passes"> & {
     innerSize: number;
     gapSize: number;
-    tracks: Parameters<typeof buildGridAlgorithmPipeline>[0] extends infer Options
-      ? Options extends {tracks?: infer Tracks}
-        ? Tracks
-        : never
-      : never;
-    contributions?: Parameters<typeof buildGridAlgorithmPipeline>[0] extends infer Options
-      ? Options extends {contributions?: infer Contributions}
-        ? Contributions
-        : never
-      : never;
+    tracks: readonly GridTrackInput[];
+    contributions?: readonly GridSpanContribution[];
   },
 ): AlgorithmCorpusCase {
   const {innerSize, gapSize, tracks, contributions = [], ...metadata} = definition;
