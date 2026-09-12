@@ -78,6 +78,7 @@ const algorithmPipelineSchema: ExperimentUrlSchema = [
       "line-knuth-plass",
       "packing-shortest-column",
       "packing-first-fit",
+      "tree-tidy",
     ],
   },
 ];

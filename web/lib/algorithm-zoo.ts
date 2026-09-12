@@ -4,6 +4,7 @@ import {layoutBlockTree, layoutFlexTree, layoutGridTree, type LayoutBox} from ".
 import {buildBlockLayoutTree, type LayoutNode} from "./layout-tree";
 import {breakLinesGreedy, breakLinesKnuthPlass, buildLineBreakingFixture, type LineBreakInput} from "./line-breaking";
 import {buildPackingFixture, packFirstFit, packShortestColumn, type PackingInput} from "./packing";
+import {buildTidyTreeFixture, layoutTidyTree, type TidyTreeInput} from "./tidy-tree";
 
 export type AlgorithmZooId =
   | "block-flow"
@@ -13,9 +14,10 @@ export type AlgorithmZooId =
   | "line-greedy"
   | "line-knuth-plass"
   | "packing-shortest-column"
-  | "packing-first-fit";
-export type AlgorithmFamily = "flow" | "flex" | "grid" | "constraint" | "line-breaking" | "packing";
-export type AlgorithmInputKind = "layout-tree" | "constraint-system" | "line-break" | "packing";
+  | "packing-first-fit"
+  | "tree-tidy";
+export type AlgorithmFamily = "flow" | "flex" | "grid" | "constraint" | "line-breaking" | "packing" | "tree";
+export type AlgorithmInputKind = "layout-tree" | "constraint-system" | "line-break" | "packing" | "tree";
 
 export type LayoutTreeAlgorithmInput = {
   kind: "layout-tree";
@@ -42,11 +44,18 @@ export type PackingAlgorithmInput = {
   packing: PackingInput;
 };
 
+export type TreeAlgorithmInput = {
+  kind: "tree";
+  fixtureId: string;
+  tree: TidyTreeInput;
+};
+
 export type AlgorithmExperimentInput =
   | LayoutTreeAlgorithmInput
   | ConstraintSystemAlgorithmInput
   | LineBreakAlgorithmInput
-  | PackingAlgorithmInput;
+  | PackingAlgorithmInput
+  | TreeAlgorithmInput;
 
 export type AlgorithmGeometry = {
   id: string;
@@ -109,6 +118,11 @@ function requireLineBreakInput(input: AlgorithmExperimentInput): LineBreakAlgori
 
 function requirePackingInput(input: AlgorithmExperimentInput): PackingAlgorithmInput {
   if (input.kind !== "packing") throw new Error(`expected packing input, received ${input.kind}`);
+  return input;
+}
+
+function requireTreeInput(input: AlgorithmExperimentInput): TreeAlgorithmInput {
+  if (input.kind !== "tree") throw new Error(`expected tree input, received ${input.kind}`);
   return input;
 }
 
@@ -359,6 +373,38 @@ const firstFitDefinition: AlgorithmDefinition = {
   },
 };
 
+const tidyTreeDefinition: AlgorithmDefinition = {
+  id: "tree-tidy",
+  family: "tree",
+  title: "Tidy tree",
+  summary: "Reingold–Tilford-style ordered binary-tree layout that composes subtrees independently, separates contours rigidly, and centers each parent over its children.",
+  inputKind: "tree",
+  createInput: () => ({kind: "tree", fixtureId: "tidy-binary-tree", tree: buildTidyTreeFixture()}),
+  run: (input) => {
+    const typedInput = requireTreeInput(input);
+    const result = layoutTidyTree(typedInput.tree);
+    return {
+      algorithmId: "tree-tidy",
+      input: typedInput,
+      geometry: result.geometry,
+      trace: result.shifts.map((shift, index) => ({
+        id: `shift-${index + 1}`,
+        label: `${shift.nodeId}: separate ${shift.leftChildId} / ${shift.rightChildId}`,
+        summary: `compare ${shift.comparedDepths} contour level${shift.comparedDepths === 1 ? "" : "s"}; child-root separation ${shift.separation}px`,
+      })),
+      work: [
+        {key: "nodes", label: "tree nodes", value: result.placements.length},
+        {key: "contours", label: "contour comparisons", value: result.contourComparisons},
+        {key: "shifts", label: "rigid subtree shifts", value: result.shifts.length},
+      ],
+      diagnostics: [
+        `drawing: ${result.drawingWidth}px × ${result.drawingHeight}px`,
+        "current tidy-tree subset supports ordered binary nodes; subtrees are laid out independently before rigid contour separation",
+      ],
+    };
+  },
+};
+
 export const algorithmDefinitions: readonly AlgorithmDefinition[] = [
   blockDefinition,
   flexDefinition,
@@ -368,6 +414,7 @@ export const algorithmDefinitions: readonly AlgorithmDefinition[] = [
   knuthPlassDefinition,
   shortestColumnDefinition,
   firstFitDefinition,
+  tidyTreeDefinition,
 ] as const;
 
 export function getAlgorithmDefinition(id: AlgorithmZooId): AlgorithmDefinition {

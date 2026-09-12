@@ -17,6 +17,7 @@ describe("algorithm zoo contract", () => {
       ["line-knuth-plass", "line-break"],
       ["packing-shortest-column", "packing"],
       ["packing-first-fit", "packing"],
+      ["tree-tidy", "tree"],
     ]);
     expect(new Set(algorithmDefinitions.map((definition) => definition.id)).size).toBe(algorithmDefinitions.length);
   });
@@ -39,6 +40,7 @@ describe("algorithm zoo contract", () => {
     expect(runAlgorithm("line-greedy").trace[0]?.label).toContain("layout engines");
     expect(runAlgorithm("line-knuth-plass").trace[0]?.summary).toContain("ratio -0.625");
     expect(runAlgorithm("packing-first-fit").trace.at(-1)?.summary).toContain("column 2");
+    expect(runAlgorithm("tree-tidy").trace.at(-1)?.summary).toContain("3 contour levels");
   });
 
   test("keeps the common geometry output deterministic across algorithm families", () => {
@@ -48,6 +50,7 @@ describe("algorithm zoo contract", () => {
     expect(runAlgorithm("constraint-cassowary").geometry.find((box) => box.id === "panel-a")).toMatchObject({x: 0, width: 249.6, height: 140});
     expect(runAlgorithm("line-knuth-plass").geometry.find((box) => box.id === "balance")).toMatchObject({x: 190, y: 0, width: 70});
     expect(runAlgorithm("packing-first-fit").geometry.find((box) => box.id === "filler")).toMatchObject({x: 110, y: 70, width: 100, height: 100});
+    expect(runAlgorithm("tree-tidy").geometry.find((box) => box.id === "root")).toMatchObject({x: 126, y: 0, width: 48, height: 32});
   });
 
   test("exposes the greedy versus global line-break difference on one shared fixture", () => {
@@ -78,6 +81,10 @@ describe("algorithm zoo contract", () => {
 
     const lineBreak = runAlgorithm("line-knuth-plass");
     expect(lineBreak.diagnostics.join(" ")).toContain("glyph shaping and hyphenation remain outside this model");
+
+    const tree = runAlgorithm("tree-tidy");
+    expect(tree.diagnostics).toContain("drawing: 300px × 260px");
+    expect(tree.work.find((counter) => counter.key === "contours")?.value).toBe(6);
   });
 
   test("rejects unknown registry ids at the lookup boundary", () => {
