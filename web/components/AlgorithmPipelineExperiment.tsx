@@ -1,6 +1,7 @@
 "use client";
 
 import {useState} from "react";
+import {algorithmCorpusCases} from "@/lib/algorithm-corpus";
 import {
   buildFlexAlgorithmPipeline,
   buildGridAlgorithmPipeline,
@@ -68,6 +69,103 @@ function PipelineGraph({pipeline, activePhase}: {pipeline: AlgorithmPipeline; ac
   );
 }
 
+function AlgorithmEvidence({pipeline}: {pipeline: AlgorithmPipeline}) {
+  const declared = pipeline.nodes.filter((node) => node.phase === "inputs");
+  const resolved = pipeline.nodes.filter((node) => node.phase === "constraints" || node.phase === "resolution");
+
+  return (
+    <section className="algorithm-evidence" aria-labelledby="algorithm-evidence-title">
+      <div className="algorithm-section-heading">
+        <div>
+          <div className="eyebrow">Evidence ladder</div>
+          <h3 id="algorithm-evidence-title">Declared style → resolved values → final geometry</h3>
+        </div>
+        <p>
+          Resolved values are Layout Lab model values, not a replacement for CSSOM computed style. Final geometry is the deterministic resolver output used for browser comparison.
+        </p>
+      </div>
+
+      <div className="algorithm-evidence-grid">
+        <section aria-label="Declared style">
+          <h4>Declared style</h4>
+          <p>Authored values and explicit inputs entering the resolver.</p>
+          <dl>
+            {declared.map((node) => (
+              <div key={node.id}>
+                <dt>{node.label}</dt>
+                <dd>{node.detail}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <section aria-label="Resolved values">
+          <h4>Resolved values</h4>
+          <p>Constraints and iterative decisions derived from those inputs.</p>
+          <dl>
+            {resolved.map((node) => (
+              <div key={node.id}>
+                <dt>{node.label}</dt>
+                <dd>{node.detail}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <section aria-label="Final geometry">
+          <h4>Final geometry</h4>
+          <p>Main-axis item sizes or Grid track sizes after resolution converges.</p>
+          <ul>
+            {pipeline.finalGeometry.map((value) => <li key={value}>{value}</li>)}
+          </ul>
+        </section>
+      </div>
+    </section>
+  );
+}
+
+function AlgorithmCorpus({scenario}: {scenario: AlgorithmScenario}) {
+  const fixtures = algorithmCorpusCases.filter((fixture) => fixture.scenario === scenario);
+
+  return (
+    <section className="algorithm-corpus" aria-labelledby="algorithm-corpus-title">
+      <div className="algorithm-section-heading">
+        <div>
+          <div className="eyebrow">Regression evidence</div>
+          <h3 id="algorithm-corpus-title">Edge-case corpus</h3>
+        </div>
+        <p>Expected geometry is checked against the same deterministic resolver used by the interactive pipeline.</p>
+      </div>
+
+      <div className="algorithm-corpus-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Case</th>
+              <th scope="col">Expected geometry</th>
+              <th scope="col">Current geometry</th>
+              <th scope="col">Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            {fixtures.map((fixture) => (
+              <tr key={fixture.id} data-pass={fixture.passes ? "true" : "false"}>
+                <th scope="row">
+                  <strong>{fixture.title}</strong>
+                  <span>{fixture.purpose}</span>
+                </th>
+                <td>{fixture.expectedGeometry.join(" · ")}</td>
+                <td>{fixture.actualGeometry.join(" · ")}</td>
+                <td>{fixture.passes ? "matches expected" : "mismatch"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 export function AlgorithmPipelineExperiment() {
   const [scenario, setScenario] = useState<AlgorithmScenario>("flex");
   const [innerSize, setInnerSize] = useState(520);
@@ -128,6 +226,8 @@ export function AlgorithmPipelineExperiment() {
         </label>
       </div>
 
+      <AlgorithmEvidence pipeline={pipeline} />
+
       <div className="algorithm-stepper" aria-label="Algorithm phases">
         {pipeline.phases.map((phase, index) => (
           <button
@@ -164,6 +264,8 @@ export function AlgorithmPipelineExperiment() {
           Next phase
         </button>
       </div>
+
+      <AlgorithmCorpus scenario={scenario} />
     </section>
   );
 }
