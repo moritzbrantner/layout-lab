@@ -15,6 +15,7 @@ import "./aspect-overflow.css";
 import "./algorithm-pipeline.css";
 import "./algorithm-evidence.css";
 import "./layout-tree.css";
+import "./browser-engine-comparison.css";
 import "./grid-depth.css";
 import "./three-d-depth.css";
 import "./compositing-depth.css";
