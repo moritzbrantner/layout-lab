@@ -12,6 +12,23 @@ export type BrowserLayoutGeometry = {
 
 export type GeometryField = "x" | "y" | "width" | "height";
 
+export type GeometryComparisonPolicy = {
+  version: string;
+  tolerance: Readonly<Record<GeometryField, number>>;
+  roundingDecimals: number;
+};
+
+export const DEFAULT_GEOMETRY_POLICY: GeometryComparisonPolicy = {
+  version: "layout-geometry-v1",
+  tolerance: {
+    x: DEFAULT_GEOMETRY_TOLERANCE,
+    y: DEFAULT_GEOMETRY_TOLERANCE,
+    width: DEFAULT_GEOMETRY_TOLERANCE,
+    height: DEFAULT_GEOMETRY_TOLERANCE,
+  },
+  roundingDecimals: 4,
+};
+
 export type GeometryDelta = {
   field: GeometryField;
   engine: number;
@@ -65,17 +82,47 @@ export function measureBrowserLayout(root: HTMLElement): BrowserLayoutGeometry[]
   return geometry;
 }
 
-export function compareLayoutGeometry(
+function validatePolicy(policy: GeometryComparisonPolicy) {
+  if (!policy.version.trim()) throw new Error("geometry comparison policy requires a version");
+  if (!Number.isInteger(policy.roundingDecimals) || policy.roundingDecimals < 0 || policy.roundingDecimals > 12) {
+    throw new Error("geometry roundingDecimals must be an integer between 0 and 12");
+  }
+  for (const field of ["x", "y", "width", "height"] as const) {
+    const tolerance = policy.tolerance[field];
+    if (!Number.isFinite(tolerance) || tolerance < 0) {
+      throw new Error(`${field} geometry tolerance must be finite and non-negative`);
+    }
+  }
+}
+
+function normalizeNumber(value: number, decimals: number) {
+  const factor = 10 ** decimals;
+  const rounded = Math.round(value * factor) / factor;
+  return Object.is(rounded, -0) ? 0 : rounded;
+}
+
+function normalizeGeometry(
+  geometry: BrowserLayoutGeometry,
+  policy: GeometryComparisonPolicy,
+): BrowserLayoutGeometry {
+  return {
+    id: geometry.id,
+    x: normalizeNumber(geometry.x, policy.roundingDecimals),
+    y: normalizeNumber(geometry.y, policy.roundingDecimals),
+    width: normalizeNumber(geometry.width, policy.roundingDecimals),
+    height: normalizeNumber(geometry.height, policy.roundingDecimals),
+  };
+}
+
+export function compareLayoutGeometryWithPolicy(
   engineBoxes: readonly LayoutBox[],
   browserGeometry: readonly BrowserLayoutGeometry[],
-  tolerance = DEFAULT_GEOMETRY_TOLERANCE,
+  policy: GeometryComparisonPolicy = DEFAULT_GEOMETRY_POLICY,
 ): GeometryComparison[] {
-  if (!Number.isFinite(tolerance) || tolerance < 0) {
-    throw new Error("geometry tolerance must be finite and non-negative");
-  }
+  validatePolicy(policy);
 
-  const engineById = new Map(engineBoxes.map((box) => [box.id, toGeometry(box)]));
-  const browserById = new Map(browserGeometry.map((geometry) => [geometry.id, geometry]));
+  const engineById = new Map(engineBoxes.map((box) => [box.id, normalizeGeometry(toGeometry(box), policy)]));
+  const browserById = new Map(browserGeometry.map((geometry) => [geometry.id, normalizeGeometry(geometry, policy)]));
   const ids = [...new Set([...engineById.keys(), ...browserById.keys()])].sort();
 
   return ids.map((id): GeometryComparison => {
@@ -94,13 +141,13 @@ export function compareLayoutGeometry(
 
     const fields: GeometryField[] = ["x", "y", "width", "height"];
     const deltas = fields.map((field): GeometryDelta => {
-      const delta = Math.abs(engine[field] - browser[field]);
+      const delta = normalizeNumber(Math.abs(engine[field] - browser[field]), policy.roundingDecimals);
       return {
         field,
         engine: engine[field],
         browser: browser[field],
         delta,
-        matches: delta <= tolerance,
+        matches: delta <= policy.tolerance[field],
       };
     });
 
@@ -112,5 +159,20 @@ export function compareLayoutGeometry(
       matches: deltas.every((delta) => delta.matches),
       maximumDelta: Math.max(...deltas.map((delta) => delta.delta)),
     };
+  });
+}
+
+export function compareLayoutGeometry(
+  engineBoxes: readonly LayoutBox[],
+  browserGeometry: readonly BrowserLayoutGeometry[],
+  tolerance = DEFAULT_GEOMETRY_TOLERANCE,
+): GeometryComparison[] {
+  if (!Number.isFinite(tolerance) || tolerance < 0) {
+    throw new Error("geometry tolerance must be finite and non-negative");
+  }
+  return compareLayoutGeometryWithPolicy(engineBoxes, browserGeometry, {
+    version: "legacy-uniform-tolerance",
+    tolerance: {x: tolerance, y: tolerance, width: tolerance, height: tolerance},
+    roundingDecimals: 12,
   });
 }
