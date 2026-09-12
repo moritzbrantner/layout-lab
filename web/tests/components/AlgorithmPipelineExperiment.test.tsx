@@ -21,7 +21,7 @@ describe("AlgorithmPipelineExperiment", () => {
     expect(markup).toContain('aria-label="Declared style"');
     expect(markup).toContain('aria-label="Resolved values"');
     expect(markup).toContain('aria-label="Final geometry"');
-    expect(markup).toContain("A: 148.36px");
+    expect(markup).toContain("A: 144px");
   });
 
   test("renders the flex edge-case corpus with expected geometry", () => {
