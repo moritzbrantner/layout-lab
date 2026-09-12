@@ -3,6 +3,7 @@ import {buildFlexEngineTree, buildGridEngineTree} from "./layout-engine-fixtures
 import {layoutBlockTree, layoutFlexTree, layoutGridTree, type LayoutBox} from "./layout-engine";
 import {buildBlockLayoutTree, type LayoutNode} from "./layout-tree";
 import {breakLinesGreedy, breakLinesKnuthPlass, buildLineBreakingFixture, type LineBreakInput} from "./line-breaking";
+import {buildPackingFixture, packFirstFit, packShortestColumn, type PackingInput} from "./packing";
 
 export type AlgorithmZooId =
   | "block-flow"
@@ -10,9 +11,11 @@ export type AlgorithmZooId =
   | "grid-row"
   | "constraint-cassowary"
   | "line-greedy"
-  | "line-knuth-plass";
-export type AlgorithmFamily = "flow" | "flex" | "grid" | "constraint" | "line-breaking";
-export type AlgorithmInputKind = "layout-tree" | "constraint-system" | "line-break";
+  | "line-knuth-plass"
+  | "packing-shortest-column"
+  | "packing-first-fit";
+export type AlgorithmFamily = "flow" | "flex" | "grid" | "constraint" | "line-breaking" | "packing";
+export type AlgorithmInputKind = "layout-tree" | "constraint-system" | "line-break" | "packing";
 
 export type LayoutTreeAlgorithmInput = {
   kind: "layout-tree";
@@ -33,7 +36,17 @@ export type LineBreakAlgorithmInput = {
   paragraph: LineBreakInput;
 };
 
-export type AlgorithmExperimentInput = LayoutTreeAlgorithmInput | ConstraintSystemAlgorithmInput | LineBreakAlgorithmInput;
+export type PackingAlgorithmInput = {
+  kind: "packing";
+  fixtureId: string;
+  packing: PackingInput;
+};
+
+export type AlgorithmExperimentInput =
+  | LayoutTreeAlgorithmInput
+  | ConstraintSystemAlgorithmInput
+  | LineBreakAlgorithmInput
+  | PackingAlgorithmInput;
 
 export type AlgorithmGeometry = {
   id: string;
@@ -91,6 +104,11 @@ function requireConstraintSystemInput(input: AlgorithmExperimentInput): Constrai
 
 function requireLineBreakInput(input: AlgorithmExperimentInput): LineBreakAlgorithmInput {
   if (input.kind !== "line-break") throw new Error(`expected line-break input, received ${input.kind}`);
+  return input;
+}
+
+function requirePackingInput(input: AlgorithmExperimentInput): PackingAlgorithmInput {
+  if (input.kind !== "packing") throw new Error(`expected packing input, received ${input.kind}`);
   return input;
 }
 
@@ -281,6 +299,66 @@ const knuthPlassDefinition: AlgorithmDefinition = {
   },
 };
 
+function packingInput(): PackingAlgorithmInput {
+  return {kind: "packing", fixtureId: "skyline-hole", packing: buildPackingFixture()};
+}
+
+function packingTrace(result: ReturnType<typeof packShortestColumn>) {
+  return result.placements.map((placement, index) => ({
+    id: `place-${index + 1}`,
+    label: `place ${placement.id}`,
+    summary: `column ${placement.columnStart + 1}${placement.columnSpan > 1 ? ` span ${placement.columnSpan}` : ""}; x ${placement.x}px; y ${placement.y}px; height ${placement.height}px`,
+  }));
+}
+
+const shortestColumnDefinition: AlgorithmDefinition = {
+  id: "packing-shortest-column",
+  family: "packing",
+  title: "Shortest-column masonry",
+  summary: "Places each item on the contiguous column window with the lowest current skyline, without searching holes below that skyline.",
+  inputKind: "packing",
+  createInput: packingInput,
+  run: (input) => {
+    const typedInput = requirePackingInput(input);
+    const result = packShortestColumn(typedInput.packing);
+    return {
+      algorithmId: "packing-shortest-column",
+      input: typedInput,
+      geometry: result.geometry,
+      trace: packingTrace(result),
+      work: [
+        {key: "candidates", label: "column-window candidates", value: result.candidateEvaluations},
+        {key: "placements", label: "placed items", value: result.placements.length},
+      ],
+      diagnostics: [`packed height: ${result.containerHeight}px`],
+    };
+  },
+};
+
+const firstFitDefinition: AlgorithmDefinition = {
+  id: "packing-first-fit",
+  family: "packing",
+  title: "First-fit packing",
+  summary: "Scans deterministic top-left candidate positions and takes the first non-overlapping placement, allowing it to fill holes below the skyline.",
+  inputKind: "packing",
+  createInput: packingInput,
+  run: (input) => {
+    const typedInput = requirePackingInput(input);
+    const result = packFirstFit(typedInput.packing);
+    return {
+      algorithmId: "packing-first-fit",
+      input: typedInput,
+      geometry: result.geometry,
+      trace: packingTrace(result),
+      work: [
+        {key: "candidates", label: "candidate positions", value: result.candidateEvaluations},
+        {key: "placements", label: "placed items", value: result.placements.length},
+      ],
+      diagnostics: [`packed height: ${result.containerHeight}px`],
+    };
+  },
+};
+
 export const algorithmDefinitions: readonly AlgorithmDefinition[] = [
   blockDefinition,
   flexDefinition,
@@ -288,6 +366,8 @@ export const algorithmDefinitions: readonly AlgorithmDefinition[] = [
   constraintDefinition,
   greedyLineDefinition,
   knuthPlassDefinition,
+  shortestColumnDefinition,
+  firstFitDefinition,
 ] as const;
 
 export function getAlgorithmDefinition(id: AlgorithmZooId): AlgorithmDefinition {
