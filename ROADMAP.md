@@ -58,7 +58,7 @@
 
 ## H6 — Layout to rendering
 
-- [ ] Paint-order visualization beyond the focused stacking-context experiment
+- [x] Paint-order visualization beyond the focused stacking-context experiment
 - [ ] 2D canvas renderer for resolved boxes
 - [ ] Optional WebGPU/3D renderer only where it teaches a boundary CSS alone cannot show
 - [ ] Performance experiments for large layout trees and incremental relayout
