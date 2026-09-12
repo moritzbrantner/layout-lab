@@ -221,12 +221,16 @@ export function LayoutInvalidationExplorer() {
       {incremental ? (
         <div className="layout-invalidation-execution" aria-label="Incremental execution evidence">
           <div>
-            <strong>{incremental.work.visitedNodes}</strong>
+            <strong>{incremental.recomputedNodeIds.length}</strong>
             <span>recomputed nodes</span>
           </div>
           <div>
             <strong>{incremental.work.reusedNodes}</strong>
             <span>reused nodes</span>
+          </div>
+          <div>
+            <strong>{incremental.work.visitedNodes}</strong>
+            <span>visited nodes</span>
           </div>
           <div>
             <strong>{incremental.work.solverPasses}</strong>
@@ -303,7 +307,7 @@ export function LayoutInvalidationExplorer() {
       </div>
 
       <p className="layout-invalidation-boundary">
-        Incremental style execution is now verified against a clean full recomputation. Structural insert/remove/reorder remains a deliberate fail-closed boundary until the dependency graph is rebuilt for the new tree shape.
+        Incremental style execution is verified against a clean full recomputation. Recomputed/reused nodes describe cache ownership; visited nodes and solver passes separately report actual deterministic executor work. Structural insert/remove/reorder remains a fail-closed boundary until the dependency graph is rebuilt for the new tree shape.
       </p>
     </section>
   );
