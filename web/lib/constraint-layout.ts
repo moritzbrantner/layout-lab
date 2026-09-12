@@ -37,8 +37,8 @@ export function solveConstraintLayout(containerWidth = 640, gap = 16): Constrain
   if (!Number.isFinite(containerWidth) || containerWidth < 420) {
     throw new Error("constraint fixture requires a finite container width of at least 420px");
   }
-  if (!Number.isFinite(gap) || gap < 0 || gap > containerWidth - 360) {
-    throw new Error("constraint fixture requires a finite non-negative gap with room for both panels");
+  if (!Number.isFinite(gap) || gap < 0 || containerWidth - gap < 410) {
+    throw new Error("constraint fixture requires a finite non-negative gap with room for both panels and the temporary cap");
   }
 
   const solver = new CassowarySolver();
