@@ -8,9 +8,9 @@ import {
 
 describe("combined algorithm zoo registry", () => {
   test("keeps every registered family behind one outward execution contract", () => {
-    expect(algorithmRegistryDefinitions.map((definition) => [definition.id, definition.inputKind]).at(-1)).toEqual([
-      "dag-sugiyama",
-      "dag",
+    expect(algorithmRegistryDefinitions.map((definition) => [definition.id, definition.inputKind]).slice(-2)).toEqual([
+      ["dag-sugiyama", "dag"],
+      ["graph-force", "graph"],
     ]);
     expect(new Set(algorithmRegistryDefinitions.map((definition) => definition.id)).size)
       .toBe(algorithmRegistryDefinitions.length);
@@ -53,6 +53,35 @@ describe("combined algorithm zoo registry", () => {
       height: 10,
     });
     expect(execution.diagnostics.join(" ")).toContain("acyclic");
+  });
+
+  test("exposes replayable force convergence evidence through the common trace", () => {
+    const execution = runRegistryAlgorithm("graph-force");
+
+    expect(execution.input.kind).toBe("graph");
+    expect(execution.trace.map((step) => step.label)).toEqual([
+      "iteration 1",
+      "iteration 20",
+      "iteration 40",
+      "iteration 60",
+      "iteration 80",
+      "iteration 100",
+      "iteration 120",
+      "iteration 140",
+      "iteration 160",
+    ]);
+    expect(execution.trace.at(-1)?.summary).toContain("temperature 0");
+    expect(execution.work.find((counter) => counter.key === "iterations")?.value).toBe(160);
+    expect(execution.work.find((counter) => counter.key === "repulsions")?.value).toBe(4480);
+    expect(execution.work.find((counter) => counter.key === "attractions")?.value).toBe(1760);
+    expect(execution.diagnostics).toContain("seed: 20260912");
+  });
+
+  test("replays the same force-directed registry execution", () => {
+    const first = runRegistryAlgorithm("graph-force");
+    const second = runRegistryAlgorithm("graph-force");
+    expect(second.geometry).toEqual(first.geometry);
+    expect(second.trace).toEqual(first.trace);
   });
 
   test("rejects unknown combined-registry ids", () => {
