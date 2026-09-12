@@ -80,6 +80,7 @@ const algorithmPipelineSchema: ExperimentUrlSchema = [
       "packing-first-fit",
       "tree-tidy",
       "dag-sugiyama",
+      "graph-force",
     ],
   },
 ];
