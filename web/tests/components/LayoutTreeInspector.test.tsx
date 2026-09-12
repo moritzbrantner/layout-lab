@@ -50,11 +50,32 @@ describe("LayoutTreeInspector", () => {
     expect(markup).toContain("pass 2");
   });
 
-  test("does not claim the flex engine subset on the grid scenario", () => {
+  test("shows the grid engine geometry, span contribution, and frozen track", () => {
     const markup = renderToStaticMarkup(
       <LayoutTreeInspector scenario="grid" innerSize={560} gapSize={16} />,
     );
 
-    expect(markup).not.toContain("Deterministic Flexbox subset");
+    expect(markup).toContain("Deterministic Grid subset");
+    expect(markup).toContain("Grid engine root <code>root</code>");
+    expect(markup).toContain("A+B panel <code>span-ab</code>");
+    expect(markup).toContain("117.33px");
+    expect(markup).toContain("A+B panel");
+    expect(markup).toContain("grow bases by 24px");
+    expect(markup).toContain("track B");
+    expect(markup).toContain("width 176px · frozen at minimum");
+  });
+
+  test("shows only the engine subset matching the selected flex/grid scenario", () => {
+    const flexMarkup = renderToStaticMarkup(
+      <LayoutTreeInspector scenario="flex" innerSize={520} gapSize={16} />,
+    );
+    const gridMarkup = renderToStaticMarkup(
+      <LayoutTreeInspector scenario="grid" innerSize={560} gapSize={16} />,
+    );
+
+    expect(flexMarkup).toContain("Deterministic Flexbox subset");
+    expect(flexMarkup).not.toContain("Deterministic Grid subset");
+    expect(gridMarkup).toContain("Deterministic Grid subset");
+    expect(gridMarkup).not.toContain("Deterministic Flexbox subset");
   });
 });
