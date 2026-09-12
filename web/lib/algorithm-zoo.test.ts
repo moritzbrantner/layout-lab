@@ -12,6 +12,7 @@ describe("algorithm zoo contract", () => {
       ["block-flow", "layout-tree"],
       ["flex-row", "layout-tree"],
       ["grid-row", "layout-tree"],
+      ["constraint-cassowary", "constraint-system"],
     ]);
     expect(new Set(algorithmDefinitions.map((definition) => definition.id)).size).toBe(algorithmDefinitions.length);
   });
@@ -20,7 +21,6 @@ describe("algorithm zoo contract", () => {
     for (const definition of algorithmDefinitions) {
       const execution = runAlgorithm(definition.id);
       expect(execution.algorithmId).toBe(definition.id);
-      expect(execution.input.kind).toBe("layout-tree");
       expect(execution.geometry.length).toBeGreaterThan(0);
       expect(execution.work.length).toBeGreaterThan(0);
       expect(validateAlgorithmExecution(execution)).toEqual([]);
@@ -31,9 +31,10 @@ describe("algorithm zoo contract", () => {
     expect(runAlgorithm("block-flow").trace[0]?.summary).toContain("resolves to 20px");
     expect(runAlgorithm("flex-row").trace.map((step) => step.summary).join(" ")).toContain("freeze B");
     expect(runAlgorithm("grid-row").trace.map((step) => step.summary).join(" ")).toContain("frozen at minimum");
+    expect(runAlgorithm("constraint-cassowary").trace.map((step) => step.label).join(" ")).toContain("remove temporary A width cap");
   });
 
-  test("keeps the common geometry output deterministic for existing engine fixtures", () => {
+  test("keeps the common geometry output deterministic for engine and constraint fixtures", () => {
     expect(runAlgorithm("block-flow").geometry.find((box) => box.id === "content")).toMatchObject({
       x: 0,
       y: 76,
@@ -46,6 +47,17 @@ describe("algorithm zoo contract", () => {
       height: 104,
     });
     expect(runAlgorithm("grid-row").geometry.find((box) => box.id === "item-c")?.x).toBeCloseTo(325.33333333333337, 8);
+    expect(runAlgorithm("constraint-cassowary").geometry.find((box) => box.id === "panel-a")).toMatchObject({
+      x: 0,
+      width: 249.6,
+      height: 140,
+    });
+  });
+
+  test("surfaces soft-constraint residuals as diagnostics", () => {
+    const execution = runAlgorithm("constraint-cassowary");
+    expect(execution.diagnostics).toContain("medium B width preference: 62.4px residual");
+    expect(execution.work.find((counter) => counter.key === "pivots")?.value).toBeGreaterThan(0);
   });
 
   test("rejects unknown registry ids at the lookup boundary", () => {

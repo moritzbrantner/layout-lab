@@ -100,8 +100,17 @@ export function AlgorithmZooExplorer() {
         </div>
       </div>
 
+      {execution.diagnostics.length > 0 ? (
+        <div className="algorithm-zoo-diagnostics" aria-label="Algorithm diagnostics">
+          <strong>Diagnostics</strong>
+          <ul>
+            {execution.diagnostics.map((diagnostic) => <li key={diagnostic}>{diagnostic}</li>)}
+          </ul>
+        </div>
+      ) : null}
+
       <p className="algorithm-zoo-boundary">
-        Planned constraint, line-breaking, packing, tree, DAG, and force-directed algorithms will implement this same result contract rather than adding one-off visualization models.
+        Constraint solving now uses this shared result contract. Planned line-breaking, packing, tree, DAG, and force-directed algorithms will plug into the same surface rather than adding one-off visualization models.
       </p>
     </section>
   );

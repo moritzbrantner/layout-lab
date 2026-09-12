@@ -68,7 +68,7 @@
 Build a common experiment contract so substantially different layout algorithms can consume comparable inputs, expose intermediate decisions, and produce inspectable geometry.
 
 - [x] Common algorithm input/output contract and selector in the algorithm explorer
-- [ ] Constraint-based layout with a Cassowary-style incremental linear constraint solver
+- [x] Constraint-based layout with a Cassowary-style incremental linear constraint solver
 - [ ] Line breaking comparison: greedy wrapping versus Knuth–Plass paragraph optimization
 - [ ] Masonry / packing comparison: shortest-column placement versus deterministic first-fit packing
 - [ ] Tidy tree layout using a Reingold–Tilford-style algorithm
