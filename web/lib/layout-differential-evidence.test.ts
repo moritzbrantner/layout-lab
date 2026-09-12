@@ -7,9 +7,11 @@ import {
 } from "./layout-differential-evidence";
 import {getLayoutDifferentialFixture} from "./layout-differential-corpus";
 import {
+  createGeneratedLayoutCase,
   generateLayoutDifferentialCases,
   materializeGeneratedLayoutFixture,
   replayGeneratedEngineGeometry,
+  replayGeneratedLayoutCase,
 } from "./layout-differential-generated";
 
 describe("browser conformance evidence", () => {
@@ -39,14 +41,21 @@ describe("browser conformance evidence", () => {
     expect(evidence.fingerprint).toMatch(/^[0-9a-f]{8}$/);
   });
 
-  test("records a minimized generated replay while retaining its original replay key", () => {
-    const layoutCase = generateLayoutDifferentialCases(0xc0ffee, 1)[0]!;
-    const fixture = materializeGeneratedLayoutFixture(layoutCase);
-    const browserGeometry = replayGeneratedEngineGeometry(layoutCase).map((geometry) =>
+  test("records the complete minimized generated case while retaining original provenance", () => {
+    const original = generateLayoutDifferentialCases(0xc0ffee, 1)[0]!;
+    const minimized = createGeneratedLayoutCase({
+      seed: original.seed,
+      index: original.index,
+      kind: original.kind,
+      innerSize: 360,
+      gapSize: 0,
+    });
+    const fixture = materializeGeneratedLayoutFixture(minimized);
+    const browserGeometry = replayGeneratedEngineGeometry(minimized).map((geometry) =>
       geometry.id === "root" ? {...geometry, x: geometry.x + 1} : geometry,
     );
-    const replay = generatedReplay(layoutCase, {
-      originalReplayKey: "layout-generated-v1:00000001:9",
+    const replay = generatedReplay(minimized, {
+      originalReplayKey: original.replayKey,
       minimizationAttempts: 17,
     });
 
@@ -63,15 +72,16 @@ describe("browser conformance evidence", () => {
       browserGeometry: [...browserGeometry].reverse(),
     });
 
+    expect(replayGeneratedLayoutCase(original.seed, original.index)).toEqual(original);
+    expect(minimized.innerSize).not.toBe(original.innerSize);
     expect(first.replay).toEqual({
       type: "generated",
-      generatorVersion: layoutCase.generatorVersion,
-      seed: layoutCase.seed,
-      index: layoutCase.index,
-      replayKey: layoutCase.replayKey,
-      originalReplayKey: "layout-generated-v1:00000001:9",
+      case: minimized,
+      originalReplayKey: original.replayKey,
       minimizationAttempts: 17,
     });
+    expect(first.replay.type === "generated" ? first.replay.case.innerSize : null).toBe(360);
+    expect(first.replay.type === "generated" ? first.replay.case.gapSize : null).toBe(0);
     expect(second).toEqual(first);
   });
 
