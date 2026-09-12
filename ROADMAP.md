@@ -91,11 +91,11 @@ Build a common experiment contract so substantially different layout algorithms 
 
 - [x] Promote browser fixtures into a reusable differential-testing corpus
 - [x] Compare the small engine with browser-owned geometry for supported CSS subsets
-- [ ] Add Chromium, Firefox, and WebKit comparison where CI can provide stable evidence
+- [x] Add Chromium, Firefox, and WebKit comparison where CI can provide stable evidence
 - [x] Make numeric tolerance and rounding rules explicit instead of silently accepting drift
 - [x] Generate bounded layout cases from typed inputs and replay them deterministically
 - [x] Minimize mismatching generated cases into small regression fixtures
-- [ ] Preserve a replayable evidence record for every discovered mismatch
+- [x] Preserve a replayable evidence record for every discovered mismatch
 
 ## H10 — Complexity and performance laboratory
 

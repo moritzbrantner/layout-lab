@@ -7,7 +7,7 @@ import {
 } from "./browser-layout-adapter";
 import {buildFlexEngineTree, buildGridEngineTree} from "./layout-engine-fixtures";
 import {layoutBlockTree, layoutFlexTree, layoutGridTree, type LayoutBox} from "./layout-engine";
-import {buildBlockLayoutTree} from "./layout-tree";
+import {buildBlockLayoutTree, type LayoutNode} from "./layout-tree";
 
 export type LayoutDifferentialFixtureId = "block-baseline" | "flex-engine" | "grid-engine";
 export type LayoutDifferentialFixtureKind = "block" | "flex" | "grid";
@@ -119,13 +119,31 @@ function flexFixture(innerSize: number, gapSize: number): LayoutDifferentialFixt
   };
 }
 
+function gridConformanceTree(innerSize: number, gapSize: number): LayoutNode {
+  const source = buildGridEngineTree(innerSize, gapSize);
+  return {
+    ...source,
+    children: source.children.map((child) => {
+      if (child.id !== "span-ab" || !child.style.gridItem) return child;
+      const {columnStart, columnSpan} = child.style.gridItem;
+      return {
+        ...child,
+        style: {
+          ...child.style,
+          gridItem: {columnStart, columnSpan},
+        },
+      };
+    }),
+  };
+}
+
 function gridFixture(innerSize: number, gapSize: number): LayoutDifferentialFixture {
-  const engine = layoutGridTree(buildGridEngineTree(innerSize, gapSize));
+  const engine = layoutGridTree(gridConformanceTree(innerSize, gapSize));
   return {
     id: "grid-engine",
     kind: "grid",
-    title: "Grid engine fixture",
-    summary: "Minmax tracks, spanning minimum contribution, explicit placement, fixed row height, and gap.",
+    title: "Grid fixed-min fixture",
+    summary: "Fixed minimum minmax tracks, flexible fractions, explicit placement, spanning geometry, fixed row height, and gap. The teaching-only explicit spanning contribution is deliberately outside this CSS conformance case.",
     policy: DEFAULT_GEOMETRY_POLICY,
     engineBoxes: engine.boxes,
     input: {innerSize, gapSize},
@@ -144,7 +162,7 @@ function gridFixture(innerSize: number, gapSize: number): LayoutDifferentialFixt
       children: [
         {
           id: "span-ab",
-          style: {gridColumn: "1 / span 2", gridRow: 1, minWidth: 300, height: 80, boxSizing: "border-box"},
+          style: {gridColumn: "1 / span 2", gridRow: 1, height: 80, boxSizing: "border-box"},
           children: [],
         },
         {

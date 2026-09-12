@@ -19,14 +19,16 @@ describe("BrowserEngineComparison", () => {
     expect(markup).toContain("browser measurement pending");
   });
 
-  test("uses the selected Grid corpus fixture without rendering the Flex fixture", () => {
+  test("uses the selected bounded Grid conformance fixture without rendering the Flex fixture", () => {
     const markup = renderToStaticMarkup(
       <BrowserEngineComparison scenario="grid" innerSize={560} gapSize={16} />,
     );
 
     expect(markup).toContain('data-differential-fixture="grid-engine"');
-    expect(markup).toContain("Minmax tracks, spanning minimum contribution, explicit placement");
+    expect(markup).toContain("Fixed minimum minmax tracks, flexible fractions, explicit placement");
+    expect(markup).toContain("teaching-only explicit spanning contribution is deliberately outside this CSS conformance case");
     expect(markup).toContain('data-layout-engine-node="span-ab"');
+    expect(markup).not.toContain("min-width:300px");
     expect(markup).not.toContain('data-differential-fixture="flex-engine"');
   });
 
