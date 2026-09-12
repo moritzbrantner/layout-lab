@@ -3,6 +3,7 @@
 import {useState} from "react";
 import {AlgorithmComparisonExplorer} from "@/components/AlgorithmComparisonExplorer";
 import {AlgorithmTraceStepper} from "@/components/AlgorithmTraceStepper";
+import {LayoutComplexityLab} from "@/components/LayoutComplexityLab";
 import {LayoutInvalidationExplorer} from "@/components/LayoutInvalidationExplorer";
 import {LayoutMutationWorkloadExplorer} from "@/components/LayoutMutationWorkloadExplorer";
 import {
@@ -119,6 +120,7 @@ export function AlgorithmZooExplorer() {
 
       <LayoutInvalidationExplorer />
       <LayoutMutationWorkloadExplorer />
+      <LayoutComplexityLab />
     </section>
   );
 }
