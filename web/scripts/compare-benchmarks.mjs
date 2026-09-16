@@ -24,6 +24,7 @@ const benchmarks = [
   "tidy-tree-deep-benchmark.ts",
   "grid-contribution-benchmark.ts",
   "block-layout-benchmark.ts",
+  "force-directed-benchmark.ts",
 ];
 
 function median(values) {
