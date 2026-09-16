@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   compare:
+    name: historical baseline
     runs-on: ubuntu-latest
     env:
       BASELINE_COMMIT: 59f968c9fe843ae1cf718e2ddd865abaa6212870
@@ -46,6 +47,48 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: layout-benchmark-comparison
+          path: |
+            web/benchmark-comparison.json
+            web/benchmark-comparison.md
+          if-no-files-found: error
+          retention-days: 30
+
+  compare-pr-base:
+    name: immediate PR baseline
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      BASELINE_COMMIT: ${{ github.event.pull_request.base.sha }}
+      BENCHMARK_RUNS: "7"
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.0
+      - name: Install current dependencies
+        working-directory: web
+        run: bun install --frozen-lockfile
+      - name: Prepare PR-base baseline
+        run: |
+          BASELINE_ROOT="$RUNNER_TEMP/layout-lab-pr-base"
+          git worktree add "$BASELINE_ROOT" "$BASELINE_COMMIT"
+          mkdir -p "$BASELINE_ROOT/web/scripts"
+          cp web/scripts/*-benchmark.ts "$BASELINE_ROOT/web/scripts/"
+          echo "BASELINE_WEB=$BASELINE_ROOT/web" >> "$GITHUB_ENV"
+      - name: Compare PR base and optimized workloads
+        working-directory: web
+        env:
+          OPTIMIZED_COMMIT: ${{ github.event.pull_request.head.sha }}
+        run: |
+          node scripts/compare-benchmarks.mjs "$BASELINE_WEB"
+          cat benchmark-comparison.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload PR-base benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: layout-benchmark-pr-base
           path: |
             web/benchmark-comparison.json
             web/benchmark-comparison.md
