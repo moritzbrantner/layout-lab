@@ -13,7 +13,7 @@ import {
   type GridSpanContribution,
   type GridTrackInput,
 } from "./layout-analysis";
-import {layoutBlockTree} from "./layout-engine";
+import {layoutBlockTree, type LayoutBox} from "./layout-engine";
 import type {LayoutNode} from "./layout-tree";
 
 export const COMPLEXITY_LAB_VERSION = "layout-complexity-v1";
@@ -186,8 +186,8 @@ function updateNode(root: LayoutNode, nodeId: string, update: (node: LayoutNode)
   return {...root, children: root.children.map((child) => updateNode(child, nodeId, update))};
 }
 
-function geometrySignature(tree: LayoutNode) {
-  return JSON.stringify(layoutBlockTree(tree).boxes.map((box) => ({id: box.id, ...box.rect})));
+function geometrySignature(boxes: readonly LayoutBox[]) {
+  return JSON.stringify(boxes.map((box) => ({id: box.id, ...box.rect})));
 }
 
 function incrementalScalingSample(groupCount: number, leavesPerGroup: number, mutationCount: number): ComplexitySample {
@@ -208,7 +208,7 @@ function incrementalScalingSample(groupCount: number, leavesPerGroup: number, mu
     }));
     const incremental = recomputeIncrementalLayout(cache, nextTree, {kind: "style", nodeId, field: "width"});
     const clean = layoutBlockTree(nextTree);
-    if (JSON.stringify(incremental.cache.boxes.map((box) => ({id: box.id, ...box.rect}))) !== geometrySignature(nextTree)) {
+    if (geometrySignature(incremental.cache.boxes) !== geometrySignature(clean.boxes)) {
       throw new Error(`${nodeId}: incremental complexity sample diverged from clean layout`);
     }
     incrementalVisited += incremental.work.visitedNodes;
