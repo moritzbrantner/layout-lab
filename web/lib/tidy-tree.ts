@@ -47,16 +47,24 @@ type RelativePlacement = {
   centerX: number;
 };
 
-type RelativeSubtree = {
-  rootId: string;
-  placements: RelativePlacement[];
-  leftContour: number[];
-  rightContour: number[];
-  shifts: TidyTreeShiftEvidence[];
-  contourComparisons: number;
+type Contour = {
+  zeroPrefix: number;
+  values: readonly number[];
 };
 
-const EPSILON = 1e-9;
+type RelativeChild = {
+  subtree: RelativeSubtree;
+  offset: number;
+};
+
+type RelativeSubtree = {
+  rootId: string;
+  children: readonly RelativeChild[];
+  leftContour: Contour;
+  rightContour: Contour;
+  shift: TidyTreeShiftEvidence | null;
+  contourComparisons: number;
+};
 
 function round(value: number) {
   const rounded = Math.round(value * 10_000) / 10_000;
@@ -89,133 +97,166 @@ function validateInput(input: TidyTreeInput) {
   visit(input.root);
 }
 
-function translated(values: readonly number[], offset: number) {
-  return values.map((value) => value + offset);
+function contourLength(contour: Contour) {
+  return contour.zeroPrefix + contour.values.length;
+}
+
+function contourAt(contour: Contour, depth: number) {
+  if (depth < 0 || depth >= contourLength(contour)) return undefined;
+  if (depth < contour.zeroPrefix) return 0;
+  return contour.values[depth - contour.zeroPrefix];
+}
+
+function prependZero(contour: Contour): Contour {
+  return {zeroPrefix: contour.zeroPrefix + 1, values: contour.values};
+}
+
+function mergedContour(
+  left: Contour,
+  leftOffset: number,
+  right: Contour,
+  rightOffset: number,
+  pick: (leftValue: number, rightValue: number) => number,
+): Contour {
+  const depthCount = Math.max(contourLength(left), contourLength(right));
+  const values: number[] = [];
+
+  for (let depth = 0; depth < depthCount; depth += 1) {
+    const leftValue = contourAt(left, depth);
+    const rightValue = contourAt(right, depth);
+    if (leftValue === undefined) values.push(rightValue! + rightOffset);
+    else if (rightValue === undefined) values.push(leftValue + leftOffset);
+    else values.push(pick(leftValue + leftOffset, rightValue + rightOffset));
+  }
+
+  // The current subtree root is always centered at zero. Keeping runs of unary
+  // ancestors as an implicit zero prefix avoids copying an entire contour at
+  // every level of a deep chain.
+  return {zeroPrefix: 1, values};
 }
 
 function layoutRelative(node: TidyTreeNode, minimumSeparation: number): RelativeSubtree {
   if (node.children.length === 0) {
+    const rootContour: Contour = {zeroPrefix: 1, values: []};
     return {
       rootId: node.id,
-      placements: [{id: node.id, parentId: null, depth: 0, centerX: 0}],
-      leftContour: [0],
-      rightContour: [0],
-      shifts: [],
+      children: [],
+      leftContour: rootContour,
+      rightContour: rootContour,
+      shift: null,
       contourComparisons: 0,
     };
   }
 
   if (node.children.length === 1) {
     const child = layoutRelative(node.children[0]!, minimumSeparation);
-    const childPlacements = child.placements.map((placement) => ({
-      ...placement,
-      parentId: placement.depth === 0 ? node.id : placement.parentId,
-      depth: placement.depth + 1,
-    }));
     return {
       rootId: node.id,
-      placements: [{id: node.id, parentId: null, depth: 0, centerX: 0}, ...childPlacements],
-      leftContour: [0, ...child.leftContour],
-      rightContour: [0, ...child.rightContour],
-      shifts: child.shifts,
+      children: [{subtree: child, offset: 0}],
+      leftContour: prependZero(child.leftContour),
+      rightContour: prependZero(child.rightContour),
+      shift: null,
       contourComparisons: child.contourComparisons,
     };
   }
 
-  const leftChild = node.children[0]!;
-  const rightChild = node.children[1]!;
-  const left = layoutRelative(leftChild, minimumSeparation);
-  const right = layoutRelative(rightChild, minimumSeparation);
-  const comparedDepths = Math.min(left.rightContour.length, right.leftContour.length);
+  const left = layoutRelative(node.children[0]!, minimumSeparation);
+  const right = layoutRelative(node.children[1]!, minimumSeparation);
+  const comparedDepths = Math.min(contourLength(left.rightContour), contourLength(right.leftContour));
   let separation = minimumSeparation;
 
   for (let depth = 0; depth < comparedDepths; depth += 1) {
-    const required = left.rightContour[depth]! - right.leftContour[depth]! + minimumSeparation;
+    const required = contourAt(left.rightContour, depth)!
+      - contourAt(right.leftContour, depth)!
+      + minimumSeparation;
     separation = Math.max(separation, required);
   }
   separation = round(separation);
 
   const leftOffset = -separation / 2;
   const rightOffset = separation / 2;
-  const leftPlacements = left.placements.map((placement) => ({
-    ...placement,
-    parentId: placement.depth === 0 ? node.id : placement.parentId,
-    depth: placement.depth + 1,
-    centerX: placement.centerX + leftOffset,
-  }));
-  const rightPlacements = right.placements.map((placement) => ({
-    ...placement,
-    parentId: placement.depth === 0 ? node.id : placement.parentId,
-    depth: placement.depth + 1,
-    centerX: placement.centerX + rightOffset,
-  }));
-
-  const leftContourShifted = translated(left.leftContour, leftOffset);
-  const rightContourShifted = translated(right.leftContour, rightOffset);
-  const leftRightContourShifted = translated(left.rightContour, leftOffset);
-  const rightRightContourShifted = translated(right.rightContour, rightOffset);
-  const depthCount = Math.max(left.leftContour.length, right.leftContour.length);
-  const leftContour = [0];
-  const rightContour = [0];
-
-  for (let depth = 0; depth < depthCount; depth += 1) {
-    const leftValues = [leftContourShifted[depth], rightContourShifted[depth]].filter((value): value is number => value !== undefined);
-    const rightValues = [leftRightContourShifted[depth], rightRightContourShifted[depth]].filter((value): value is number => value !== undefined);
-    leftContour.push(Math.min(...leftValues));
-    rightContour.push(Math.max(...rightValues));
-  }
-
   return {
     rootId: node.id,
-    placements: [{id: node.id, parentId: null, depth: 0, centerX: 0}, ...leftPlacements, ...rightPlacements],
-    leftContour,
-    rightContour,
-    shifts: [
-      ...left.shifts,
-      ...right.shifts,
-      {
-        nodeId: node.id,
-        leftChildId: left.rootId,
-        rightChildId: right.rootId,
-        separation,
-        comparedDepths,
-      },
+    children: [
+      {subtree: left, offset: leftOffset},
+      {subtree: right, offset: rightOffset},
     ],
+    leftContour: mergedContour(left.leftContour, leftOffset, right.leftContour, rightOffset, Math.min),
+    rightContour: mergedContour(left.rightContour, leftOffset, right.rightContour, rightOffset, Math.max),
+    shift: {
+      nodeId: node.id,
+      leftChildId: left.rootId,
+      rightChildId: right.rootId,
+      separation,
+      comparedDepths,
+    },
     contourComparisons: left.contourComparisons + right.contourComparisons + comparedDepths,
   };
+}
+
+function materializeRelative(
+  subtree: RelativeSubtree,
+  parentId: string | null,
+  depth: number,
+  centerX: number,
+  placements: RelativePlacement[],
+  shifts: TidyTreeShiftEvidence[],
+) {
+  placements.push({id: subtree.rootId, parentId, depth, centerX});
+  for (const child of subtree.children) {
+    materializeRelative(
+      child.subtree,
+      subtree.rootId,
+      depth + 1,
+      centerX + child.offset,
+      placements,
+      shifts,
+    );
+  }
+  if (subtree.shift) shifts.push(subtree.shift);
 }
 
 export function layoutTidyTree(input: TidyTreeInput): TidyTreeResult {
   validateInput(input);
   const minimumSeparation = input.nodeWidth + input.horizontalGap;
   const relative = layoutRelative(input.root, minimumSeparation);
-  const minimumLeftEdge = relative.placements.reduce(
-    (minimum, placement) => Math.min(minimum, placement.centerX - input.nodeWidth / 2),
-    Number.POSITIVE_INFINITY,
-  );
-  const maximumRightEdge = relative.placements.reduce(
-    (maximum, placement) => Math.max(maximum, placement.centerX + input.nodeWidth / 2),
-    Number.NEGATIVE_INFINITY,
-  );
-  const normalization = -minimumLeftEdge;
-  const maxDepth = relative.placements.reduce((maximum, placement) => Math.max(maximum, placement.depth), 0);
+  const relativePlacements: RelativePlacement[] = [];
+  const shifts: TidyTreeShiftEvidence[] = [];
+  materializeRelative(relative, null, 0, 0, relativePlacements, shifts);
 
-  const placements: TidyTreePlacement[] = relative.placements.map((placement) => {
+  let minimumLeftEdge = Number.POSITIVE_INFINITY;
+  let maximumRightEdge = Number.NEGATIVE_INFINITY;
+  let maxDepth = 0;
+  for (const placement of relativePlacements) {
+    minimumLeftEdge = Math.min(minimumLeftEdge, placement.centerX - input.nodeWidth / 2);
+    maximumRightEdge = Math.max(maximumRightEdge, placement.centerX + input.nodeWidth / 2);
+    maxDepth = Math.max(maxDepth, placement.depth);
+  }
+
+  const normalization = -minimumLeftEdge;
+  const placements: TidyTreePlacement[] = [];
+  const geometry: {id: string; x: number; y: number; width: number; height: number}[] = [];
+  for (const placement of relativePlacements) {
     const centerX = round(placement.centerX + normalization);
-    return {
-      ...placement,
+    const x = round(centerX - input.nodeWidth / 2);
+    const y = round(placement.depth * (input.nodeHeight + input.levelGap));
+    placements.push({
+      id: placement.id,
+      parentId: placement.parentId,
+      depth: placement.depth,
       centerX,
-      x: round(centerX - input.nodeWidth / 2),
-      y: round(placement.depth * (input.nodeHeight + input.levelGap)),
+      x,
+      y,
       width: input.nodeWidth,
       height: input.nodeHeight,
-    };
-  });
+    });
+    geometry.push({id: placement.id, x, y, width: input.nodeWidth, height: input.nodeHeight});
+  }
 
   return {
     placements,
-    geometry: placements.map(({id, x, y, width, height}) => ({id, x, y, width, height})),
-    shifts: relative.shifts,
+    geometry,
+    shifts,
     contourComparisons: relative.contourComparisons,
     drawingWidth: round(maximumRightEdge - minimumLeftEdge),
     drawingHeight: round(maxDepth * (input.nodeHeight + input.levelGap) + input.nodeHeight),
