@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "suite": "layout-lab/algorithmic-work-v1",
+  "description": "Deterministic layout algorithm work contracts. Blocking protection should use operation counts already exposed by the algorithms; elapsed time remains explanatory evidence.",
+  "scenarios": [
+    {
+      "id": "incremental-style-mutations",
+      "kind": "journey",
+      "description": "Apply 1,000 localized style mutations to a 409-node block tree and preserve clean-layout equivalence.",
+      "dimensions": {
+        "nodes": 409,
+        "mutations": 1000,
+        "groups": 24,
+        "leaves_per_group": 16
+      },
+      "correctnessEvidence": [
+        "incremental geometry equals clean block layout",
+        "deterministic geometry checksum"
+      ],
+      "metrics": [
+        {
+          "name": "visited_nodes",
+          "unit": "nodes",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": { "relativeRegressionPercent": 5 }
+        },
+        {
+          "name": "recomputed_nodes",
+          "unit": "nodes",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": { "relativeRegressionPercent": 5 }
+        },
+        {
+          "name": "elapsed_ms",
+          "unit": "ms",
+          "direction": "lower",
+          "signal": "wall-clock",
+          "blocking": false
+        }
+      ]
+    },
+    {
+      "id": "sugiyama-layered-dag",
+      "kind": "scaling",
+      "description": "Lay out a 320-node, 600-edge layered DAG for 25 deterministic runs.",
+      "dimensions": {
+        "layers": 16,
+        "nodes_per_layer": 20,
+        "nodes": 320,
+        "edges": 600,
+        "sweeps": 6,
+        "runs": 25
+      },
+      "correctnessEvidence": [
+        "identical ranks/layer orders/crossing result across runs"
+      ],
+      "metrics": [
+        {
+          "name": "crossing_comparisons_per_run",
+          "unit": "comparisons",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": { "relativeRegressionPercent": 5 }
+        },
+        {
+          "name": "elapsed_ms",
+          "unit": "ms",
+          "direction": "lower",
+          "signal": "wall-clock",
+          "blocking": false
+        }
+      ]
+    },
+    {
+      "id": "knuth-plass-box-glue",
+      "kind": "scaling",
+      "description": "Break 168 deterministic words for 20 runs while tracking dynamic-programming work.",
+      "dimensions": {
+        "words": 168,
+        "runs": 20
+      },
+      "correctnessEvidence": [
+        "identical line breaks/demerits/work counts across runs"
+      ],
+      "metrics": [
+        {
+          "name": "candidate_evaluations_per_run",
+          "unit": "evaluations",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": { "relativeRegressionPercent": 5 }
+        },
+        {
+          "name": "dynamic_states_per_run",
+          "unit": "states",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": { "relativeRegressionPercent": 5 }
+        },
+        {
+          "name": "elapsed_ms",
+          "unit": "ms",
+          "direction": "lower",
+          "signal": "wall-clock",
+          "blocking": false
+        }
+      ]
+    }
+  ]
+}
