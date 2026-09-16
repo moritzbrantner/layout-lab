@@ -69,6 +69,7 @@ console.log(JSON.stringify({
   runs: RUNS,
   repulsionPairs,
   attractionEvaluations,
+  resultSignature: expectedSignature,
   elapsedMs: Number(elapsedMs.toFixed(2)),
   layoutsPerSecond: Number((RUNS / (elapsedMs / 1_000)).toFixed(2)),
 }, null, 2));
