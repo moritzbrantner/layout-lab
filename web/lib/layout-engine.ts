@@ -155,8 +155,7 @@ export function layoutBlockTree(root: LayoutNode): BlockLayoutResult {
 }
 
 export function layoutFlexTree(root: LayoutNode): FlexLayoutResult {
-  const errors = validateLayoutTree(root);
-  if (errors.length > 0) throw new Error(errors.join("; "));
+  // The adapter owns validation for Flex inputs, so do not walk the tree twice.
   const input = adaptFlexTree(root);
 
   root.children.forEach((child) => {
@@ -212,8 +211,7 @@ export function layoutFlexTree(root: LayoutNode): FlexLayoutResult {
 }
 
 export function layoutGridTree(root: LayoutNode): GridLayoutResult {
-  const errors = validateLayoutTree(root);
-  if (errors.length > 0) throw new Error(errors.join("; "));
+  // The adapter owns validation for Grid inputs, so do not walk the tree twice.
   const input = adaptGridTree(root);
 
   root.children.forEach((child) => {
@@ -242,11 +240,11 @@ export function layoutGridTree(root: LayoutNode): GridLayoutResult {
 
   const children = root.children.map((child): LayoutBox => {
     const item = child.style.gridItem!;
-    const trackSizes = resolution.tracks
-      .slice(item.columnStart, item.columnStart + item.columnSpan)
-      .map((track) => track.targetSize);
-    const width = trackSizes.reduce((sum, size) => sum + size, 0)
-      + Math.max(0, item.columnSpan - 1) * input.gapSize;
+    const end = item.columnStart + item.columnSpan;
+    let width = Math.max(0, item.columnSpan - 1) * input.gapSize;
+    for (let index = item.columnStart; index < end; index += 1) {
+      width += resolution.tracks[index]!.targetSize;
+    }
 
     return {
       id: child.id,

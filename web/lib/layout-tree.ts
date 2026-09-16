@@ -249,7 +249,7 @@ export function adaptGridTree(root: LayoutNode): GridTreeAdapterResult {
   return {
     innerSize: requireTreeWidth(root),
     gapSize: root.style.gridContainer.gap,
-    tracks: root.style.gridContainer.columns.map((track) => ({...track})),
+    tracks: root.style.gridContainer.columns,
     contributions,
   };
 }
