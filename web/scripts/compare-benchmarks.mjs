@@ -42,6 +42,23 @@ function parseJsonOutput(stdout) {
   return JSON.parse(stdout.slice(start, end + 1));
 }
 
+function semanticEvidence(sample) {
+  return Object.fromEntries(
+    Object.entries(sample).filter(([key]) => key !== "elapsedMs" && !key.toLowerCase().includes("persecond")),
+  );
+}
+
+function assertEquivalentEvidence(benchmark, baselineSample, optimizedSample) {
+  const baselineEvidence = JSON.stringify(semanticEvidence(baselineSample));
+  const optimizedEvidence = JSON.stringify(semanticEvidence(optimizedSample));
+  if (baselineEvidence !== optimizedEvidence) {
+    throw new Error(
+      `${benchmark} changed deterministic workload evidence between baseline and optimized revisions:\n`
+      + `baseline ${baselineEvidence}\noptimized ${optimizedEvidence}`,
+    );
+  }
+}
+
 const scratch = mkdtempSync(join(tmpdir(), "layout-lab-bench-"));
 let runNumber = 0;
 
@@ -109,6 +126,7 @@ try {
       for (const [cwd, target] of order) target.push(execute(cwd, benchmark));
     }
 
+    assertEquivalentEvidence(benchmark, baselineRuns[0].sample, optimizedRuns[0].sample);
     const baseline = aggregate(baselineRuns);
     const optimized = aggregate(optimizedRuns);
     results.push({
@@ -143,6 +161,7 @@ const report = {
     arch: process.arch,
     runsPerVersion: RUNS,
     ordering: "alternating baseline/optimized by repetition",
+    deterministicEvidenceCompared: true,
   },
   results,
 };
@@ -163,7 +182,7 @@ const markdown = [
     return `| ${benchmark.replace("-benchmark.ts", "")} | ${baseline.wallMsMedian.toFixed(2)} ms | ${optimized.wallMsMedian.toFixed(2)} ms | ${speedup} | ${(baseline.maxRssKbMedian / 1024).toFixed(1)} MiB | ${(optimized.maxRssKbMedian / 1024).toFixed(1)} MiB |`;
   }),
   "",
-  "Wall time includes Bun process startup; each benchmark's own workload timing remains in the JSON report when available. No wall-clock threshold is used as a correctness gate.",
+  "Deterministic non-timing benchmark evidence must match across revisions. Wall time includes Bun process startup; each benchmark's own workload timing remains in the JSON report when available. No wall-clock threshold is used as a correctness gate.",
   "",
 ].join("\n");
 
