@@ -88,12 +88,6 @@ class Row {
     return row;
   }
 
-  copyFrom(other: Row) {
-    this.constant = other.constant;
-    this.cells.clear();
-    other.cells.forEach((coefficient, symbol) => this.cells.set(symbol, coefficient));
-  }
-
   insertSymbol(symbol: SolverSymbol, coefficient = 1) {
     const next = (this.cells.get(symbol) ?? 0) + coefficient;
     if (nearZero(next)) this.cells.delete(symbol);
@@ -153,14 +147,15 @@ type SolverSnapshot = {
 };
 
 export class CassowarySolver {
-  private readonly constraints = new Map<LinearConstraint, ConstraintTag>();
-  private readonly rows = new Map<SolverSymbol, Row>();
-  private readonly variables = new Map<ConstraintVariable, SolverSymbol>();
-  private readonly objective = new Row();
+  private constraints = new Map<LinearConstraint, ConstraintTag>();
+  private rows = new Map<SolverSymbol, Row>();
+  private variables = new Map<ConstraintVariable, SolverSymbol>();
+  private objective = new Row();
   private artificial: Row | null = null;
   private nextSymbolId = 1;
   private pivotCountValue = 0;
   private readonly operationLog: CassowaryOperation[] = [];
+  private transaction: SolverSnapshot | null = null;
 
   get pivotCount() {
     return this.pivotCountValue;
@@ -206,6 +201,7 @@ export class CassowarySolver {
       this.constraints.set(constraint, tag);
       this.optimize(this.objective);
       this.recordOperation("add", constraint.label, pivotStart);
+      this.commitState(snapshot);
     } catch (error) {
       this.restoreState(snapshot);
       throw error;
@@ -229,7 +225,7 @@ export class CassowarySolver {
         if (leaving.type === "invalid") {
           throw new Error(`failed to find leaving row for ${constraint.label}`);
         }
-        const row = this.rows.get(leaving)!;
+        const row = this.writableRow(leaving)!;
         this.rows.delete(leaving);
         row.solveForSymbols(leaving, tag.marker);
         this.substitute(tag.marker, row);
@@ -237,6 +233,7 @@ export class CassowarySolver {
 
       this.optimize(this.objective);
       this.recordOperation("remove", constraint.label, pivotStart);
+      this.commitState(snapshot);
     } catch (error) {
       this.restoreState(snapshot);
       throw error;
@@ -250,33 +247,58 @@ export class CassowarySolver {
   }
 
   private snapshotState(): SolverSnapshot {
-    return {
-      constraints: new Map(this.constraints),
-      rows: new Map(Array.from(this.rows, ([symbol, row]) => [symbol, row.clone()])),
-      variables: new Map(this.variables),
-      objective: this.objective.clone(),
-      artificial: this.artificial?.clone() ?? null,
+    if (this.transaction) throw new Error("nested Cassowary mutation");
+
+    const snapshot: SolverSnapshot = {
+      constraints: this.constraints,
+      rows: this.rows,
+      variables: this.variables,
+      objective: this.objective,
+      artificial: this.artificial,
       nextSymbolId: this.nextSymbolId,
       pivotCount: this.pivotCountValue,
       operationLogLength: this.operationLog.length,
     };
+
+    // Keep an immutable rollback view while sharing existing tableau rows. Rows
+    // are cloned lazily by writableRow only when the mutation actually touches
+    // them, so successful incremental updates avoid cloning the entire solver.
+    this.constraints = new Map(this.constraints);
+    this.rows = new Map(this.rows);
+    this.variables = new Map(this.variables);
+    this.objective = this.objective.clone();
+    this.artificial = this.artificial?.clone() ?? null;
+    this.transaction = snapshot;
+    return snapshot;
+  }
+
+  private commitState(snapshot: SolverSnapshot) {
+    if (this.transaction !== snapshot) throw new Error("Cassowary transaction mismatch");
+    this.transaction = null;
   }
 
   private restoreState(snapshot: SolverSnapshot) {
-    this.constraints.clear();
-    snapshot.constraints.forEach((tag, constraint) => this.constraints.set(constraint, tag));
-
-    this.rows.clear();
-    snapshot.rows.forEach((row, symbol) => this.rows.set(symbol, row.clone()));
-
-    this.variables.clear();
-    snapshot.variables.forEach((symbol, variable) => this.variables.set(variable, symbol));
-
-    this.objective.copyFrom(snapshot.objective);
-    this.artificial = snapshot.artificial?.clone() ?? null;
+    this.constraints = snapshot.constraints;
+    this.rows = snapshot.rows;
+    this.variables = snapshot.variables;
+    this.objective = snapshot.objective;
+    this.artificial = snapshot.artificial;
     this.nextSymbolId = snapshot.nextSymbolId;
     this.pivotCountValue = snapshot.pivotCount;
     this.operationLog.length = snapshot.operationLogLength;
+    this.transaction = null;
+  }
+
+  private writableRow(symbol: SolverSymbol) {
+    const row = this.rows.get(symbol);
+    if (!row) return undefined;
+
+    const snapshotRow = this.transaction?.rows.get(symbol);
+    if (snapshotRow !== row) return row;
+
+    const writable = row.clone();
+    this.rows.set(symbol, writable);
+    return writable;
   }
 
   private recordOperation(kind: CassowaryOperation["kind"], constraint: string, pivotStart: number) {
@@ -388,7 +410,10 @@ export class CassowarySolver {
       }
     }
 
-    this.rows.forEach((candidate) => candidate.remove(artificialSymbol));
+    for (const [symbol, candidate] of this.rows) {
+      if (!candidate.cells.has(artificialSymbol)) continue;
+      this.writableRow(symbol)!.remove(artificialSymbol);
+    }
     this.objective.remove(artificialSymbol);
     return success;
   }
@@ -401,7 +426,10 @@ export class CassowarySolver {
   }
 
   private substitute(symbol: SolverSymbol, row: Row) {
-    this.rows.forEach((candidate) => candidate.substitute(symbol, row));
+    for (const [candidateSymbol, candidate] of this.rows) {
+      if (!candidate.cells.has(symbol)) continue;
+      this.writableRow(candidateSymbol)!.substitute(symbol, row);
+    }
     this.objective.substitute(symbol, row);
     this.artificial?.substitute(symbol, row);
   }
@@ -412,7 +440,7 @@ export class CassowarySolver {
       if (entering.type === "invalid") return;
       const leaving = this.getLeavingSymbol(entering);
       if (leaving.type === "invalid") throw new Error("objective is unbounded");
-      const row = this.rows.get(leaving)!;
+      const row = this.writableRow(leaving)!;
       this.rows.delete(leaving);
       row.solveForSymbols(leaving, entering);
       this.substitute(entering, row);

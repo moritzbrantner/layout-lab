@@ -88,6 +88,38 @@ describe("CassowarySolver", () => {
     )).toThrow("unsatisfiable required constraint");
   });
 
+  test("restores exact observable state after a failed required insertion", () => {
+    const solver = new CassowarySolver();
+    const x = new ConstraintVariable("x");
+    const y = new ConstraintVariable("y");
+    const lower = new LinearConstraint("x >= 10", expression(-10, [x, 1]), ">=");
+    const offset = new LinearConstraint("y = x + 5", expression(-5, [y, 1], [x, -1]), "==");
+    const impossibleUpper = new LinearConstraint("y <= 12", expression(-12, [y, 1]), "<=");
+
+    solver.addConstraint(lower);
+    solver.addConstraint(offset);
+    solver.updateVariables();
+
+    const before = {
+      constraints: solver.constraintCount,
+      rows: solver.rowCount,
+      pivots: solver.pivotCount,
+      operations: solver.operations.map((operation) => ({...operation})),
+      x: x.value,
+      y: y.value,
+    };
+
+    expect(() => solver.addConstraint(impossibleUpper)).toThrow("unsatisfiable required constraint");
+    solver.updateVariables();
+
+    expect(solver.constraintCount).toBe(before.constraints);
+    expect(solver.rowCount).toBe(before.rows);
+    expect(solver.pivotCount).toBe(before.pivots);
+    expect(solver.operations).toEqual(before.operations);
+    approximately(x.value, before.x);
+    approximately(y.value, before.y);
+  });
+
   test("remains usable after a failed required inequality insertion", () => {
     const solver = new CassowarySolver();
     const x = new ConstraintVariable("x");
