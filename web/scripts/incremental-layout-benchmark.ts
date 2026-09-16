@@ -40,6 +40,19 @@ function signature(tree: LayoutNode) {
   return JSON.stringify(layoutBlockTree(tree).boxes.map((box) => ({id: box.id, ...box.rect})));
 }
 
+function geometryChecksum(boxes: ReturnType<typeof layoutBlockTree>["boxes"]) {
+  let checksum = 0;
+  boxes.forEach((box, index) => {
+    checksum += (index + 1) * (
+      box.rect.x * 3
+      + box.rect.y * 5
+      + box.rect.width * 7
+      + box.rect.height * 11
+    );
+  });
+  return `${boxes.length}:${checksum.toFixed(4)}`;
+}
+
 let tree = buildTree();
 let cache = createIncrementalLayoutCache(tree);
 let visitedNodes = 0;
@@ -67,6 +80,7 @@ for (let mutationIndex = 0; mutationIndex < MUTATIONS; mutationIndex += 1) {
 }
 
 const elapsedMs = performance.now() - started;
+const resultSignature = geometryChecksum(cache.boxes);
 const incrementalSignature = JSON.stringify(cache.boxes.map((box) => ({id: box.id, ...box.rect})));
 if (incrementalSignature !== signature(tree)) {
   throw new Error("incremental benchmark diverged from clean block layout");
@@ -78,6 +92,7 @@ console.log(JSON.stringify({
   mutations: MUTATIONS,
   visitedNodes,
   recomputedNodes,
+  resultSignature,
   elapsedMs: Number(elapsedMs.toFixed(2)),
   mutationsPerSecond: Math.round(MUTATIONS / (elapsedMs / 1_000)),
 }, null, 2));
