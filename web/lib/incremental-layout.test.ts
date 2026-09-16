@@ -218,6 +218,21 @@ describe("incremental layout execution", () => {
     expect(second.cache.root.rect.height).toBe(100);
   });
 
+  test("fails closed for an invalid style on a structurally shared mutation path", () => {
+    const before = buildBlockLayoutTree();
+    const cache = createIncrementalLayoutCache(before);
+    const next = updateNode(before, "content", (node) => ({
+      ...node,
+      style: {...node.style, marginBlockBefore: -1},
+    }));
+
+    expect(() => recomputeIncrementalLayout(cache, next, {
+      kind: "style",
+      nodeId: "content",
+      field: "marginBlockBefore",
+    })).toThrow("marginBlockBefore must be finite and non-negative");
+  });
+
   test("fails closed when a style mutation is paired with a structural change", () => {
     const before = buildFlexEngineTree();
     const cache = createIncrementalLayoutCache(before);
