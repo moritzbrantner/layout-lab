@@ -20,6 +20,10 @@ const benchmarks = [
   "line-breaking-benchmark.ts",
   "layout-analysis-benchmark.ts",
   "layout-engine-benchmark.ts",
+  "tidy-tree-benchmark.ts",
+  "tidy-tree-deep-benchmark.ts",
+  "grid-contribution-benchmark.ts",
+  "block-layout-benchmark.ts",
 ];
 
 function median(values) {
@@ -92,8 +96,6 @@ const results = [];
 
 try {
   for (const benchmark of benchmarks) {
-    // Prime filesystem/code caches once for each version. Measurements still use
-    // fresh Bun processes, so per-process JIT behavior remains representative.
     execute(baselineDir, benchmark);
     execute(currentDir, benchmark);
 
