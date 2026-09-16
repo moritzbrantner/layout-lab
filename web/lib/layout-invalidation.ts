@@ -63,6 +63,13 @@ export type LayoutInvalidationPlan = {
   requiresGraphRebuild: boolean;
 };
 
+type InvalidationTraversalIndex = {
+  phaseIds: ReadonlySet<string>;
+  outgoingByPhaseId: ReadonlyMap<string, readonly string[]>;
+};
+
+const traversalIndexes = new WeakMap<LayoutInvalidationGraph, InvalidationTraversalIndex>();
+
 export function invalidationPhaseId(nodeId: string, phase: InvalidationPhase) {
   return `${nodeId}:${phase}`;
 }
@@ -71,6 +78,24 @@ function addUnique<T>(values: T[], seen: Set<T>, value: T) {
   if (seen.has(value)) return;
   seen.add(value);
   values.push(value);
+}
+
+function traversalIndex(graph: LayoutInvalidationGraph): InvalidationTraversalIndex {
+  const cached = traversalIndexes.get(graph);
+  if (cached) return cached;
+
+  const outgoingByPhaseId = new Map<string, string[]>();
+  graph.edges.forEach((edge) => {
+    const targets = outgoingByPhaseId.get(edge.from);
+    if (targets) targets.push(edge.to);
+    else outgoingByPhaseId.set(edge.from, [edge.to]);
+  });
+  const index = {
+    phaseIds: new Set(graph.nodes.map((node) => node.id)),
+    outgoingByPhaseId,
+  };
+  traversalIndexes.set(graph, index);
+  return index;
 }
 
 export function buildLayoutInvalidationGraph(root: LayoutNode): LayoutInvalidationGraph {
@@ -313,23 +338,17 @@ function childMutationSeeds(graph: LayoutInvalidationGraph, parentId: string) {
 }
 
 function downstream(graph: LayoutInvalidationGraph, seedIds: readonly string[]) {
-  const outgoing = new Map<string, string[]>();
-  graph.edges.forEach((edge) => {
-    const targets = outgoing.get(edge.from) ?? [];
-    targets.push(edge.to);
-    outgoing.set(edge.from, targets);
-  });
-
+  const {phaseIds, outgoingByPhaseId} = traversalIndex(graph);
   const dirty: string[] = [];
   const seen = new Set<string>();
-  const nodeIds = new Set(graph.nodes.map((node) => node.id));
   const queue = [...seedIds];
-  while (queue.length > 0) {
-    const current = queue.shift()!;
+
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    const current = queue[cursor]!;
     if (seen.has(current)) continue;
-    if (!nodeIds.has(current)) throw new Error(`unknown invalidation phase: ${current}`);
+    if (!phaseIds.has(current)) throw new Error(`unknown invalidation phase: ${current}`);
     addUnique(dirty, seen, current);
-    (outgoing.get(current) ?? []).forEach((target) => {
+    (outgoingByPhaseId.get(current) ?? []).forEach((target) => {
       if (!seen.has(target)) queue.push(target);
     });
   }
