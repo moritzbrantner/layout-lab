@@ -131,7 +131,7 @@ try {
 const report = {
   schema: "layout-lab-benchmark-comparison/v1",
   baselineCommit: process.env.BASELINE_COMMIT ?? "59f968c9fe843ae1cf718e2ddd865abaa6212870",
-  optimizedCommit: process.env.GITHUB_SHA ?? "working-tree",
+  optimizedCommit: process.env.OPTIMIZED_COMMIT ?? process.env.GITHUB_SHA ?? "working-tree",
   runner: {
     node: process.version,
     platform: process.platform,
