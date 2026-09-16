@@ -20,6 +20,9 @@ const benchmarks = [
   "line-breaking-benchmark.ts",
   "layout-analysis-benchmark.ts",
   "layout-engine-benchmark.ts",
+  "tidy-tree-benchmark.ts",
+  "grid-contribution-benchmark.ts",
+  "block-layout-benchmark.ts",
 ];
 
 function median(values) {
