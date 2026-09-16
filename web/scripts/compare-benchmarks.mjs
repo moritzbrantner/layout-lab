@@ -15,6 +15,8 @@ const benchmarks = [
   "incremental-layout-benchmark.ts",
   "sugiyama-benchmark.ts",
   "packing-benchmark.ts",
+  "packing-shortest-benchmark.ts",
+  "packing-first-fit-benchmark.ts",
   "line-breaking-benchmark.ts",
   "layout-analysis-benchmark.ts",
   "layout-engine-benchmark.ts",
