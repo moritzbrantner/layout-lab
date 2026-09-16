@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "benchmark:cassowary": "bun run scripts/cassowary-benchmark.ts",
     "benchmark:incremental-layout": "bun run scripts/incremental-layout-benchmark.ts",
+    "benchmark:sugiyama": "bun run scripts/sugiyama-benchmark.ts",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build"
   },
