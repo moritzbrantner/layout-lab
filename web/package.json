@@ -10,6 +10,7 @@
     "benchmark:cassowary": "bun run scripts/cassowary-benchmark.ts",
     "benchmark:incremental-layout": "bun run scripts/incremental-layout-benchmark.ts",
     "benchmark:sugiyama": "bun run scripts/sugiyama-benchmark.ts",
+    "benchmark:packing": "bun run scripts/packing-benchmark.ts",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build"
   },
