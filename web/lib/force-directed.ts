@@ -105,13 +105,20 @@ function validateInput(input: ForceDirectedInput) {
   });
 }
 
-function distance(left: ForcePoint, right: ForcePoint) {
-  return Math.hypot(left.x - right.x, left.y - right.y);
-}
-
-function meanEdgeLength(points: ReadonlyMap<string, ForcePoint>, edges: readonly ForceGraphEdge[]) {
-  if (edges.length === 0) return 0;
-  return edges.reduce((sum, edge) => sum + distance(points.get(edge.from)!, points.get(edge.to)!), 0) / edges.length;
+function meanEdgeLength(
+  pointX: Float64Array,
+  pointY: Float64Array,
+  edgeFrom: Uint32Array,
+  edgeTo: Uint32Array,
+) {
+  if (edgeFrom.length === 0) return 0;
+  let sum = 0;
+  for (let edgeIndex = 0; edgeIndex < edgeFrom.length; edgeIndex += 1) {
+    const from = edgeFrom[edgeIndex]!;
+    const to = edgeTo[edgeIndex]!;
+    sum += Math.hypot(pointX[from]! - pointX[to]!, pointY[from]! - pointY[to]!);
+  }
+  return sum / edgeFrom.length;
 }
 
 export function layoutForceDirected(input: ForceDirectedInput): ForceDirectedResult {
@@ -120,31 +127,49 @@ export function layoutForceDirected(input: ForceDirectedInput): ForceDirectedRes
   const margin = input.nodeSize / 2;
   const usableWidth = input.width - input.nodeSize;
   const usableHeight = input.height - input.nodeSize;
-  const points = new Map<string, ForcePoint>();
-  input.nodes.forEach((node) => {
-    points.set(node.id, {
-      id: node.id,
-      x: margin + random() * usableWidth,
-      y: margin + random() * usableHeight,
-    });
+  const nodeCount = input.nodes.length;
+
+  const nodeIndex = new Map<string, number>();
+  input.nodes.forEach((node, index) => nodeIndex.set(node.id, index));
+  const edgeFrom = new Uint32Array(input.edges.length);
+  const edgeTo = new Uint32Array(input.edges.length);
+  input.edges.forEach((edge, index) => {
+    edgeFrom[index] = nodeIndex.get(edge.from)!;
+    edgeTo[index] = nodeIndex.get(edge.to)!;
   });
-  const initialPositions = input.nodes.map((node) => ({...points.get(node.id)!}));
+
+  // Keep the simulation state in node-order numeric buffers. The previous Map
+  // representation performed keyed lookups for every O(n²) repulsion pair and
+  // allocated a fresh Map plus displacement objects on every iteration.
+  const pointX = new Float64Array(nodeCount);
+  const pointY = new Float64Array(nodeCount);
+  for (let index = 0; index < nodeCount; index += 1) {
+    pointX[index] = margin + random() * usableWidth;
+    pointY[index] = margin + random() * usableHeight;
+  }
+  const initialPositions = input.nodes.map((node, index) => ({
+    id: node.id,
+    x: pointX[index]!,
+    y: pointY[index]!,
+  }));
+
   const area = usableWidth * usableHeight;
-  const k = Math.sqrt(area / input.nodes.length);
-  const pairCount = input.nodes.length * (input.nodes.length - 1) / 2;
+  const k = Math.sqrt(area / nodeCount);
+  const pairCount = nodeCount * (nodeCount - 1) / 2;
   let repulsionPairs = 0;
   let attractionEvaluations = 0;
   const samples: ForceConvergenceSample[] = [];
+  const displacementX = new Float64Array(nodeCount);
+  const displacementY = new Float64Array(nodeCount);
 
   for (let iteration = 1; iteration <= input.iterations; iteration += 1) {
-    const displacement = new Map(input.nodes.map((node) => [node.id, {x: 0, y: 0}]));
+    displacementX.fill(0);
+    displacementY.fill(0);
 
-    for (let first = 0; first < input.nodes.length; first += 1) {
-      for (let second = first + 1; second < input.nodes.length; second += 1) {
-        const left = points.get(input.nodes[first]!.id)!;
-        const right = points.get(input.nodes[second]!.id)!;
-        let dx = left.x - right.x;
-        let dy = left.y - right.y;
+    for (let first = 0; first < nodeCount; first += 1) {
+      for (let second = first + 1; second < nodeCount; second += 1) {
+        let dx = pointX[first]! - pointX[second]!;
+        let dy = pointY[first]! - pointY[second]!;
         let length = Math.hypot(dx, dy);
         if (length < 1e-9) {
           const angle = random() * Math.PI * 2;
@@ -155,53 +180,49 @@ export function layoutForceDirected(input: ForceDirectedInput): ForceDirectedRes
         const force = (k * k) / length;
         const fx = dx / length * force;
         const fy = dy / length * force;
-        const leftDisp = displacement.get(left.id)!;
-        const rightDisp = displacement.get(right.id)!;
-        leftDisp.x += fx;
-        leftDisp.y += fy;
-        rightDisp.x -= fx;
-        rightDisp.y -= fy;
+        displacementX[first] += fx;
+        displacementY[first] += fy;
+        displacementX[second] -= fx;
+        displacementY[second] -= fy;
         repulsionPairs += 1;
       }
     }
 
-    input.edges.forEach((edge) => {
-      const left = points.get(edge.from)!;
-      const right = points.get(edge.to)!;
-      const dx = left.x - right.x;
-      const dy = left.y - right.y;
+    for (let edgeIndex = 0; edgeIndex < edgeFrom.length; edgeIndex += 1) {
+      const left = edgeFrom[edgeIndex]!;
+      const right = edgeTo[edgeIndex]!;
+      const dx = pointX[left]! - pointX[right]!;
+      const dy = pointY[left]! - pointY[right]!;
       const length = Math.max(1e-9, Math.hypot(dx, dy));
       const force = (length * length) / k;
       const fx = dx / length * force;
       const fy = dy / length * force;
-      const leftDisp = displacement.get(left.id)!;
-      const rightDisp = displacement.get(right.id)!;
-      leftDisp.x -= fx;
-      leftDisp.y -= fy;
-      rightDisp.x += fx;
-      rightDisp.y += fy;
+      displacementX[left] -= fx;
+      displacementY[left] -= fy;
+      displacementX[right] += fx;
+      displacementY[right] += fy;
       attractionEvaluations += 1;
-    });
+    }
 
     const progress = iteration / input.iterations;
     const temperature = input.initialTemperature * Math.pow(1 - progress, 1.35);
     let maxDisplacement = 0;
     let totalDisplacement = 0;
 
-    input.nodes.forEach((node) => {
-      const point = points.get(node.id)!;
-      const disp = displacement.get(node.id)!;
-      const magnitude = Math.hypot(disp.x, disp.y);
+    for (let index = 0; index < nodeCount; index += 1) {
+      const dx = displacementX[index]!;
+      const dy = displacementY[index]!;
+      const magnitude = Math.hypot(dx, dy);
       const move = Math.min(magnitude, temperature);
       if (magnitude > 1e-9 && move > 0) {
-        point.x += disp.x / magnitude * move;
-        point.y += disp.y / magnitude * move;
+        pointX[index] += dx / magnitude * move;
+        pointY[index] += dy / magnitude * move;
       }
-      point.x = Math.max(margin, Math.min(input.width - margin, point.x));
-      point.y = Math.max(margin, Math.min(input.height - margin, point.y));
+      pointX[index] = Math.max(margin, Math.min(input.width - margin, pointX[index]!));
+      pointY[index] = Math.max(margin, Math.min(input.height - margin, pointY[index]!));
       maxDisplacement = Math.max(maxDisplacement, move);
       totalDisplacement += move;
-    });
+    }
 
     if (iteration === 1 || iteration % input.sampleEvery === 0 || iteration === input.iterations) {
       samples.push({
@@ -209,27 +230,23 @@ export function layoutForceDirected(input: ForceDirectedInput): ForceDirectedRes
         temperature: round(temperature),
         maxDisplacement: round(maxDisplacement),
         totalDisplacement: round(totalDisplacement),
-        meanEdgeLength: round(meanEdgeLength(points, input.edges)),
+        meanEdgeLength: round(meanEdgeLength(pointX, pointY, edgeFrom, edgeTo)),
       });
     }
   }
 
-  const finalPositions = input.nodes.map((node) => ({
+  const finalPositions = input.nodes.map((node, index) => ({
     id: node.id,
-    x: round(points.get(node.id)!.x),
-    y: round(points.get(node.id)!.y),
+    x: round(pointX[index]!),
+    y: round(pointY[index]!),
   }));
-  const finalById = new Map(finalPositions.map((point) => [point.id, point]));
-  const geometry = input.nodes.map((node) => {
-    const point = finalById.get(node.id)!;
-    return {
-      id: node.id,
-      x: round(point.x - input.nodeSize / 2),
-      y: round(point.y - input.nodeSize / 2),
-      width: input.nodeSize,
-      height: input.nodeSize,
-    };
-  });
+  const geometry = finalPositions.map((point) => ({
+    id: point.id,
+    x: round(point.x - input.nodeSize / 2),
+    y: round(point.y - input.nodeSize / 2),
+    width: input.nodeSize,
+    height: input.nodeSize,
+  }));
 
   if (repulsionPairs !== pairCount * input.iterations) {
     throw new Error("force-directed repulsion work accounting drifted from the deterministic pair contract");
