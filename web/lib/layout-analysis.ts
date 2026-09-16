@@ -324,17 +324,25 @@ export function resolveMinMaxFractionTracks({
       const start = Math.max(0, Math.min(normalized.length, Math.floor(contribution.start)));
       const span = Math.max(1, Math.min(normalized.length - start, Math.floor(contribution.span)));
       if (span <= 0 || start >= normalized.length) return;
-      const indices = Array.from({length: span}, (_, offset) => start + offset);
       const internalGap = Math.max(0, span - 1) * safeGap;
       const requestedSize = Math.max(0, contribution.minSize);
       const requiredTrackSize = Math.max(0, requestedSize - internalGap);
-      const before = indices.map((index) => baseSizes[index]!);
-      const current = before.reduce((sum, size) => sum + size, 0);
+      const before = new Array<number>(span);
+      let current = 0;
+      for (let offset = 0; offset < span; offset += 1) {
+        const size = baseSizes[start + offset]!;
+        before[offset] = size;
+        current += size;
+      }
       const deficit = Math.max(0, requiredTrackSize - current);
-      const share = indices.length > 0 ? deficit / indices.length : 0;
-      indices.forEach((index) => {
-        baseSizes[index] = baseSizes[index]! + share;
-      });
+      const share = deficit / span;
+      const after = new Array<number>(span);
+      for (let offset = 0; offset < span; offset += 1) {
+        const index = start + offset;
+        const next = baseSizes[index]! + share;
+        baseSizes[index] = next;
+        after[offset] = next;
+      }
       contributionSteps.push({
         label: contribution.label,
         start,
@@ -344,7 +352,7 @@ export function resolveMinMaxFractionTracks({
         requiredTrackSize,
         before,
         deficit,
-        after: indices.map((index) => baseSizes[index]!),
+        after,
       });
     });
 
