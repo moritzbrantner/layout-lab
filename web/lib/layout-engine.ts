@@ -91,6 +91,7 @@ export function layoutBlockTree(root: LayoutNode): BlockLayoutResult {
   }
 
   const marginCollapses: MarginCollapseEvidence[] = [];
+  const boxes: LayoutBox[] = [];
 
   const visit = (
     node: LayoutNode,
@@ -100,6 +101,16 @@ export function layoutBlockTree(root: LayoutNode): BlockLayoutResult {
   ): LayoutBox => {
     const width = resolveLayoutWidth(node, containingWidth);
     const children: LayoutBox[] = [];
+    const box: LayoutBox = {
+      id: node.id,
+      label: node.label,
+      rect: {x: originX, y: originY, width, height: 0},
+      children,
+    };
+    // Register boxes in preorder while they are created. The derived block size
+    // is filled in after child layout, avoiding a second full-tree flatten pass.
+    boxes.push(box);
+
     let cursor = 0;
     let previousAfter = 0;
     let previousChildId: string | null = null;
@@ -133,18 +144,11 @@ export function layoutBlockTree(root: LayoutNode): BlockLayoutResult {
     });
 
     const contentHeight = node.children.length > 0 ? cursor + previousAfter : 0;
-    const height = resolveLayoutHeight(node, contentHeight);
-
-    return {
-      id: node.id,
-      label: node.label,
-      rect: {x: originX, y: originY, width, height},
-      children,
-    };
+    box.rect.height = resolveLayoutHeight(node, contentHeight);
+    return box;
   };
 
   const rootBox = visit(root, root.style.width, 0, 0);
-  const boxes = flattenLayoutBoxes(rootBox);
 
   return {
     root: rootBox,
