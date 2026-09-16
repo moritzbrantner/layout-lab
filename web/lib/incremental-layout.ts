@@ -17,7 +17,13 @@ import {
   type LayoutInvalidationPlan,
   type LayoutMutation,
 } from "./layout-invalidation";
-import {adaptFlexTree, adaptGridTree, validateLayoutTree, type LayoutNode} from "./layout-tree";
+import {
+  adaptFlexTree,
+  adaptGridTree,
+  validateLayoutNodeShallow,
+  validateLayoutTree,
+  type LayoutNode,
+} from "./layout-tree";
 
 export type IncrementalLayoutContext = "block" | "flex" | "grid";
 
@@ -61,15 +67,30 @@ function contextForTree(root: LayoutNode): IncrementalLayoutContext {
   return "grid";
 }
 
-function sameTreeShape(left: LayoutNode, right: LayoutNode): boolean {
+function sameTreeShape(left: LayoutNode, right: LayoutNode, seen = new WeakSet<object>()): boolean {
   if (left === right) return true;
+  if (seen.has(right)) return false;
+  seen.add(right);
   if (left.id !== right.id || left.style.display !== right.style.display || left.children.length !== right.children.length) {
     return false;
   }
   for (let index = 0; index < left.children.length; index += 1) {
-    if (!sameTreeShape(left.children[index]!, right.children[index]!)) return false;
+    if (!sameTreeShape(left.children[index]!, right.children[index]!, seen)) return false;
   }
   return true;
+}
+
+function validateChangedLayoutNodes(previous: LayoutNode, next: LayoutNode) {
+  const errors: string[] = [];
+  const visit = (left: LayoutNode, right: LayoutNode) => {
+    if (left === right) return;
+    errors.push(...validateLayoutNodeShallow(right));
+    for (let index = 0; index < left.children.length; index += 1) {
+      visit(left.children[index]!, right.children[index]!);
+    }
+  };
+  visit(previous, next);
+  return errors;
 }
 
 function indexBoxes(boxes: readonly LayoutBox[]) {
@@ -175,7 +196,10 @@ export function createIncrementalLayoutCache(tree: LayoutNode): IncrementalLayou
 }
 
 function assertIncrementalBoundary(cache: IncrementalLayoutCache, nextTree: LayoutNode, mutation: LayoutMutation) {
-  const errors = validateLayoutTree(nextTree);
+  const shapeMatches = sameTreeShape(cache.tree, nextTree);
+  const errors = shapeMatches
+    ? validateChangedLayoutNodes(cache.tree, nextTree)
+    : validateLayoutTree(nextTree);
   if (errors.length > 0) throw new Error(errors.join("; "));
   if (mutation.kind === "children") {
     throw new Error("structural mutations require rebuilding the invalidation graph before incremental execution");
@@ -183,7 +207,7 @@ function assertIncrementalBoundary(cache: IncrementalLayoutCache, nextTree: Layo
   if (contextForTree(nextTree) !== cache.context) {
     throw new Error("incremental layout cannot change the root formatting context");
   }
-  if (!sameTreeShape(nextTree, cache.tree)) {
+  if (!shapeMatches) {
     throw new Error("incremental style execution requires an unchanged layout-tree shape");
   }
 }
