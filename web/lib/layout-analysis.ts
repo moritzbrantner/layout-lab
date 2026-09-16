@@ -111,22 +111,23 @@ export function resolveFlexLine({
     });
   } else {
     for (let iteration = 1; iteration <= normalized.length + 1; iteration += 1) {
-      const active = normalized
-        .map((_, index) => index)
-        .filter((index) => !frozen[index]);
+      const active: number[] = [];
+      let frozenTotal = 0;
+      let activeBasis = 0;
+      let iterationFactorSum = 0;
+      for (let index = 0; index < normalized.length; index += 1) {
+        if (frozen[index]) {
+          frozenTotal += targetSizes[index]!;
+          continue;
+        }
+        const item = normalized[index]!;
+        active.push(index);
+        activeBasis += item.basis;
+        iterationFactorSum += mode === "grow" ? item.grow : item.shrink * item.basis;
+      }
       if (active.length === 0) break;
 
-      const frozenTotal = normalized.reduce(
-        (sum, _, index) => sum + (frozen[index] ? targetSizes[index]! : 0),
-        0,
-      );
-      const activeBasis = active.reduce((sum, index) => sum + normalized[index]!.basis, 0);
       const iterationFreeSpace = safeInnerSize - totalGap - frozenTotal - activeBasis;
-      const iterationFactorSum = active.reduce((sum, index) => {
-        const item = normalized[index]!;
-        return sum + (mode === "grow" ? item.grow : item.shrink * item.basis);
-      }, 0);
-
       if (iterationFactorSum <= 0) break;
 
       const newlyFrozen: string[] = [];
@@ -186,6 +187,10 @@ export function resolveFlexLine({
     };
   });
   const finalFreeSpace = safeInnerSize - totalGap - resolvedItems.reduce((sum, item) => sum + item.targetSize, 0);
+  let frozenCount = 0;
+  frozen.forEach((value) => {
+    if (value) frozenCount += 1;
+  });
 
   return {
     innerSize: safeInnerSize,
@@ -196,7 +201,7 @@ export function resolveFlexLine({
     finalFreeSpace,
     mode,
     factorSum,
-    frozenCount: resolvedItems.filter((item) => item.frozen).length,
+    frozenCount,
     iterations,
     items: resolvedItems,
   };
@@ -349,17 +354,26 @@ export function resolveMinMaxFractionTracks({
   let flexFraction = 0;
 
   for (let iteration = 0; iteration <= normalized.length; iteration += 1) {
-    const active = normalized
-      .map((_, index) => index)
-      .filter((index) => !frozen[index] && normalized[index]!.fr > 0);
+    const active: number[] = [];
+    let fixedSize = 0;
+    let factorSum = 0;
+    for (let index = 0; index < normalized.length; index += 1) {
+      if (frozen[index]) {
+        fixedSize += targetSizes[index]!;
+        continue;
+      }
+      const track = normalized[index]!;
+      if (track.fr <= 0) continue;
+      active.push(index);
+      factorSum += track.fr;
+    }
     if (active.length === 0) break;
-    const fixedSize = normalized.reduce(
-      (sum, _, index) => sum + (frozen[index] ? targetSizes[index]! : 0),
-      0,
-    );
-    const factorSum = active.reduce((sum, index) => sum + normalized[index]!.fr, 0);
+
     flexFraction = factorSum > 0 ? Math.max(0, (availableForTracks - fixedSize) / factorSum) : 0;
-    const undersized = active.filter((index) => flexFraction * normalized[index]!.fr < baseSizes[index]!);
+    const undersized: number[] = [];
+    active.forEach((index) => {
+      if (flexFraction * normalized[index]!.fr < baseSizes[index]!) undersized.push(index);
+    });
     flexIterations.push({
       iteration: iteration + 1,
       activeTracks: active.map((index) => normalized[index]!.label),

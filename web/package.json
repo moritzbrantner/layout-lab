@@ -12,6 +12,7 @@
     "benchmark:sugiyama": "bun run scripts/sugiyama-benchmark.ts",
     "benchmark:packing": "bun run scripts/packing-benchmark.ts",
     "benchmark:line-breaking": "bun run scripts/line-breaking-benchmark.ts",
+    "benchmark:layout-analysis": "bun run scripts/layout-analysis-benchmark.ts",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build"
   },
