@@ -61,6 +61,30 @@ describe("Reingold-Tilford-style tidy tree", () => {
     }
   });
 
+  test("keeps deep unary chains centered with exact parent and depth metadata", () => {
+    const leaf: TidyTreeNode = {id: "d", children: []};
+    const chain: TidyTreeNode = {
+      id: "a",
+      children: [{
+        id: "b",
+        children: [{id: "c", children: [leaf]}],
+      }],
+    };
+    const fixture = buildTidyTreeFixture();
+    const result = layoutTidyTree({...fixture, root: chain});
+
+    expect(result.placements.map(({id, parentId, depth, centerX}) => ({id, parentId, depth, centerX}))).toEqual([
+      {id: "a", parentId: null, depth: 0, centerX: 24},
+      {id: "b", parentId: "a", depth: 1, centerX: 24},
+      {id: "c", parentId: "b", depth: 2, centerX: 24},
+      {id: "d", parentId: "c", depth: 3, centerX: 24},
+    ]);
+    expect(result.shifts).toEqual([]);
+    expect(result.contourComparisons).toBe(0);
+    expect(result.maxDepth).toBe(3);
+    expect(result.drawingWidth).toBe(48);
+  });
+
   test("fails closed for non-binary nodes and repeated node objects", () => {
     const fixture = buildTidyTreeFixture();
     expect(() => layoutTidyTree({
