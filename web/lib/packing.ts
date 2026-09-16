@@ -137,54 +137,50 @@ export function packShortestColumn(input: PackingInput): PackingResult {
   return finish(input, placements, candidateEvaluations);
 }
 
-function overlapsWithGap(
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  placed: PackingPlacement,
-  gap: number,
-) {
-  const horizontal = x < placed.x + placed.width + gap - EPSILON
-    && x + width + gap > placed.x + EPSILON;
-  const vertical = y < placed.y + placed.height + gap - EPSILON
-    && y + height + gap > placed.y + EPSILON;
-  return horizontal && vertical;
-}
-
-function insertCandidateY(candidateYs: number[], value: number) {
-  let low = 0;
-  let high = candidateYs.length;
-  while (low < high) {
-    const middle = Math.floor((low + high) / 2);
-    if (candidateYs[middle]! < value) low = middle + 1;
-    else high = middle;
-  }
-  if (candidateYs[low] === value) return;
-  candidateYs.splice(low, 0, value);
-}
-
 export function packFirstFit(input: PackingInput): PackingResult {
   validateInput(input);
   const {xForColumn, widthForSpan} = metrics(input);
   const placements: PackingPlacement[] = [];
-  const candidateYs = [0];
+  const placementsByColumn: PackingPlacement[][] = Array.from({length: input.columns}, () => []);
   let candidateEvaluations = 0;
 
   input.items.forEach((item) => {
+    // Native Set/sort is faster for this bounded search frontier than maintaining
+    // a sorted JavaScript array incrementally, while preserving top-to-bottom order.
+    const candidateYs = Array.from(new Set([
+      0,
+      ...placements.map((placement) => round(placement.y + placement.height + input.gap)),
+    ])).sort((left, right) => left - right);
+
     let accepted: PackingPlacement | null = null;
     const width = widthForSpan(item.columnSpan);
 
     for (const y of candidateYs) {
+      const candidateBottomWithGap = y + item.height + input.gap;
       for (let start = 0; start <= input.columns - item.columnSpan; start += 1) {
         candidateEvaluations += 1;
-        const x = xForColumn(start);
-        if (placements.some((placed) => overlapsWithGap(x, y, width, item.height, placed, input.gap))) continue;
+        let blocked = false;
+
+        // Packing placements are column-aligned, so horizontal overlap is exactly
+        // equivalent to sharing at least one column. Inspect only those placements
+        // instead of rescanning every previously accepted item.
+        for (let column = start; column < start + item.columnSpan && !blocked; column += 1) {
+          for (const placed of placementsByColumn[column]!) {
+            const vertical = y < placed.y + placed.height + input.gap - EPSILON
+              && candidateBottomWithGap > placed.y + EPSILON;
+            if (vertical) {
+              blocked = true;
+              break;
+            }
+          }
+        }
+        if (blocked) continue;
+
         accepted = {
           id: item.id,
           columnStart: start,
           columnSpan: item.columnSpan,
-          x,
+          x: xForColumn(start),
           y,
           width,
           height: item.height,
@@ -196,7 +192,9 @@ export function packFirstFit(input: PackingInput): PackingResult {
 
     if (!accepted) throw new Error(`${item.id}: first-fit search found no placement`);
     placements.push(accepted);
-    insertCandidateY(candidateYs, round(accepted.y + accepted.height + input.gap));
+    for (let column = accepted.columnStart; column < accepted.columnStart + accepted.columnSpan; column += 1) {
+      placementsByColumn[column]!.push(accepted);
+    }
   });
 
   return finish(input, placements, candidateEvaluations);
