@@ -180,6 +180,56 @@ describe("incremental layout execution", () => {
     expect(incremental.cache.gridResolution).toBe(cache.gridResolution);
   });
 
+  test("refreshes cached dependencies after auto block sizing becomes explicit", () => {
+    const before: LayoutNode = {
+      id: "root",
+      label: "Root",
+      style: {display: "block", width: 320},
+      children: [
+        {
+          id: "child",
+          label: "Child",
+          style: {display: "block", height: 20},
+          children: [],
+        },
+      ],
+    };
+    const cache = createIncrementalLayoutCache(before);
+    const fixedRoot = {...before, style: {...before.style, height: 100}};
+    const first = recomputeIncrementalLayout(cache, fixedRoot, {
+      kind: "style",
+      nodeId: "root",
+      field: "height",
+    });
+    const resizedChild = updateNode(fixedRoot, "child", (node) => ({
+      ...node,
+      style: {...node.style, height: 40},
+    }));
+
+    const second = recomputeIncrementalLayout(first.cache, resizedChild, {
+      kind: "style",
+      nodeId: "child",
+      field: "height",
+    });
+    const clean = layoutBlockTree(resizedChild);
+
+    expect(geometry(second.cache.boxes)).toEqual(geometry(clean.boxes));
+    expect(second.plan.dirtyPhaseIds).not.toContain("root:block-size");
+    expect(second.cache.root.rect.height).toBe(100);
+  });
+
+  test("fails closed when a style mutation is paired with a structural change", () => {
+    const before = buildFlexEngineTree();
+    const cache = createIncrementalLayoutCache(before);
+    const next = {...before, children: [...before.children].reverse()};
+
+    expect(() => recomputeIncrementalLayout(cache, next, {
+      kind: "style",
+      nodeId: "item-b",
+      field: "height",
+    })).toThrow("unchanged layout-tree shape");
+  });
+
   test("fails closed for structural changes until the graph is rebuilt", () => {
     const before = buildFlexEngineTree();
     const cache = createIncrementalLayoutCache(before);
