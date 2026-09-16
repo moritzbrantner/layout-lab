@@ -89,6 +89,14 @@ function finish(input: PackingInput, placements: readonly PackingPlacement[], ca
   };
 }
 
+function maximumBottom(bottoms: readonly number[], start: number, span: number) {
+  let maximum = 0;
+  for (let column = start; column < start + span; column += 1) {
+    maximum = Math.max(maximum, bottoms[column]!);
+  }
+  return maximum;
+}
+
 export function packShortestColumn(input: PackingInput): PackingResult {
   validateInput(input);
   const {xForColumn, widthForSpan} = metrics(input);
@@ -102,7 +110,7 @@ export function packShortestColumn(input: PackingInput): PackingResult {
 
     for (let start = 0; start <= input.columns - item.columnSpan; start += 1) {
       candidateEvaluations += 1;
-      const bottom = Math.max(...bottoms.slice(start, start + item.columnSpan));
+      const bottom = maximumBottom(bottoms, start, item.columnSpan);
       const y = bottom > 0 ? bottom + input.gap : 0;
       if (y < bestY - EPSILON || (Math.abs(y - bestY) <= EPSILON && start < bestColumn)) {
         bestY = y;
@@ -129,49 +137,66 @@ export function packShortestColumn(input: PackingInput): PackingResult {
   return finish(input, placements, candidateEvaluations);
 }
 
-function overlapsWithGap(candidate: PackingPlacement, placed: PackingPlacement, gap: number) {
-  const horizontal = candidate.x < placed.x + placed.width + gap - EPSILON
-    && candidate.x + candidate.width + gap > placed.x + EPSILON;
-  const vertical = candidate.y < placed.y + placed.height + gap - EPSILON
-    && candidate.y + candidate.height + gap > placed.y + EPSILON;
+function overlapsWithGap(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  placed: PackingPlacement,
+  gap: number,
+) {
+  const horizontal = x < placed.x + placed.width + gap - EPSILON
+    && x + width + gap > placed.x + EPSILON;
+  const vertical = y < placed.y + placed.height + gap - EPSILON
+    && y + height + gap > placed.y + EPSILON;
   return horizontal && vertical;
+}
+
+function insertCandidateY(candidateYs: number[], value: number) {
+  let low = 0;
+  let high = candidateYs.length;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    if (candidateYs[middle]! < value) low = middle + 1;
+    else high = middle;
+  }
+  if (candidateYs[low] === value) return;
+  candidateYs.splice(low, 0, value);
 }
 
 export function packFirstFit(input: PackingInput): PackingResult {
   validateInput(input);
   const {xForColumn, widthForSpan} = metrics(input);
   const placements: PackingPlacement[] = [];
+  const candidateYs = [0];
   let candidateEvaluations = 0;
 
   input.items.forEach((item) => {
-    const candidateYs = Array.from(new Set([
-      0,
-      ...placements.map((placement) => round(placement.y + placement.height + input.gap)),
-    ])).sort((left, right) => left - right);
-
     let accepted: PackingPlacement | null = null;
+    const width = widthForSpan(item.columnSpan);
+
     for (const y of candidateYs) {
       for (let start = 0; start <= input.columns - item.columnSpan; start += 1) {
         candidateEvaluations += 1;
-        const candidate: PackingPlacement = {
+        const x = xForColumn(start);
+        if (placements.some((placed) => overlapsWithGap(x, y, width, item.height, placed, input.gap))) continue;
+        accepted = {
           id: item.id,
           columnStart: start,
           columnSpan: item.columnSpan,
-          x: xForColumn(start),
+          x,
           y,
-          width: widthForSpan(item.columnSpan),
+          width,
           height: item.height,
         };
-        if (!placements.some((placed) => overlapsWithGap(candidate, placed, input.gap))) {
-          accepted = candidate;
-          break;
-        }
+        break;
       }
       if (accepted) break;
     }
 
     if (!accepted) throw new Error(`${item.id}: first-fit search found no placement`);
     placements.push(accepted);
+    insertCandidateY(candidateYs, round(accepted.y + accepted.height + input.gap));
   });
 
   return finish(input, placements, candidateEvaluations);
