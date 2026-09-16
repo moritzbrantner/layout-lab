@@ -58,6 +58,12 @@ type Segment = {
   rank: number;
 };
 
+type SegmentIndex = {
+  byRank: readonly (readonly Segment[])[];
+  incomingByNodeId: ReadonlyMap<string, readonly string[]>;
+  outgoingByNodeId: ReadonlyMap<string, readonly string[]>;
+};
+
 type CrossingCount = {
   crossings: number;
   comparisons: number;
@@ -105,6 +111,40 @@ function validateInput(input: SugiyamaInput) {
   });
 }
 
+function readyBefore(left: string, right: string, nodeOrder: ReadonlyMap<string, number>) {
+  return nodeOrder.get(left)! < nodeOrder.get(right)!;
+}
+
+function pushReady(heap: string[], nodeId: string, nodeOrder: ReadonlyMap<string, number>) {
+  let index = heap.length;
+  heap.push(nodeId);
+  while (index > 0) {
+    const parent = Math.floor((index - 1) / 2);
+    if (!readyBefore(heap[index]!, heap[parent]!, nodeOrder)) break;
+    [heap[index], heap[parent]] = [heap[parent]!, heap[index]!];
+    index = parent;
+  }
+}
+
+function popReady(heap: string[], nodeOrder: ReadonlyMap<string, number>) {
+  const first = heap[0]!;
+  const last = heap.pop()!;
+  if (heap.length === 0) return first;
+  heap[0] = last;
+  let index = 0;
+  while (true) {
+    const left = index * 2 + 1;
+    const right = left + 1;
+    if (left >= heap.length) break;
+    let smallest = left;
+    if (right < heap.length && readyBefore(heap[right]!, heap[left]!, nodeOrder)) smallest = right;
+    if (!readyBefore(heap[smallest]!, heap[index]!, nodeOrder)) break;
+    [heap[index], heap[smallest]] = [heap[smallest]!, heap[index]!];
+    index = smallest;
+  }
+  return first;
+}
+
 function topologicalOrder(input: SugiyamaInput) {
   const indegree = new Map(input.nodes.map((node) => [node.id, 0]));
   const outgoing = new Map(input.nodes.map((node) => [node.id, [] as string[]]));
@@ -114,29 +154,32 @@ function topologicalOrder(input: SugiyamaInput) {
   });
 
   const nodeOrder = new Map(input.nodes.map((node, index) => [node.id, index]));
-  const queue = input.nodes.filter((node) => indegree.get(node.id) === 0).map((node) => node.id);
+  const ready: string[] = [];
+  input.nodes.forEach((node) => {
+    if (indegree.get(node.id) === 0) pushReady(ready, node.id, nodeOrder);
+  });
   const order: string[] = [];
 
-  while (queue.length > 0) {
-    queue.sort((left, right) => nodeOrder.get(left)! - nodeOrder.get(right)!);
-    const nodeId = queue.shift()!;
+  while (ready.length > 0) {
+    const nodeId = popReady(ready, nodeOrder);
     order.push(nodeId);
     for (const target of outgoing.get(nodeId)!) {
       const next = indegree.get(target)! - 1;
       indegree.set(target, next);
-      if (next === 0) queue.push(target);
+      if (next === 0) pushReady(ready, target, nodeOrder);
     }
   }
 
   if (order.length !== input.nodes.length) throw new Error("Sugiyama DAG layout requires an acyclic graph");
-  return order;
+  return {order, outgoing};
 }
 
-function assignRanks(input: SugiyamaInput, order: readonly string[]) {
+function assignRanks(
+  input: SugiyamaInput,
+  order: readonly string[],
+  outgoing: ReadonlyMap<string, readonly string[]>,
+) {
   const rank = new Map(input.nodes.map((node) => [node.id, 0]));
-  const outgoing = new Map(input.nodes.map((node) => [node.id, [] as string[]]));
-  input.edges.forEach((edge) => outgoing.get(edge.from)!.push(edge.to));
-
   for (const nodeId of order) {
     const sourceRank = rank.get(nodeId)!;
     for (const target of outgoing.get(nodeId)!) {
@@ -153,7 +196,7 @@ function buildLayeredGraph(input: SugiyamaInput, ranks: ReadonlyMap<string, numb
 
   const segments: Segment[] = [];
   let dummyCount = 0;
-  input.edges.forEach((edge, edgeIndex) => {
+  input.edges.forEach((edge) => {
     const sourceRank = ranks.get(edge.from)!;
     const targetRank = ranks.get(edge.to)!;
     let previousId = edge.from;
@@ -171,18 +214,39 @@ function buildLayeredGraph(input: SugiyamaInput, ranks: ReadonlyMap<string, numb
   return {layers, segments, dummyCount};
 }
 
+function indexSegments(segments: readonly Segment[], layerCount: number): SegmentIndex {
+  const byRank: Segment[][] = Array.from({length: Math.max(0, layerCount - 1)}, () => []);
+  const incomingByNodeId = new Map<string, string[]>();
+  const outgoingByNodeId = new Map<string, string[]>();
+
+  segments.forEach((segment) => {
+    byRank[segment.rank]!.push(segment);
+
+    const incoming = incomingByNodeId.get(segment.to);
+    if (incoming) incoming.push(segment.from);
+    else incomingByNodeId.set(segment.to, [segment.from]);
+
+    const outgoing = outgoingByNodeId.get(segment.from);
+    if (outgoing) outgoing.push(segment.to);
+    else outgoingByNodeId.set(segment.from, [segment.to]);
+  });
+
+  return {byRank, incomingByNodeId, outgoingByNodeId};
+}
+
 function positionsForLayer(layer: readonly LayerNode[]) {
   return new Map(layer.map((node, index) => [node.id, index]));
 }
 
-function countCrossings(layers: readonly (readonly LayerNode[])[], segments: readonly Segment[]): CrossingCount {
+function countCrossings(layers: readonly (readonly LayerNode[])[], segmentIndex: SegmentIndex): CrossingCount {
   let crossings = 0;
   let comparisons = 0;
+  const positions = layers.map(positionsForLayer);
 
   for (let rank = 0; rank < layers.length - 1; rank += 1) {
-    const upper = positionsForLayer(layers[rank]!);
-    const lower = positionsForLayer(layers[rank + 1]!);
-    const between = segments.filter((segment) => segment.rank === rank);
+    const upper = positions[rank]!;
+    const lower = positions[rank + 1]!;
+    const between = segmentIndex.byRank[rank]!;
     for (let first = 0; first < between.length; first += 1) {
       for (let second = first + 1; second < between.length; second += 1) {
         const a = between[first]!;
@@ -205,7 +269,7 @@ function cloneLayers(layers: readonly (readonly LayerNode[])[]) {
 
 function reorderLayer(
   layers: LayerNode[][],
-  segments: readonly Segment[],
+  segmentIndex: SegmentIndex,
   rank: number,
   direction: "down" | "up",
 ) {
@@ -213,17 +277,22 @@ function reorderLayer(
   const oldIndex = positionsForLayer(layer);
   const neighborLayer = direction === "down" ? layers[rank - 1]! : layers[rank + 1]!;
   const neighborIndex = positionsForLayer(neighborLayer);
+  const neighborIds = direction === "down" ? segmentIndex.incomingByNodeId : segmentIndex.outgoingByNodeId;
 
   const barycenters = new Map<string, number>();
   layer.forEach((node) => {
-    const neighbors = direction === "down"
-      ? segments.filter((segment) => segment.rank === rank - 1 && segment.to === node.id).map((segment) => segment.from)
-      : segments.filter((segment) => segment.rank === rank && segment.from === node.id).map((segment) => segment.to);
-    if (neighbors.length === 0) barycenters.set(node.id, oldIndex.get(node.id)!);
-    else barycenters.set(node.id, neighbors.reduce((sum, id) => sum + neighborIndex.get(id)!, 0) / neighbors.length);
+    const neighbors = neighborIds.get(node.id) ?? [];
+    if (neighbors.length === 0) {
+      barycenters.set(node.id, oldIndex.get(node.id)!);
+      return;
+    }
+    let sum = 0;
+    neighbors.forEach((id) => {
+      sum += neighborIndex.get(id)!;
+    });
+    barycenters.set(node.id, sum / neighbors.length);
   });
 
-  const before = layer.map((node) => node.id).join("|");
   layer.sort((left, right) => {
     const delta = barycenters.get(left.id)! - barycenters.get(right.id)!;
     if (Math.abs(delta) > 1e-9) return delta;
@@ -231,24 +300,29 @@ function reorderLayer(
     if (previous !== 0) return previous;
     return left.id.localeCompare(right.id);
   });
-  return before !== layer.map((node) => node.id).join("|");
+
+  for (let index = 0; index < layer.length; index += 1) {
+    if (oldIndex.get(layer[index]!.id) !== index) return true;
+  }
+  return false;
 }
 
 function reduceCrossings(layers: LayerNode[][], segments: readonly Segment[], sweepCount: number) {
-  const initial = countCrossings(layers, segments);
+  const segmentIndex = indexSegments(segments, layers.length);
+  const initial = countCrossings(layers, segmentIndex);
   let comparisonTotal = initial.comparisons;
   let bestLayers = cloneLayers(layers);
   let bestCrossings = initial.crossings;
   const evidence: SugiyamaSweep[] = [];
 
   for (let iteration = 1; iteration <= sweepCount; iteration += 1) {
-    let before = countCrossings(layers, segments);
+    let before = countCrossings(layers, segmentIndex);
     comparisonTotal += before.comparisons;
     let changedLayers = 0;
     for (let rank = 1; rank < layers.length; rank += 1) {
-      if (reorderLayer(layers, segments, rank, "down")) changedLayers += 1;
+      if (reorderLayer(layers, segmentIndex, rank, "down")) changedLayers += 1;
     }
-    let after = countCrossings(layers, segments);
+    let after = countCrossings(layers, segmentIndex);
     comparisonTotal += after.comparisons;
     evidence.push({iteration, direction: "down", crossingsBefore: before.crossings, crossingsAfter: after.crossings, changedLayers});
     if (after.crossings < bestCrossings) {
@@ -259,9 +333,9 @@ function reduceCrossings(layers: LayerNode[][], segments: readonly Segment[], sw
     before = after;
     changedLayers = 0;
     for (let rank = layers.length - 2; rank >= 0; rank -= 1) {
-      if (reorderLayer(layers, segments, rank, "up")) changedLayers += 1;
+      if (reorderLayer(layers, segmentIndex, rank, "up")) changedLayers += 1;
     }
-    after = countCrossings(layers, segments);
+    after = countCrossings(layers, segmentIndex);
     comparisonTotal += after.comparisons;
     evidence.push({iteration, direction: "up", crossingsBefore: before.crossings, crossingsAfter: after.crossings, changedLayers});
     if (after.crossings < bestCrossings) {
@@ -271,15 +345,15 @@ function reduceCrossings(layers: LayerNode[][], segments: readonly Segment[], sw
   }
 
   for (let rank = 0; rank < layers.length; rank += 1) layers[rank] = [...bestLayers[rank]!];
-  const final = countCrossings(layers, segments);
+  const final = countCrossings(layers, segmentIndex);
   comparisonTotal += final.comparisons;
   return {initialCrossings: initial.crossings, finalCrossings: final.crossings, evidence, comparisonTotal};
 }
 
 export function layoutSugiyama(input: SugiyamaInput): SugiyamaResult {
   validateInput(input);
-  const order = topologicalOrder(input);
-  const ranks = assignRanks(input, order);
+  const topology = topologicalOrder(input);
+  const ranks = assignRanks(input, topology.order, topology.outgoing);
   const {layers, segments, dummyCount} = buildLayeredGraph(input, ranks);
   const crossing = reduceCrossings(layers, segments, input.sweeps);
   const maxLayerSize = Math.max(...layers.map((layer) => layer.length));
