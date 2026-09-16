@@ -152,6 +152,14 @@ function validateNodeStyle(node: LayoutNode, errors: string[]) {
   }
 }
 
+export function validateLayoutNodeShallow(node: LayoutNode): string[] {
+  const errors: string[] = [];
+  if (!node.id.trim()) errors.push("layout nodes require a non-empty id");
+  if (!node.label.trim()) errors.push(`${node.id || "<missing-id>"}: layout nodes require a label`);
+  validateNodeStyle(node, errors);
+  return errors;
+}
+
 export function validateLayoutTree(root: LayoutNode): string[] {
   const errors: string[] = [];
   const ids = new Set<string>();
