@@ -629,7 +629,8 @@ export function recomputeIncrementalLayout(
     visitedNodes = partial.visitedNodes;
   }
 
-  const nextGraph = invalidationGraphNeedsRefresh(graph, mutation, boundary.changedNode)
+  const nextGraph = mutation.kind === "style"
+    && invalidationGraphNeedsRefresh(graph, mutation, boundary.changedNode)
     ? buildLayoutInvalidationGraph(nextTree)
     : graph;
   const graphRebuilds = nextGraph === graph ? 0 : 1;
