@@ -1,0 +1,271 @@
+{
+  "version": "layout-core-v1",
+  "authority": {
+    "engine": "typescript-clean-layout",
+    "fixture_source": "typed-h5-fixtures",
+    "generator": "web/scripts/generate-portable-layout-contract.ts"
+  },
+  "numeric_tolerance": 1e-9,
+  "fixtures": [
+    {
+      "id": "block-baseline",
+      "kind": "block",
+      "tree": {
+        "id": "block-root",
+        "label": "Block root",
+        "style": {
+          "display": "block",
+          "width": 420
+        },
+        "children": [
+          {
+            "id": "header",
+            "label": "Header",
+            "style": {
+              "display": "block",
+              "height": 56,
+              "margin_block_after": 20
+            },
+            "children": []
+          },
+          {
+            "id": "content",
+            "label": "Content",
+            "style": {
+              "display": "block",
+              "min_width": 240,
+              "max_width": 360,
+              "height": 132,
+              "margin_block_before": 12,
+              "margin_block_after": 18
+            },
+            "children": []
+          },
+          {
+            "id": "footer",
+            "label": "Footer",
+            "style": {
+              "display": "block",
+              "width": 280,
+              "height": 44,
+              "margin_block_before": 24
+            },
+            "children": []
+          }
+        ]
+      },
+      "expected_geometry": [
+        {
+          "id": "block-root",
+          "x": 0,
+          "y": 0,
+          "width": 420,
+          "height": 276
+        },
+        {
+          "id": "header",
+          "x": 0,
+          "y": 0,
+          "width": 420,
+          "height": 56
+        },
+        {
+          "id": "content",
+          "x": 0,
+          "y": 76,
+          "width": 360,
+          "height": 132
+        },
+        {
+          "id": "footer",
+          "x": 0,
+          "y": 232,
+          "width": 280,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "id": "flex-engine",
+      "kind": "flex",
+      "tree": {
+        "id": "root",
+        "label": "Flex engine root",
+        "style": {
+          "display": "flex",
+          "width": 520,
+          "height": 120,
+          "flex_container": {
+            "gap": 16,
+            "direction": "row"
+          }
+        },
+        "children": [
+          {
+            "id": "item-a",
+            "label": "A",
+            "style": {
+              "display": "block",
+              "min_width": 80,
+              "max_width": 220,
+              "height": 72,
+              "flex_item": {
+                "basis": 120,
+                "grow": 1,
+                "shrink": 1
+              }
+            },
+            "children": []
+          },
+          {
+            "id": "item-b",
+            "label": "B",
+            "style": {
+              "display": "block",
+              "min_width": 96,
+              "max_width": 184,
+              "height": 104,
+              "flex_item": {
+                "basis": 132,
+                "grow": 8,
+                "shrink": 1
+              }
+            },
+            "children": []
+          },
+          {
+            "id": "item-c",
+            "label": "C",
+            "style": {
+              "display": "block",
+              "min_width": 72,
+              "max_width": 240,
+              "height": 88,
+              "flex_item": {
+                "basis": 112,
+                "grow": 2,
+                "shrink": 1
+              }
+            },
+            "children": []
+          }
+        ]
+      },
+      "expected_geometry": [
+        {
+          "id": "root",
+          "x": 0,
+          "y": 0,
+          "width": 520,
+          "height": 120
+        },
+        {
+          "id": "item-a",
+          "x": 0,
+          "y": 0,
+          "width": 144,
+          "height": 72
+        },
+        {
+          "id": "item-b",
+          "x": 160,
+          "y": 0,
+          "width": 184,
+          "height": 104
+        },
+        {
+          "id": "item-c",
+          "x": 360,
+          "y": 0,
+          "width": 160,
+          "height": 88
+        }
+      ]
+    },
+    {
+      "id": "grid-engine",
+      "kind": "grid",
+      "tree": {
+        "id": "root",
+        "label": "Grid engine root",
+        "style": {
+          "display": "grid",
+          "width": 560,
+          "height": 120,
+          "grid_container": {
+            "gap": 16,
+            "columns": [
+              {
+                "label": "A",
+                "min_size": 96,
+                "fr": 1
+              },
+              {
+                "label": "B",
+                "min_size": 164,
+                "fr": 1
+              },
+              {
+                "label": "C",
+                "min_size": 88,
+                "fr": 2
+              }
+            ]
+          }
+        },
+        "children": [
+          {
+            "id": "span-ab",
+            "label": "A+B panel",
+            "style": {
+              "display": "block",
+              "height": 80,
+              "grid_item": {
+                "column_start": 0,
+                "column_span": 2,
+                "min_contribution": 300
+              }
+            },
+            "children": []
+          },
+          {
+            "id": "item-c",
+            "label": "C panel",
+            "style": {
+              "display": "block",
+              "height": 96,
+              "grid_item": {
+                "column_start": 2,
+                "column_span": 1
+              }
+            },
+            "children": []
+          }
+        ]
+      },
+      "expected_geometry": [
+        {
+          "id": "root",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "height": 120
+        },
+        {
+          "id": "span-ab",
+          "x": 0,
+          "y": 0,
+          "width": 309.3333333333333,
+          "height": 80
+        },
+        {
+          "id": "item-c",
+          "x": 325.3333333333333,
+          "y": 0,
+          "width": 234.66666666666666,
+          "height": 96
+        }
+      ]
+    }
+  ]
+}
