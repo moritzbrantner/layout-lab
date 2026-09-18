@@ -192,6 +192,11 @@ function incrementalScalingSample(groupCount: number, leavesPerGroup: number, mu
   let fullVisited = 0;
   let recomputedNodes = 0;
   let reusedNodes = 0;
+  let boundaryNodeVisits = 0;
+  let provenanceComparisons = 0;
+  let invalidationPhaseVisits = 0;
+  let invalidationEdgeTraversals = 0;
+  let graphRebuilds = 0;
 
   for (let mutationIndex = 0; mutationIndex < mutationCount; mutationIndex += 1) {
     const groupIndex = mutationIndex % groupCount;
@@ -210,6 +215,11 @@ function incrementalScalingSample(groupCount: number, leavesPerGroup: number, mu
     fullVisited += clean.visitedNodes;
     recomputedNodes += incremental.recomputedNodeIds.length;
     reusedNodes += incremental.reusedNodeIds.length;
+    boundaryNodeVisits += incremental.work.boundaryNodeVisits;
+    provenanceComparisons += incremental.work.provenanceComparisons;
+    invalidationPhaseVisits += incremental.work.invalidationPhaseVisits;
+    invalidationEdgeTraversals += incremental.work.invalidationEdgeTraversals;
+    graphRebuilds += incremental.work.graphRebuilds;
     cache = incremental.cache;
     tree = nextTree;
   }
@@ -228,6 +238,11 @@ function incrementalScalingSample(groupCount: number, leavesPerGroup: number, mu
       counter("full-visits", "full-layout visited nodes", fullVisited),
       counter("recomputed", "recomputed nodes", recomputedNodes),
       counter("reused", "reused node observations", reusedNodes),
+      counter("boundary-visits", "boundary node visits", boundaryNodeVisits),
+      counter("provenance-comparisons", "provenance comparisons", provenanceComparisons),
+      counter("invalidation-phase-visits", "invalidation phase visits", invalidationPhaseVisits),
+      counter("invalidation-edge-traversals", "invalidation edge traversals", invalidationEdgeTraversals),
+      counter("graph-rebuilds", "dependency graph rebuilds", graphRebuilds),
     ],
   };
 }
@@ -324,7 +339,7 @@ export function runLayoutComplexityLab(): ComplexityLabResult {
       "Flex counts resolver passes, frozen items, and item evaluations across passes.",
       "Grid counts spanning-contribution work plus flexible-track passes, freezes, and active-track evaluations.",
       "Constraints count Cassowary pivots, tableau rows, and incremental add operations.",
-      "Incremental layout replays the same mutation trace against cached and clean block layout and counts actual visited nodes.",
+      "Incremental layout replays the same mutation trace against cached and clean block layout and counts boundary validation, provenance comparisons, invalidation traversal, graph rebuilds, and recomputation work.",
     ],
     samples,
     pathologies: [flexFreezeLadder(8), gridFreezeLadder(8)],
