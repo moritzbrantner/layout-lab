@@ -22,7 +22,6 @@ import {
   type LayoutInvalidationGraph,
   type LayoutInvalidationPlan,
   type LayoutMutation,
-  type LayoutMutationField,
 } from "./layout-invalidation";
 import {
   adaptFlexTree,
@@ -30,7 +29,6 @@ import {
   validateLayoutNodeShallow,
   validateLayoutTree,
   type LayoutNode,
-  type LayoutStyle,
 } from "./layout-tree";
 
 export type IncrementalLayoutContext = "block" | "flex" | "grid";
@@ -184,81 +182,49 @@ function mutationCanChangeInvalidationGraph(mutation: LayoutMutation) {
     || mutation.field === "gridItem.minContribution";
 }
 
-type ComparableStyleField = LayoutMutationField | "flexContainer.direction";
+function semanticDiffPaths(left: unknown, right: unknown, path = ""): string[] {
+  if (Object.is(left, right)) return [];
 
-const comparableStyleFields: readonly ComparableStyleField[] = [
-  "width",
-  "minWidth",
-  "maxWidth",
-  "height",
-  "minHeight",
-  "maxHeight",
-  "marginBlockBefore",
-  "marginBlockAfter",
-  "flexContainer.gap",
-  "flexContainer.direction",
-  "flexItem.basis",
-  "flexItem.grow",
-  "flexItem.shrink",
-  "gridContainer.gap",
-  "gridContainer.columns",
-  "gridItem.columnStart",
-  "gridItem.columnSpan",
-  "gridItem.minContribution",
-];
-
-function gridColumnsEqual(left: LayoutStyle, right: LayoutStyle) {
-  const leftColumns = left.gridContainer?.columns;
-  const rightColumns = right.gridContainer?.columns;
-  if (leftColumns === rightColumns) return true;
-  if (!leftColumns || !rightColumns || leftColumns.length !== rightColumns.length) return false;
-  return leftColumns.every((track, index) => {
-    const other = rightColumns[index];
-    return other !== undefined
-      && track.label === other.label
-      && track.minSize === other.minSize
-      && track.fr === other.fr;
-  });
-}
-
-function styleFieldEqual(left: LayoutStyle, right: LayoutStyle, field: ComparableStyleField) {
-  if (field === "gridContainer.columns") return gridColumnsEqual(left, right);
-
-  const values = (style: LayoutStyle) => {
-    switch (field) {
-      case "width": return style.width;
-      case "minWidth": return style.minWidth;
-      case "maxWidth": return style.maxWidth;
-      case "height": return style.height;
-      case "minHeight": return style.minHeight;
-      case "maxHeight": return style.maxHeight;
-      case "marginBlockBefore": return style.marginBlockBefore;
-      case "marginBlockAfter": return style.marginBlockAfter;
-      case "flexContainer.gap": return style.flexContainer?.gap;
-      case "flexContainer.direction": return style.flexContainer?.direction;
-      case "flexItem.basis": return style.flexItem?.basis;
-      case "flexItem.grow": return style.flexItem?.grow;
-      case "flexItem.shrink": return style.flexItem?.shrink;
-      case "gridContainer.gap": return style.gridContainer?.gap;
-      case "gridItem.columnStart": return style.gridItem?.columnStart;
-      case "gridItem.columnSpan": return style.gridItem?.columnSpan;
-      case "gridItem.minContribution": return style.gridItem?.minContribution;
+  if (Array.isArray(left) && Array.isArray(right)) {
+    if (left.length !== right.length) return [path];
+    for (let index = 0; index < left.length; index += 1) {
+      if (semanticDiffPaths(left[index], right[index], path).length > 0) return [path];
     }
-  };
+    return [];
+  }
 
-  return Object.is(values(left), values(right));
+  if (left !== null && right !== null && typeof left === "object" && typeof right === "object") {
+    const leftRecord = left as Record<string, unknown>;
+    const rightRecord = right as Record<string, unknown>;
+    const keys = [...new Set([...Object.keys(leftRecord), ...Object.keys(rightRecord)])].sort();
+    const differences: string[] = [];
+
+    keys.forEach((key) => {
+      const leftValue = leftRecord[key];
+      const rightValue = rightRecord[key];
+      if (leftValue === undefined && rightValue === undefined) return;
+      differences.push(...semanticDiffPaths(
+        leftValue,
+        rightValue,
+        path ? `${path}.${key}` : key,
+      ));
+    });
+    return differences;
+  }
+
+  return [path || "<root>"];
 }
 
 function assertDeclaredStyleMutation(previous: LayoutNode, next: LayoutNode, mutation: Extract<LayoutMutation, {kind: "style"}>) {
-  const changes: Array<{nodeId: string; field: ComparableStyleField}> = [];
+  const changes: Array<{nodeId: string; field: string}> = [];
 
   const visit = (left: LayoutNode, right: LayoutNode) => {
     if (left === right) return;
     if (left.label !== right.label) {
       throw new Error(`${right.id}: incremental layout does not support undeclared label changes`);
     }
-    comparableStyleFields.forEach((field) => {
-      if (!styleFieldEqual(left.style, right.style, field)) changes.push({nodeId: right.id, field});
+    semanticDiffPaths(left.style, right.style).forEach((field) => {
+      changes.push({nodeId: right.id, field});
     });
     for (let index = 0; index < left.children.length; index += 1) {
       visit(left.children[index]!, right.children[index]!);
