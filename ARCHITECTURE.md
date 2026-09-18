@@ -28,4 +28,6 @@ Layout Lab deliberately keeps layout semantics separate from experiments, cachin
 
 The engine boundary is resolved geometry plus deterministic evidence. Renderers, Pages experiments, and WASM bindings stay downstream of that boundary. New rendering technology is justified only when it exposes a layout/compositing concept; it must not carry hidden layout behavior.
 
+`grid-3d-model.ts` is a separate spatial-layout experiment, not a second implementation of 2D CSS Grid. Its `Grid3DDefinition` is authoritative and `ResolvedGrid3DScene` is derived data; SVG and Three.js consume that same scene. If Grid3D ever shares semantics with the 2D engine, move the shared rule into a common semantic kernel rather than synchronizing two implementations.
+
 For Rust portability, first freeze a language-neutral tree/geometry contract and shared fixtures. Port one semantic unit at a time, run TypeScript/Rust/browser differential checks, and only then decide whether authority should move. The TypeScript implementation should not silently continue as a competing production engine after such a handoff.
