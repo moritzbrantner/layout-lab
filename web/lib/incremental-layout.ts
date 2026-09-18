@@ -275,6 +275,7 @@ function assertDeclaredStyleMutation(
 }
 
 function invalidationGraphNeedsRefresh(
+  graph: LayoutInvalidationGraph,
   mutation: Extract<LayoutMutation, {kind: "style"}>,
   changedNode: ChangedLayoutNode | null,
 ) {
@@ -283,7 +284,12 @@ function invalidationGraphNeedsRefresh(
   const nextStyle = changedNode.next.style;
 
   if (mutation.field === "width") {
-    return (previousStyle.width === undefined) !== (nextStyle.width === undefined);
+    const parentId = graph.parentByNodeId[changedNode.next.id];
+    const parentDisplay = parentId === null || parentId === undefined
+      ? undefined
+      : graph.displayByNodeId[parentId];
+    return parentDisplay === "block"
+      && (previousStyle.width === undefined) !== (nextStyle.width === undefined);
   }
   if (mutation.field === "height") {
     return (previousStyle.height === undefined) !== (nextStyle.height === undefined);
@@ -623,7 +629,7 @@ export function recomputeIncrementalLayout(
     visitedNodes = partial.visitedNodes;
   }
 
-  const nextGraph = invalidationGraphNeedsRefresh(mutation, boundary.changedNode)
+  const nextGraph = invalidationGraphNeedsRefresh(graph, mutation, boundary.changedNode)
     ? buildLayoutInvalidationGraph(nextTree)
     : graph;
   const graphRebuilds = nextGraph === graph ? 0 : 1;
