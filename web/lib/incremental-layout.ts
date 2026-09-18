@@ -1,14 +1,20 @@
-import {resolveAdjacentPositiveMargins} from "./flow-formatting";
 import {resolveFlexLine, resolveMinMaxFractionTracks, type FlexLineResolution, type MinMaxGridResolution} from "./layout-analysis";
 import {
   flattenLayoutBoxes,
   layoutBlockTree,
   layoutFlexTree,
   layoutGridTree,
+} from "./layout-engine";
+import {
+  maxChildBlockSize,
+  resolveBlockSiblingGap,
+  resolveFlexItemRect,
+  resolveGridItemRect,
+  resolveGridTrackStarts,
   resolveLayoutHeight,
   resolveLayoutWidth,
   type LayoutBox,
-} from "./layout-engine";
+} from "./layout-geometry";
 import {
   buildLayoutInvalidationGraph,
   invalidationPhaseId,
@@ -146,16 +152,6 @@ function dirty(dirtyPhaseIds: ReadonlySet<string>, nodeId: string, phase: Parame
   return dirtyPhaseIds.has(invalidationPhaseId(nodeId, phase));
 }
 
-function computeTrackStarts(resolution: MinMaxGridResolution, gap: number) {
-  const starts: number[] = [];
-  let cursor = 0;
-  resolution.tracks.forEach((track) => {
-    starts.push(cursor);
-    cursor += track.targetSize + gap;
-  });
-  return starts;
-}
-
 function dirtyLayoutNodeIds(
   layoutNodeIdByPhaseId: ReadonlyMap<string, string>,
   dirtyPhaseIds: readonly string[],
@@ -287,7 +283,7 @@ function recomputeBlock(
       const before = child.style.marginBlockBefore ?? 0;
       const gap = index === 0
         ? before
-        : resolveAdjacentPositiveMargins({mode: "collapse", before: previousAfter, after: before}).gap;
+        : resolveBlockSiblingGap(previousAfter, before);
       const childY = cursor + gap;
       const oldChild = cachedBox(cache.boxes, boxIndexById, child.id);
       const childX = dirty(dirtyPhaseIds, child.id, "position") ? x : oldChild.rect.x;
@@ -354,9 +350,10 @@ function recomputeFlex(
     const old = cachedBox(cache.boxes, boxIndexById, child.id);
     const item = resolution.items[index];
     if (!item) throw new Error(`${child.id}: missing Flex line item resolution`);
-    const width = dirty(dirtyPhaseIds, child.id, "inline-size") ? item.targetSize : old.rect.width;
-    const x = dirty(dirtyPhaseIds, child.id, "position") ? cursor : old.rect.x;
-    const height = dirty(dirtyPhaseIds, child.id, "block-size") ? resolveLayoutHeight(child, 0) : old.rect.height;
+    const desired = resolveFlexItemRect(child, cursor, item.targetSize);
+    const width = dirty(dirtyPhaseIds, child.id, "inline-size") ? desired.width : old.rect.width;
+    const x = dirty(dirtyPhaseIds, child.id, "position") ? desired.x : old.rect.x;
+    const height = dirty(dirtyPhaseIds, child.id, "block-size") ? desired.height : old.rect.height;
     const box = dirty(dirtyPhaseIds, child.id, "geometry")
       ? {id: child.id, label: child.label, rect: {x, y: 0, width, height}, children: [] as const}
       : old;
@@ -368,9 +365,8 @@ function recomputeFlex(
   const rootWidth = dirty(dirtyPhaseIds, nextTree.id, "inline-size")
     ? (input ?? adaptFlexTree(nextTree)).innerSize
     : oldRoot.rect.width;
-  const derivedHeight = children.reduce((maximum, child) => Math.max(maximum, child.rect.height), 0);
   const rootHeight = dirty(dirtyPhaseIds, nextTree.id, "block-size")
-    ? resolveLayoutHeight(nextTree, derivedHeight)
+    ? resolveLayoutHeight(nextTree, maxChildBlockSize(children))
     : oldRoot.rect.height;
   const root: LayoutBox = {
     id: nextTree.id,
@@ -414,7 +410,7 @@ function recomputeGrid(
   if (!resolution) throw new Error("missing cached Grid resolution");
   const gap = tracksDirty ? input!.gapSize : nextTree.style.gridContainer!.gap;
   const trackStarts = tracksDirty
-    ? computeTrackStarts(resolution, gap)
+    ? resolveGridTrackStarts(resolution, gap)
     : cache.gridTrackStarts;
   if (!trackStarts) throw new Error("missing cached Grid track starts");
 
@@ -422,16 +418,10 @@ function recomputeGrid(
     const old = cachedBox(cache.boxes, boxIndexById, child.id);
     const item = child.style.gridItem;
     if (!item) throw new Error(`${child.id}: Grid incremental execution requires explicit placement`);
-    const end = item.columnStart + item.columnSpan;
-    if (end > resolution.tracks.length) throw new Error(`${child.id}: grid placement exceeds the explicit column set`);
-
-    let resolvedWidth = Math.max(0, item.columnSpan - 1) * gap;
-    for (let index = item.columnStart; index < end; index += 1) {
-      resolvedWidth += resolution.tracks[index]!.targetSize;
-    }
-    const width = dirty(dirtyPhaseIds, child.id, "inline-size") ? resolvedWidth : old.rect.width;
-    const x = dirty(dirtyPhaseIds, child.id, "position") ? trackStarts[item.columnStart]! : old.rect.x;
-    const height = dirty(dirtyPhaseIds, child.id, "block-size") ? resolveLayoutHeight(child, 0) : old.rect.height;
+    const desired = resolveGridItemRect(child, resolution, trackStarts, gap);
+    const width = dirty(dirtyPhaseIds, child.id, "inline-size") ? desired.width : old.rect.width;
+    const x = dirty(dirtyPhaseIds, child.id, "position") ? desired.x : old.rect.x;
+    const height = dirty(dirtyPhaseIds, child.id, "block-size") ? desired.height : old.rect.height;
 
     return dirty(dirtyPhaseIds, child.id, "geometry")
       ? {id: child.id, label: child.label, rect: {x, y: 0, width, height}, children: []}
@@ -442,9 +432,8 @@ function recomputeGrid(
   const rootWidth = dirty(dirtyPhaseIds, nextTree.id, "inline-size")
     ? (input ?? adaptGridTree(nextTree)).innerSize
     : oldRoot.rect.width;
-  const derivedHeight = children.reduce((maximum, child) => Math.max(maximum, child.rect.height), 0);
   const rootHeight = dirty(dirtyPhaseIds, nextTree.id, "block-size")
-    ? resolveLayoutHeight(nextTree, derivedHeight)
+    ? resolveLayoutHeight(nextTree, maxChildBlockSize(children))
     : oldRoot.rect.height;
   const root: LayoutBox = {
     id: nextTree.id,
