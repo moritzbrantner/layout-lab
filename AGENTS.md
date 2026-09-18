@@ -22,6 +22,7 @@ Read [ARCHITECTURE.md](ARCHITECTURE.md) before changing layout execution, invali
 - Wall-clock measurements are advisory unless a dedicated stable benchmark environment justifies otherwise.
 - When optimizing incremental work, account for invalidation planning and mutation verification as well as solver/recompute work.
 - Prefer a bounded clean fallback over a clever incremental path whose equivalence or cost cannot be established.
+- Cross-revision benchmark scripts may keep tiny input-construction compatibility helpers when the current script is copied into older worktrees. Do not copy layout semantics into those shims.
 
 ## Portability
 
