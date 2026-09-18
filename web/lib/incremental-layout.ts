@@ -192,13 +192,6 @@ function nodeSets(nodeIds: readonly string[], recomputed: ReadonlySet<string>) {
   return {recomputedNodeIds, reusedNodeIds};
 }
 
-function mutationCanChangeInvalidationGraph(mutation: LayoutMutation) {
-  return mutation.kind === "children"
-    || mutation.field === "width"
-    || mutation.field === "height"
-    || mutation.field === "gridItem.minContribution";
-}
-
 function semanticDiffPaths(
   left: unknown,
   right: unknown,
@@ -239,13 +232,19 @@ function semanticDiffPaths(
   return [path || "<root>"];
 }
 
+type ChangedLayoutNode = {
+  previous: LayoutNode;
+  next: LayoutNode;
+};
+
 function assertDeclaredStyleMutation(
   previous: LayoutNode,
   next: LayoutNode,
   mutation: Extract<LayoutMutation, {kind: "style"}>,
   work: IncrementalBoundaryWork,
-) {
+): ChangedLayoutNode | null {
   const changes: Array<{nodeId: string; field: string}> = [];
+  let changedNode: ChangedLayoutNode | null = null;
 
   const visit = (left: LayoutNode, right: LayoutNode) => {
     work.nodeVisits += 1;
@@ -253,7 +252,9 @@ function assertDeclaredStyleMutation(
     if (left.label !== right.label) {
       throw new Error(`${right.id}: incremental layout does not support undeclared label changes`);
     }
-    semanticDiffPaths(left.style, right.style, work).forEach((field) => {
+    const styleChanges = semanticDiffPaths(left.style, right.style, work);
+    if (styleChanges.length > 0) changedNode = {previous: left, next: right};
+    styleChanges.forEach((field) => {
       changes.push({nodeId: right.id, field});
     });
     for (let index = 0; index < left.children.length; index += 1) {
@@ -262,13 +263,36 @@ function assertDeclaredStyleMutation(
   };
   visit(previous, next);
 
-  if (changes.length === 0) return;
-  if (changes.length === 1 && changes[0]!.nodeId === mutation.nodeId && changes[0]!.field === mutation.field) return;
+  if (changes.length === 0) return null;
+  if (changes.length === 1 && changes[0]!.nodeId === mutation.nodeId && changes[0]!.field === mutation.field) {
+    return changedNode;
+  }
 
   const actual = changes.map((change) => `${change.nodeId}.${change.field}`).join(", ");
   throw new Error(
     `declared style mutation ${mutation.nodeId}.${mutation.field} does not match layout-tree change: ${actual || "none"}`,
   );
+}
+
+function invalidationGraphNeedsRefresh(
+  mutation: Extract<LayoutMutation, {kind: "style"}>,
+  changedNode: ChangedLayoutNode | null,
+) {
+  if (!changedNode) return false;
+  const previousStyle = changedNode.previous.style;
+  const nextStyle = changedNode.next.style;
+
+  if (mutation.field === "width") {
+    return (previousStyle.width === undefined) !== (nextStyle.width === undefined);
+  }
+  if (mutation.field === "height") {
+    return (previousStyle.height === undefined) !== (nextStyle.height === undefined);
+  }
+  if (mutation.field === "gridItem.minContribution") {
+    return (previousStyle.gridItem?.minContribution === undefined)
+      !== (nextStyle.gridItem?.minContribution === undefined);
+  }
+  return false;
 }
 
 export function createIncrementalLayoutCache(tree: LayoutNode): IncrementalLayoutCache {
@@ -325,8 +349,8 @@ function assertIncrementalBoundary(cache: IncrementalLayoutCache, nextTree: Layo
   if (!shapeMatches) {
     throw new Error("incremental style execution requires an unchanged layout-tree shape");
   }
-  assertDeclaredStyleMutation(cache.tree, nextTree, mutation, work);
-  return work;
+  const changedNode = assertDeclaredStyleMutation(cache.tree, nextTree, mutation, work);
+  return {work, changedNode};
 }
 
 function recomputeBlock(
@@ -549,7 +573,7 @@ export function recomputeIncrementalLayout(
   nextTree: LayoutNode,
   mutation: LayoutMutation,
 ): IncrementalLayoutResult {
-  const boundaryWork = assertIncrementalBoundary(cache, nextTree, mutation);
+  const boundary = assertIncrementalBoundary(cache, nextTree, mutation);
   const indexes = indexesForCache(cache);
   const graph = indexes.graph;
   const plan = planLayoutInvalidation(graph, mutation);
@@ -599,7 +623,7 @@ export function recomputeIncrementalLayout(
     visitedNodes = partial.visitedNodes;
   }
 
-  const nextGraph = mutationCanChangeInvalidationGraph(mutation)
+  const nextGraph = invalidationGraphNeedsRefresh(mutation, boundary.changedNode)
     ? buildLayoutInvalidationGraph(nextTree)
     : graph;
   const graphRebuilds = nextGraph === graph ? 0 : 1;
@@ -623,8 +647,8 @@ export function recomputeIncrementalLayout(
       visitedNodes,
       reusedNodes: sets.reusedNodeIds.length,
       solverPasses,
-      boundaryNodeVisits: boundaryWork.nodeVisits,
-      provenanceComparisons: boundaryWork.provenanceComparisons,
+      boundaryNodeVisits: boundary.work.nodeVisits,
+      provenanceComparisons: boundary.work.provenanceComparisons,
       invalidationPhaseVisits: plan.work.phaseVisits,
       invalidationEdgeTraversals: plan.work.edgeTraversals,
       graphRebuilds,
