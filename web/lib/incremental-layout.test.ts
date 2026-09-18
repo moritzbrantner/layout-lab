@@ -2,15 +2,7 @@ import {describe, expect, test} from "bun:test";
 import {buildFlexEngineTree, buildGridEngineTree} from "./layout-engine-fixtures";
 import {layoutBlockTree, layoutFlexTree, layoutGridTree, type LayoutBox} from "./layout-engine";
 import {createIncrementalLayoutCache, recomputeIncrementalLayout} from "./incremental-layout";
-import {buildBlockLayoutTree, buildFlexLayoutTree, type LayoutNode} from "./layout-tree";
-
-function updateNode(root: LayoutNode, nodeId: string, update: (node: LayoutNode) => LayoutNode): LayoutNode {
-  if (root.id === nodeId) return update(root);
-  return {
-    ...root,
-    children: root.children.map((child) => updateNode(child, nodeId, update)),
-  };
-}
+import {buildBlockLayoutTree, buildFlexLayoutTree, updateLayoutNode, type LayoutNode} from "./layout-tree";
 
 function geometry(boxes: readonly LayoutBox[]) {
   return boxes.map((box) => ({id: box.id, ...box.rect}));
@@ -20,7 +12,7 @@ describe("incremental layout execution", () => {
   test("recomputes only the changed block and later flow after a height mutation", () => {
     const before = buildBlockLayoutTree();
     const cache = createIncrementalLayoutCache(before);
-    const next = updateNode(before, "content", (node) => ({
+    const next = updateLayoutNode(before, "content", (node) => ({
       ...node,
       style: {...node.style, height: 180},
     }));
@@ -44,7 +36,7 @@ describe("incremental layout execution", () => {
   test("keeps block recomputation to one node even though flow traversal reads cached siblings", () => {
     const before = buildBlockLayoutTree();
     const cache = createIncrementalLayoutCache(before);
-    const next = updateNode(before, "content", (node) => ({
+    const next = updateLayoutNode(before, "content", (node) => ({
       ...node,
       style: {...node.style, width: 300},
     }));
@@ -65,7 +57,7 @@ describe("incremental layout execution", () => {
   test("reruns Flex line resolution for a grow mutation while reusing cross sizes", () => {
     const before = buildFlexEngineTree();
     const cache = createIncrementalLayoutCache(before);
-    const next = updateNode(before, "item-b", (node) => ({
+    const next = updateLayoutNode(before, "item-b", (node) => ({
       ...node,
       style: {...node.style, flexItem: {...node.style.flexItem!, grow: 3}},
     }));
@@ -88,7 +80,7 @@ describe("incremental layout execution", () => {
   test("updates a Flex cross size without rerunning the main-axis solver", () => {
     const before = buildFlexLayoutTree();
     const cache = createIncrementalLayoutCache(before);
-    const next = updateNode(before, "item-b", (node) => ({
+    const next = updateLayoutNode(before, "item-b", (node) => ({
       ...node,
       style: {...node.style, height: 104},
     }));
@@ -110,7 +102,7 @@ describe("incremental layout execution", () => {
   test("does zero layout work for a property ignored by the current Flex subset", () => {
     const before = buildFlexEngineTree();
     const cache = createIncrementalLayoutCache(before);
-    const next = updateNode(before, "item-b", (node) => ({
+    const next = updateLayoutNode(before, "item-b", (node) => ({
       ...node,
       style: {...node.style, width: 999},
     }));
@@ -132,7 +124,7 @@ describe("incremental layout execution", () => {
   test("reruns Grid track sizing when a spanning contribution changes", () => {
     const before = buildGridEngineTree();
     const cache = createIncrementalLayoutCache(before);
-    const next = updateNode(before, "span-ab", (node) => ({
+    const next = updateLayoutNode(before, "span-ab", (node) => ({
       ...node,
       style: {
         ...node.style,
@@ -157,7 +149,7 @@ describe("incremental layout execution", () => {
   test("moves one Grid item from cached tracks without rerunning track sizing", () => {
     const before = buildGridEngineTree();
     const cache = createIncrementalLayoutCache(before);
-    const next = updateNode(before, "item-c", (node) => ({
+    const next = updateLayoutNode(before, "item-c", (node) => ({
       ...node,
       style: {
         ...node.style,
@@ -201,7 +193,7 @@ describe("incremental layout execution", () => {
       nodeId: "root",
       field: "height",
     });
-    const resizedChild = updateNode(fixedRoot, "child", (node) => ({
+    const resizedChild = updateLayoutNode(fixedRoot, "child", (node) => ({
       ...node,
       style: {...node.style, height: 40},
     }));
@@ -221,7 +213,7 @@ describe("incremental layout execution", () => {
   test("fails closed for an invalid style on a structurally shared mutation path", () => {
     const before = buildBlockLayoutTree();
     const cache = createIncrementalLayoutCache(before);
-    const next = updateNode(before, "content", (node) => ({
+    const next = updateLayoutNode(before, "content", (node) => ({
       ...node,
       style: {...node.style, marginBlockBefore: -1},
     }));
@@ -236,7 +228,7 @@ describe("incremental layout execution", () => {
   test("fails closed when the declared mutation does not match the tree diff", () => {
     const before = buildFlexEngineTree();
     const cache = createIncrementalLayoutCache(before);
-    const next = updateNode(before, "item-b", (node) => ({
+    const next = updateLayoutNode(before, "item-b", (node) => ({
       ...node,
       style: {...node.style, flexItem: {...node.style.flexItem!, grow: 3}},
     }));
