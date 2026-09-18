@@ -3,7 +3,7 @@
 import {useState} from "react";
 import {createIncrementalLayoutCache, recomputeIncrementalLayout} from "@/lib/incremental-layout";
 import {buildGridEngineTree} from "@/lib/layout-engine-fixtures";
-import {buildBlockLayoutTree, buildFlexLayoutTree, flattenLayoutTree, type LayoutNode} from "@/lib/layout-tree";
+import {buildBlockLayoutTree, buildFlexLayoutTree, flattenLayoutTree, updateLayoutNode, type LayoutNode} from "@/lib/layout-tree";
 import {
   buildLayoutInvalidationGraph,
   planLayoutInvalidation,
@@ -20,14 +20,6 @@ type MutationPreset = {
   apply?: (tree: LayoutNode) => LayoutNode;
 };
 
-function updateNode(root: LayoutNode, nodeId: string, update: (node: LayoutNode) => LayoutNode): LayoutNode {
-  if (root.id === nodeId) return update(root);
-  return {
-    ...root,
-    children: root.children.map((child) => updateNode(child, nodeId, update)),
-  };
-}
-
 const presets: Record<InvalidationScenario, readonly MutationPreset[]> = {
   block: [
     {
@@ -35,21 +27,21 @@ const presets: Record<InvalidationScenario, readonly MutationPreset[]> = {
       label: "Content height changes",
       summary: "Recompute the changed block, later sibling positions, and auto-height ancestors; earlier siblings stay reusable.",
       mutation: {kind: "style", nodeId: "content", field: "height"},
-      apply: (tree) => updateNode(tree, "content", (node) => ({...node, style: {...node.style, height: 180}})),
+      apply: (tree) => updateLayoutNode(tree, "content", (node) => ({...node, style: {...node.style, height: 180}})),
     },
     {
       id: "content-width",
       label: "Content width changes",
       summary: "The current numeric block baseline has no text reflow, so width changes stay local to Content geometry.",
       mutation: {kind: "style", nodeId: "content", field: "width"},
-      apply: (tree) => updateNode(tree, "content", (node) => ({...node, style: {...node.style, width: 300}})),
+      apply: (tree) => updateLayoutNode(tree, "content", (node) => ({...node, style: {...node.style, width: 300}})),
     },
     {
       id: "content-margin-after",
       label: "Content trailing margin changes",
       summary: "Invalidation begins at the following Footer position and propagates through the parent flow extent.",
       mutation: {kind: "style", nodeId: "content", field: "marginBlockAfter"},
-      apply: (tree) => updateNode(tree, "content", (node) => ({...node, style: {...node.style, marginBlockAfter: 40}})),
+      apply: (tree) => updateLayoutNode(tree, "content", (node) => ({...node, style: {...node.style, marginBlockAfter: 40}})),
     },
     {
       id: "reorder",
@@ -64,7 +56,7 @@ const presets: Record<InvalidationScenario, readonly MutationPreset[]> = {
       label: "Item B flex-grow changes",
       summary: "The Flex line is the dependency boundary: all item main sizes and positions may change, but cross sizes remain reusable.",
       mutation: {kind: "style", nodeId: "item-b", field: "flexItem.grow"},
-      apply: (tree) => updateNode(tree, "item-b", (node) => ({
+      apply: (tree) => updateLayoutNode(tree, "item-b", (node) => ({
         ...node,
         style: {...node.style, flexItem: {...node.style.flexItem!, grow: 3}},
       })),
@@ -74,14 +66,14 @@ const presets: Record<InvalidationScenario, readonly MutationPreset[]> = {
       label: "Item B height changes",
       summary: "Cross-size invalidation bypasses main-axis Flex resolution and reaches only Item B plus the auto-height root.",
       mutation: {kind: "style", nodeId: "item-b", field: "height"},
-      apply: (tree) => updateNode(tree, "item-b", (node) => ({...node, style: {...node.style, height: 104}})),
+      apply: (tree) => updateLayoutNode(tree, "item-b", (node) => ({...node, style: {...node.style, height: 104}})),
     },
     {
       id: "width-ignored",
       label: "Item B width changes",
       summary: "Width is deliberately ignored by the current Flex subset; flex-basis remains authoritative, so no layout phase is dirty.",
       mutation: {kind: "style", nodeId: "item-b", field: "width"},
-      apply: (tree) => updateNode(tree, "item-b", (node) => ({...node, style: {...node.style, width: 999}})),
+      apply: (tree) => updateLayoutNode(tree, "item-b", (node) => ({...node, style: {...node.style, width: 999}})),
     },
     {
       id: "insert",
@@ -96,7 +88,7 @@ const presets: Record<InvalidationScenario, readonly MutationPreset[]> = {
       label: "Spanning contribution changes",
       summary: "The changed contribution feeds Grid track sizing, so every item using those resolved tracks becomes dirty.",
       mutation: {kind: "style", nodeId: "span-ab", field: "gridItem.minContribution"},
-      apply: (tree) => updateNode(tree, "span-ab", (node) => ({
+      apply: (tree) => updateLayoutNode(tree, "span-ab", (node) => ({
         ...node,
         style: {...node.style, gridItem: {...node.style.gridItem!, minContribution: 340}},
       })),
@@ -106,7 +98,7 @@ const presets: Record<InvalidationScenario, readonly MutationPreset[]> = {
       label: "C placement changes",
       summary: "C has no sizing contribution, so changing its explicit column placement invalidates C geometry without rerunning track sizing.",
       mutation: {kind: "style", nodeId: "item-c", field: "gridItem.columnStart"},
-      apply: (tree) => updateNode(tree, "item-c", (node) => ({
+      apply: (tree) => updateLayoutNode(tree, "item-c", (node) => ({
         ...node,
         style: {...node.style, gridItem: {...node.style.gridItem!, columnStart: 1}},
       })),
@@ -116,7 +108,7 @@ const presets: Record<InvalidationScenario, readonly MutationPreset[]> = {
       label: "C max-width changes",
       summary: "The current Grid subset derives item width from tracks and deliberately ignores item max-width, producing an empty dirty set.",
       mutation: {kind: "style", nodeId: "item-c", field: "maxWidth"},
-      apply: (tree) => updateNode(tree, "item-c", (node) => ({...node, style: {...node.style, maxWidth: 20}})),
+      apply: (tree) => updateLayoutNode(tree, "item-c", (node) => ({...node, style: {...node.style, maxWidth: 20}})),
     },
     {
       id: "reorder",
