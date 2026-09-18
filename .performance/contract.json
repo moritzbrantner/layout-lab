@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "suite": "layout-lab/algorithmic-work-v2",
+  "description": "Deterministic layout work contracts covering incremental orchestration, layered graph layout, and paragraph line breaking. Shared-runner wall-clock timing is intentionally excluded from blocking smoke evidence.",
+  "scenarios": [
+    {
+      "id": "incremental-layout-orchestration",
+      "kind": "journey",
+      "description": "Replay 1,000 local style mutations plus two dependency-topology width transitions on a 409-node block tree while preserving clean-layout equivalence.",
+      "dimensions": {
+        "nodes": 409,
+        "mutations": 1002,
+        "local_mutations": 1000,
+        "topology_mutations": 2
+      },
+      "correctnessEvidence": [
+        "incremental geometry equals clean block layout",
+        "immutable structural-sharing mutation provenance is verified"
+      ],
+      "metrics": [
+        {
+          "name": "boundaryNodeVisits",
+          "unit": "node-visits",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"relativeRegressionPercent": 5}
+        },
+        {
+          "name": "provenanceComparisons",
+          "unit": "comparisons",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"relativeRegressionPercent": 5}
+        },
+        {
+          "name": "invalidationPhaseVisits",
+          "unit": "phase-visits",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"relativeRegressionPercent": 5}
+        },
+        {
+          "name": "invalidationEdgeTraversals",
+          "unit": "edge-traversals",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"relativeRegressionPercent": 5}
+        },
+        {
+          "name": "graphRebuilds",
+          "unit": "rebuilds",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"max": 2}
+        },
+        {
+          "name": "executorVisits",
+          "unit": "node-visits",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"relativeRegressionPercent": 5}
+        },
+        {
+          "name": "recomputedNodes",
+          "unit": "nodes",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"relativeRegressionPercent": 5}
+        }
+      ]
+    },
+    {
+      "id": "sugiyama-layered-dag",
+      "kind": "scaling",
+      "description": "Lay out a deterministic 320-node, 600-edge layered DAG for 25 runs.",
+      "dimensions": {
+        "layers": 16,
+        "nodes_per_layer": 20,
+        "nodes": 320,
+        "edges": 600,
+        "sweeps": 6,
+        "runs": 25
+      },
+      "correctnessEvidence": [
+        "identical ranks, layer orders, crossings, and comparison counts across runs"
+      ],
+      "metrics": [
+        {
+          "name": "crossingComparisonsPerRun",
+          "unit": "comparisons",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"relativeRegressionPercent": 5}
+        }
+      ]
+    },
+    {
+      "id": "knuth-plass-box-glue",
+      "kind": "scaling",
+      "description": "Break 168 deterministic words for 20 runs while tracking dynamic-programming work.",
+      "dimensions": {
+        "words": 168,
+        "runs": 20
+      },
+      "correctnessEvidence": [
+        "identical line breaks, demerits, candidate evaluations, and dynamic states across runs"
+      ],
+      "metrics": [
+        {
+          "name": "candidateEvaluationsPerRun",
+          "unit": "evaluations",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"relativeRegressionPercent": 5}
+        },
+        {
+          "name": "dynamicStatesPerRun",
+          "unit": "states",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"relativeRegressionPercent": 5}
+        }
+      ]
+    }
+  ]
+}
