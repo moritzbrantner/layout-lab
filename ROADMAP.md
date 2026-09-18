@@ -87,7 +87,7 @@ Build a common experiment contract so substantially different layout algorithms 
 - [x] Add deterministic mutation workloads for resize, content changes, insertion, removal, and reordering
 - [x] Measure relayout work by visited nodes and algorithm iterations before adding wall-clock claims
 - [x] Treat immutable, structurally shared tree snapshots as part of the incremental contract
-- [ ] Extend deterministic work evidence to include mutation verification and invalidation-planning work, not only recomputation/solver work
+- [x] Extend deterministic work evidence to include mutation verification, invalidation planning, and dependency-graph refresh work
 
 ## H9 — Differential and conformance laboratory
 
