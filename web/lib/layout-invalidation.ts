@@ -56,11 +56,17 @@ export type LayoutMutation =
   | {kind: "style"; nodeId: string; field: LayoutMutationField}
   | {kind: "children"; parentId: string; operation: "insert" | "remove" | "reorder"};
 
+export type LayoutInvalidationWork = {
+  phaseVisits: number;
+  edgeTraversals: number;
+};
+
 export type LayoutInvalidationPlan = {
   mutation: LayoutMutation;
   seedPhaseIds: readonly string[];
   dirtyPhaseIds: readonly string[];
   requiresGraphRebuild: boolean;
+  work: LayoutInvalidationWork;
 };
 
 type InvalidationTraversalIndex = {
@@ -342,28 +348,38 @@ function downstream(graph: LayoutInvalidationGraph, seedIds: readonly string[]) 
   const dirty: string[] = [];
   const seen = new Set<string>();
   const queue = [...seedIds];
+  let phaseVisits = 0;
+  let edgeTraversals = 0;
 
   for (let cursor = 0; cursor < queue.length; cursor += 1) {
     const current = queue[cursor]!;
     if (seen.has(current)) continue;
     if (!phaseIds.has(current)) throw new Error(`unknown invalidation phase: ${current}`);
+    phaseVisits += 1;
     addUnique(dirty, seen, current);
-    (outgoingByPhaseId.get(current) ?? []).forEach((target) => {
+    const targets = outgoingByPhaseId.get(current) ?? [];
+    edgeTraversals += targets.length;
+    targets.forEach((target) => {
       if (!seen.has(target)) queue.push(target);
     });
   }
-  return dirty;
+  return {
+    dirtyPhaseIds: dirty,
+    work: {phaseVisits, edgeTraversals},
+  };
 }
 
 export function planLayoutInvalidation(graph: LayoutInvalidationGraph, mutation: LayoutMutation): LayoutInvalidationPlan {
   const seedPhaseIds = mutation.kind === "style"
     ? styleMutationSeeds(graph, mutation.nodeId, mutation.field)
     : childMutationSeeds(graph, mutation.parentId);
+  const downstreamResult = downstream(graph, seedPhaseIds);
 
   return {
     mutation,
     seedPhaseIds,
-    dirtyPhaseIds: downstream(graph, seedPhaseIds),
+    dirtyPhaseIds: downstreamResult.dirtyPhaseIds,
     requiresGraphRebuild: mutation.kind === "children",
+    work: downstreamResult.work,
   };
 }
