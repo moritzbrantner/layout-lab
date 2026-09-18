@@ -77,6 +77,23 @@ export type GridTreeAdapterResult = {
   contributions: readonly GridSpanContribution[];
 };
 
+export function updateLayoutNode(
+  root: LayoutNode,
+  nodeId: string,
+  update: (node: LayoutNode) => LayoutNode,
+): LayoutNode {
+  if (root.id === nodeId) return update(root);
+
+  let changed = false;
+  const children = root.children.map((child) => {
+    const next = updateLayoutNode(child, nodeId, update);
+    changed ||= next !== child;
+    return next;
+  });
+
+  return changed ? {...root, children} : root;
+}
+
 function finiteNonNegative(value: number | undefined) {
   return value === undefined || (Number.isFinite(value) && value >= 0);
 }
