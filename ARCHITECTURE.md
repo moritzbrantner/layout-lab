@@ -17,6 +17,7 @@ Layout Lab deliberately keeps layout semantics separate from experiments, cachin
 
 - Keep a clean full-layout path as the correctness reference while incremental or specialized paths are optimized.
 - Caches are derived and discardable. They must never become a second source of semantic state.
+- Layout-tree snapshots are immutable. Mutations create new objects along the changed path so invalidation provenance can be verified without turning the happy path into a full-tree scan.
 - Structural mutations remain an explicit invalidation-graph rebuild boundary until a structurally incremental algorithm is implemented and proved equivalent.
 - Preserve deterministic ordering, tie-breaking, and replayable inputs. Seed optional stochastic algorithms.
 - Compare optimized and clean execution on identical inputs. Differential equivalence is a correctness gate, not a benchmark.
