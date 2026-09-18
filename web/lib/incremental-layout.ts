@@ -49,6 +49,11 @@ export type IncrementalLayoutWork = {
   visitedNodes: number;
   reusedNodes: number;
   solverPasses: number;
+  boundaryNodeVisits: number;
+  provenanceComparisons: number;
+  invalidationPhaseVisits: number;
+  invalidationEdgeTraversals: number;
+  graphRebuilds: number;
 };
 
 export type IncrementalLayoutResult = {
@@ -74,7 +79,18 @@ function contextForTree(root: LayoutNode): IncrementalLayoutContext {
   return "grid";
 }
 
-function sameTreeShape(left: LayoutNode, right: LayoutNode, seen = new WeakSet<object>()): boolean {
+type IncrementalBoundaryWork = {
+  nodeVisits: number;
+  provenanceComparisons: number;
+};
+
+function sameTreeShape(
+  left: LayoutNode,
+  right: LayoutNode,
+  work: IncrementalBoundaryWork,
+  seen = new WeakSet<object>(),
+): boolean {
+  work.nodeVisits += 1;
   if (left === right) return true;
   if (seen.has(right)) return false;
   seen.add(right);
@@ -82,14 +98,15 @@ function sameTreeShape(left: LayoutNode, right: LayoutNode, seen = new WeakSet<o
     return false;
   }
   for (let index = 0; index < left.children.length; index += 1) {
-    if (!sameTreeShape(left.children[index]!, right.children[index]!, seen)) return false;
+    if (!sameTreeShape(left.children[index]!, right.children[index]!, work, seen)) return false;
   }
   return true;
 }
 
-function validateChangedLayoutNodes(previous: LayoutNode, next: LayoutNode) {
+function validateChangedLayoutNodes(previous: LayoutNode, next: LayoutNode, work: IncrementalBoundaryWork) {
   const errors: string[] = [];
   const visit = (left: LayoutNode, right: LayoutNode) => {
+    work.nodeVisits += 1;
     if (left === right) return;
     errors.push(...validateLayoutNodeShallow(right));
     for (let index = 0; index < left.children.length; index += 1) {
@@ -182,13 +199,19 @@ function mutationCanChangeInvalidationGraph(mutation: LayoutMutation) {
     || mutation.field === "gridItem.minContribution";
 }
 
-function semanticDiffPaths(left: unknown, right: unknown, path = ""): string[] {
+function semanticDiffPaths(
+  left: unknown,
+  right: unknown,
+  work: IncrementalBoundaryWork,
+  path = "",
+): string[] {
+  work.provenanceComparisons += 1;
   if (Object.is(left, right)) return [];
 
   if (Array.isArray(left) && Array.isArray(right)) {
     if (left.length !== right.length) return [path];
     for (let index = 0; index < left.length; index += 1) {
-      if (semanticDiffPaths(left[index], right[index], path).length > 0) return [path];
+      if (semanticDiffPaths(left[index], right[index], work, path).length > 0) return [path];
     }
     return [];
   }
@@ -206,6 +229,7 @@ function semanticDiffPaths(left: unknown, right: unknown, path = ""): string[] {
       differences.push(...semanticDiffPaths(
         leftValue,
         rightValue,
+        work,
         path ? `${path}.${key}` : key,
       ));
     });
@@ -215,15 +239,21 @@ function semanticDiffPaths(left: unknown, right: unknown, path = ""): string[] {
   return [path || "<root>"];
 }
 
-function assertDeclaredStyleMutation(previous: LayoutNode, next: LayoutNode, mutation: Extract<LayoutMutation, {kind: "style"}>) {
+function assertDeclaredStyleMutation(
+  previous: LayoutNode,
+  next: LayoutNode,
+  mutation: Extract<LayoutMutation, {kind: "style"}>,
+  work: IncrementalBoundaryWork,
+) {
   const changes: Array<{nodeId: string; field: string}> = [];
 
   const visit = (left: LayoutNode, right: LayoutNode) => {
+    work.nodeVisits += 1;
     if (left === right) return;
     if (left.label !== right.label) {
       throw new Error(`${right.id}: incremental layout does not support undeclared label changes`);
     }
-    semanticDiffPaths(left.style, right.style).forEach((field) => {
+    semanticDiffPaths(left.style, right.style, work).forEach((field) => {
       changes.push({nodeId: right.id, field});
     });
     for (let index = 0; index < left.children.length; index += 1) {
@@ -280,9 +310,10 @@ export function createIncrementalLayoutCache(tree: LayoutNode): IncrementalLayou
 }
 
 function assertIncrementalBoundary(cache: IncrementalLayoutCache, nextTree: LayoutNode, mutation: LayoutMutation) {
-  const shapeMatches = sameTreeShape(cache.tree, nextTree);
+  const work: IncrementalBoundaryWork = {nodeVisits: 0, provenanceComparisons: 0};
+  const shapeMatches = sameTreeShape(cache.tree, nextTree, work);
   const errors = shapeMatches
-    ? validateChangedLayoutNodes(cache.tree, nextTree)
+    ? validateChangedLayoutNodes(cache.tree, nextTree, work)
     : validateLayoutTree(nextTree);
   if (errors.length > 0) throw new Error(errors.join("; "));
   if (mutation.kind === "children") {
@@ -294,7 +325,8 @@ function assertIncrementalBoundary(cache: IncrementalLayoutCache, nextTree: Layo
   if (!shapeMatches) {
     throw new Error("incremental style execution requires an unchanged layout-tree shape");
   }
-  assertDeclaredStyleMutation(cache.tree, nextTree, mutation);
+  assertDeclaredStyleMutation(cache.tree, nextTree, mutation, work);
+  return work;
 }
 
 function recomputeBlock(
@@ -517,7 +549,7 @@ export function recomputeIncrementalLayout(
   nextTree: LayoutNode,
   mutation: LayoutMutation,
 ): IncrementalLayoutResult {
-  assertIncrementalBoundary(cache, nextTree, mutation);
+  const boundaryWork = assertIncrementalBoundary(cache, nextTree, mutation);
   const indexes = indexesForCache(cache);
   const graph = indexes.graph;
   const plan = planLayoutInvalidation(graph, mutation);
@@ -570,6 +602,7 @@ export function recomputeIncrementalLayout(
   const nextGraph = mutationCanChangeInvalidationGraph(mutation)
     ? buildLayoutInvalidationGraph(nextTree)
     : graph;
+  const graphRebuilds = nextGraph === graph ? 0 : 1;
   cacheIndexes.set(nextCache, {
     graph: nextGraph,
     nodeIds: indexes.nodeIds,
@@ -590,6 +623,11 @@ export function recomputeIncrementalLayout(
       visitedNodes,
       reusedNodes: sets.reusedNodeIds.length,
       solverPasses,
+      boundaryNodeVisits: boundaryWork.nodeVisits,
+      provenanceComparisons: boundaryWork.provenanceComparisons,
+      invalidationPhaseVisits: plan.work.phaseVisits,
+      invalidationEdgeTraversals: plan.work.edgeTraversals,
+      graphRebuilds,
     },
   };
 }
