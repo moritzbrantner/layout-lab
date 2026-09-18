@@ -7,6 +7,7 @@
     "test": "bun test",
     "build": "next build",
     "typecheck": "tsc --noEmit",
+    "contract:portable:check": "bun run scripts/generate-portable-layout-contract.ts --check",
     "benchmark:smoke": "bun run scripts/performance-smoke.ts",
     "benchmark:cassowary": "bun run scripts/cassowary-benchmark.ts",
     "benchmark:incremental-layout": "bun run scripts/incremental-layout-benchmark.ts",
