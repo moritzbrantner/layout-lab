@@ -1,25 +1,28 @@
-import {resolveAdjacentPositiveMargins} from "./flow-formatting";
 import {
   resolveFlexLine,
   resolveMinMaxFractionTracks,
   type FlexLineResolution,
   type MinMaxGridResolution,
 } from "./layout-analysis";
+import {
+  flattenLayoutBoxes,
+  maxChildBlockSize,
+  resolveBlockSiblingGap,
+  resolveFlexItemRect,
+  resolveGridItemRect,
+  resolveGridTrackStarts,
+  resolveLayoutHeight,
+  resolveLayoutWidth,
+  type LayoutBox,
+} from "./layout-geometry";
 import {adaptFlexTree, adaptGridTree, validateLayoutTree, type LayoutNode} from "./layout-tree";
 
-export type LayoutRect = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
-
-export type LayoutBox = {
-  id: string;
-  label: string;
-  rect: LayoutRect;
-  children: readonly LayoutBox[];
-};
+export {
+  flattenLayoutBoxes,
+  resolveLayoutHeight,
+  resolveLayoutWidth,
+} from "./layout-geometry";
+export type {LayoutBox, LayoutRect} from "./layout-geometry";
 
 export type MarginCollapseEvidence = {
   beforeId: string;
@@ -50,30 +53,6 @@ export type GridLayoutResult = {
   resolution: MinMaxGridResolution;
   trackStarts: readonly number[];
 };
-
-function clamp(value: number, minimum = 0, maximum = Number.POSITIVE_INFINITY) {
-  return Math.min(Math.max(value, minimum), maximum);
-}
-
-export function resolveLayoutWidth(node: LayoutNode, containingWidth: number) {
-  const candidate = node.style.width ?? containingWidth;
-  return clamp(candidate, node.style.minWidth ?? 0, node.style.maxWidth ?? Number.POSITIVE_INFINITY);
-}
-
-export function resolveLayoutHeight(node: LayoutNode, contentHeight: number) {
-  const candidate = node.style.height ?? contentHeight;
-  return clamp(candidate, node.style.minHeight ?? 0, node.style.maxHeight ?? Number.POSITIVE_INFINITY);
-}
-
-export function flattenLayoutBoxes(root: LayoutBox) {
-  const boxes: LayoutBox[] = [];
-  const visit = (box: LayoutBox) => {
-    boxes.push(box);
-    box.children.forEach(visit);
-  };
-  visit(root);
-  return boxes;
-}
 
 function assertBlockOnly(node: LayoutNode) {
   if (node.style.display !== "block") {
@@ -109,12 +88,7 @@ export function layoutBlockTree(root: LayoutNode): BlockLayoutResult {
       let gap = before;
 
       if (index > 0 && previousChildId !== null) {
-        const collapsed = resolveAdjacentPositiveMargins({
-          mode: "collapse",
-          before: previousAfter,
-          after: before,
-        });
-        gap = collapsed.gap;
+        gap = resolveBlockSiblingGap(previousAfter, before);
         marginCollapses.push({
           beforeId: previousChildId,
           afterId: child.id,
@@ -171,24 +145,17 @@ export function layoutFlexTree(root: LayoutNode): FlexLayoutResult {
   let cursor = 0;
   const children = root.children.map((child, index): LayoutBox => {
     const item = resolution.items[index]!;
-    const height = resolveLayoutHeight(child, 0);
     const box: LayoutBox = {
       id: child.id,
       label: child.label,
-      rect: {
-        x: cursor,
-        y: 0,
-        width: item.targetSize,
-        height,
-      },
+      rect: resolveFlexItemRect(child, cursor, item.targetSize),
       children: [],
     };
     cursor += item.targetSize + input.gapSize;
     return box;
   });
 
-  const derivedHeight = children.reduce((maximum, child) => Math.max(maximum, child.rect.height), 0);
-  const rootHeight = resolveLayoutHeight(root, derivedHeight);
+  const rootHeight = resolveLayoutHeight(root, maxChildBlockSize(children));
   const rootBox: LayoutBox = {
     id: root.id,
     label: root.label,
@@ -231,36 +198,18 @@ export function layoutGridTree(root: LayoutNode): GridLayoutResult {
   });
 
   const resolution = resolveMinMaxFractionTracks(input);
-  const trackStarts: number[] = [];
-  let cursor = 0;
-  resolution.tracks.forEach((track) => {
-    trackStarts.push(cursor);
-    cursor += track.targetSize + input.gapSize;
-  });
+  const trackStarts = resolveGridTrackStarts(resolution, input.gapSize);
 
   const children = root.children.map((child): LayoutBox => {
-    const item = child.style.gridItem!;
-    const end = item.columnStart + item.columnSpan;
-    let width = Math.max(0, item.columnSpan - 1) * input.gapSize;
-    for (let index = item.columnStart; index < end; index += 1) {
-      width += resolution.tracks[index]!.targetSize;
-    }
-
     return {
       id: child.id,
       label: child.label,
-      rect: {
-        x: trackStarts[item.columnStart]!,
-        y: 0,
-        width,
-        height: resolveLayoutHeight(child, 0),
-      },
+      rect: resolveGridItemRect(child, resolution, trackStarts, input.gapSize),
       children: [],
     };
   });
 
-  const derivedHeight = children.reduce((maximum, child) => Math.max(maximum, child.rect.height), 0);
-  const rootHeight = resolveLayoutHeight(root, derivedHeight);
+  const rootHeight = resolveLayoutHeight(root, maxChildBlockSize(children));
   const rootBox: LayoutBox = {
     id: root.id,
     label: root.label,
