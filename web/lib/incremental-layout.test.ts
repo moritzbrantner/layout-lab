@@ -233,6 +233,21 @@ describe("incremental layout execution", () => {
     })).toThrow("marginBlockBefore must be finite and non-negative");
   });
 
+  test("fails closed when the declared mutation does not match the tree diff", () => {
+    const before = buildFlexEngineTree();
+    const cache = createIncrementalLayoutCache(before);
+    const next = updateNode(before, "item-b", (node) => ({
+      ...node,
+      style: {...node.style, flexItem: {...node.style.flexItem!, grow: 3}},
+    }));
+
+    expect(() => recomputeIncrementalLayout(cache, next, {
+      kind: "style",
+      nodeId: "item-b",
+      field: "height",
+    })).toThrow("declared style mutation item-b.height does not match layout-tree change: item-b.flexItem.grow");
+  });
+
   test("fails closed when a style mutation is paired with a structural change", () => {
     const before = buildFlexEngineTree();
     const cache = createIncrementalLayoutCache(before);
