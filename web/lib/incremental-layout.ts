@@ -253,6 +253,7 @@ function assertDeclaredStyleMutation(previous: LayoutNode, next: LayoutNode, mut
   const changes: Array<{nodeId: string; field: ComparableStyleField}> = [];
 
   const visit = (left: LayoutNode, right: LayoutNode) => {
+    if (left === right) return;
     if (left.label !== right.label) {
       throw new Error(`${right.id}: incremental layout does not support undeclared label changes`);
     }
