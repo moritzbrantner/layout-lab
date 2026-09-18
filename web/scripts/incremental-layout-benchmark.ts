@@ -1,6 +1,6 @@
 import {createIncrementalLayoutCache, recomputeIncrementalLayout} from "../lib/incremental-layout";
 import {layoutBlockTree} from "../lib/layout-engine";
-import type {LayoutNode} from "../lib/layout-tree";
+import {updateLayoutNode, type LayoutNode} from "../lib/layout-tree";
 
 const GROUP_COUNT = 24;
 const LEAVES_PER_GROUP = 16;
@@ -23,17 +23,6 @@ function buildTree(): LayoutNode {
       })),
     })),
   };
-}
-
-function updateNode(root: LayoutNode, nodeId: string, update: (node: LayoutNode) => LayoutNode): LayoutNode {
-  if (root.id === nodeId) return update(root);
-  let changed = false;
-  const children = root.children.map((child) => {
-    const next = updateNode(child, nodeId, update);
-    changed ||= next !== child;
-    return next;
-  });
-  return changed ? {...root, children} : root;
 }
 
 function signature(tree: LayoutNode) {
@@ -64,7 +53,7 @@ for (let mutationIndex = 0; mutationIndex < MUTATIONS; mutationIndex += 1) {
   const leafIndex = Math.floor(mutationIndex / GROUP_COUNT) % LEAVES_PER_GROUP;
   const nodeId = `leaf-${groupIndex}-${leafIndex}`;
   const marginBlockBefore = mutationIndex % 2 === 0 ? 1 : 2;
-  const nextTree = updateNode(tree, nodeId, (node) => ({
+  const nextTree = updateLayoutNode(tree, nodeId, (node) => ({
     ...node,
     style: {...node.style, marginBlockBefore},
   }));
