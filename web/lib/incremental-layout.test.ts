@@ -146,6 +146,31 @@ describe("incremental layout execution", () => {
     expect(incremental.cache.gridTrackStarts).toEqual(clean.trackStarts);
   });
 
+  test("accepts a declared Grid track-list mutation as one semantic field", () => {
+    const before = buildGridEngineTree();
+    const cache = createIncrementalLayoutCache(before);
+    const columns = before.style.gridContainer!.columns.map((track, index) => (
+      index === 0 ? {...track, minSize: track.minSize + 12} : track
+    ));
+    const next: LayoutNode = {
+      ...before,
+      style: {
+        ...before.style,
+        gridContainer: {...before.style.gridContainer!, columns},
+      },
+    };
+
+    const incremental = recomputeIncrementalLayout(cache, next, {
+      kind: "style",
+      nodeId: "root",
+      field: "gridContainer.columns",
+    });
+    const clean = layoutGridTree(next);
+
+    expect(geometry(incremental.cache.boxes)).toEqual(geometry(clean.boxes));
+    expect(incremental.work.solverPasses).toBe(1);
+  });
+
   test("moves one Grid item from cached tracks without rerunning track sizing", () => {
     const before = buildGridEngineTree();
     const cache = createIncrementalLayoutCache(before);
