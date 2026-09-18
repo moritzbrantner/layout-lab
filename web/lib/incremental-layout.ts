@@ -22,6 +22,7 @@ import {
   type LayoutInvalidationGraph,
   type LayoutInvalidationPlan,
   type LayoutMutation,
+  type LayoutMutationField,
 } from "./layout-invalidation";
 import {
   adaptFlexTree,
@@ -29,6 +30,7 @@ import {
   validateLayoutNodeShallow,
   validateLayoutTree,
   type LayoutNode,
+  type LayoutStyle,
 } from "./layout-tree";
 
 export type IncrementalLayoutContext = "block" | "flex" | "grid";
@@ -182,6 +184,97 @@ function mutationCanChangeInvalidationGraph(mutation: LayoutMutation) {
     || mutation.field === "gridItem.minContribution";
 }
 
+type ComparableStyleField = LayoutMutationField | "flexContainer.direction";
+
+const comparableStyleFields: readonly ComparableStyleField[] = [
+  "width",
+  "minWidth",
+  "maxWidth",
+  "height",
+  "minHeight",
+  "maxHeight",
+  "marginBlockBefore",
+  "marginBlockAfter",
+  "flexContainer.gap",
+  "flexContainer.direction",
+  "flexItem.basis",
+  "flexItem.grow",
+  "flexItem.shrink",
+  "gridContainer.gap",
+  "gridContainer.columns",
+  "gridItem.columnStart",
+  "gridItem.columnSpan",
+  "gridItem.minContribution",
+];
+
+function gridColumnsEqual(left: LayoutStyle, right: LayoutStyle) {
+  const leftColumns = left.gridContainer?.columns;
+  const rightColumns = right.gridContainer?.columns;
+  if (leftColumns === rightColumns) return true;
+  if (!leftColumns || !rightColumns || leftColumns.length !== rightColumns.length) return false;
+  return leftColumns.every((track, index) => {
+    const other = rightColumns[index];
+    return other !== undefined
+      && track.label === other.label
+      && track.minSize === other.minSize
+      && track.fr === other.fr;
+  });
+}
+
+function styleFieldEqual(left: LayoutStyle, right: LayoutStyle, field: ComparableStyleField) {
+  if (field === "gridContainer.columns") return gridColumnsEqual(left, right);
+
+  const values = (style: LayoutStyle) => {
+    switch (field) {
+      case "width": return style.width;
+      case "minWidth": return style.minWidth;
+      case "maxWidth": return style.maxWidth;
+      case "height": return style.height;
+      case "minHeight": return style.minHeight;
+      case "maxHeight": return style.maxHeight;
+      case "marginBlockBefore": return style.marginBlockBefore;
+      case "marginBlockAfter": return style.marginBlockAfter;
+      case "flexContainer.gap": return style.flexContainer?.gap;
+      case "flexContainer.direction": return style.flexContainer?.direction;
+      case "flexItem.basis": return style.flexItem?.basis;
+      case "flexItem.grow": return style.flexItem?.grow;
+      case "flexItem.shrink": return style.flexItem?.shrink;
+      case "gridContainer.gap": return style.gridContainer?.gap;
+      case "gridItem.columnStart": return style.gridItem?.columnStart;
+      case "gridItem.columnSpan": return style.gridItem?.columnSpan;
+      case "gridItem.minContribution": return style.gridItem?.minContribution;
+      case "gridContainer.columns": return undefined;
+    }
+  };
+
+  return Object.is(values(left), values(right));
+}
+
+function assertDeclaredStyleMutation(previous: LayoutNode, next: LayoutNode, mutation: Extract<LayoutMutation, {kind: "style"}>) {
+  const changes: Array<{nodeId: string; field: ComparableStyleField}> = [];
+
+  const visit = (left: LayoutNode, right: LayoutNode) => {
+    if (left.label !== right.label) {
+      throw new Error(`${right.id}: incremental layout does not support undeclared label changes`);
+    }
+    comparableStyleFields.forEach((field) => {
+      if (!styleFieldEqual(left.style, right.style, field)) changes.push({nodeId: right.id, field});
+    });
+    for (let index = 0; index < left.children.length; index += 1) {
+      visit(left.children[index]!, right.children[index]!);
+    }
+  };
+  visit(previous, next);
+
+  if (changes.length === 0) return;
+  if (changes.length === 1 && changes[0]!.nodeId === mutation.nodeId && changes[0]!.field === mutation.field) return;
+
+  const actual = changes.map((change) => `${change.nodeId}.${change.field}`).join(", ");
+  throw new Error(
+    `declared style mutation ${mutation.nodeId}.${mutation.field} does not match layout-tree change: ${actual || "none"}`,
+  );
+}
+
 export function createIncrementalLayoutCache(tree: LayoutNode): IncrementalLayoutCache {
   const context = contextForTree(tree);
   let cache: IncrementalLayoutCache;
@@ -235,6 +328,7 @@ function assertIncrementalBoundary(cache: IncrementalLayoutCache, nextTree: Layo
   if (!shapeMatches) {
     throw new Error("incremental style execution requires an unchanged layout-tree shape");
   }
+  assertDeclaredStyleMutation(cache.tree, nextTree, mutation);
 }
 
 function recomputeBlock(
