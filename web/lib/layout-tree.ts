@@ -3,57 +3,57 @@ import type {FlexItemInput, GridSpanContribution, GridTrackInput} from "./layout
 export type LayoutDisplay = "block" | "flex" | "grid";
 
 export type LayoutBoxStyle = {
-  width?: number;
-  minWidth?: number;
-  maxWidth?: number;
-  height?: number;
-  minHeight?: number;
-  maxHeight?: number;
-  marginBlockBefore?: number;
-  marginBlockAfter?: number;
+  readonly width?: number;
+  readonly minWidth?: number;
+  readonly maxWidth?: number;
+  readonly height?: number;
+  readonly minHeight?: number;
+  readonly maxHeight?: number;
+  readonly marginBlockBefore?: number;
+  readonly marginBlockAfter?: number;
 };
 
 export type LayoutFlexContainerStyle = {
-  gap: number;
-  direction: "row" | "column";
+  readonly gap: number;
+  readonly direction: "row" | "column";
 };
 
 export type LayoutFlexItemStyle = {
-  basis: number;
-  grow: number;
-  shrink: number;
+  readonly basis: number;
+  readonly grow: number;
+  readonly shrink: number;
 };
 
 export type LayoutGridTrack = {
-  label: string;
-  minSize: number;
-  fr: number;
+  readonly label: string;
+  readonly minSize: number;
+  readonly fr: number;
 };
 
 export type LayoutGridContainerStyle = {
-  gap: number;
-  columns: readonly LayoutGridTrack[];
+  readonly gap: number;
+  readonly columns: readonly LayoutGridTrack[];
 };
 
 export type LayoutGridItemStyle = {
-  columnStart: number;
-  columnSpan: number;
-  minContribution?: number;
+  readonly columnStart: number;
+  readonly columnSpan: number;
+  readonly minContribution?: number;
 };
 
 export type LayoutStyle = LayoutBoxStyle & {
-  display: LayoutDisplay;
-  flexContainer?: LayoutFlexContainerStyle;
-  flexItem?: LayoutFlexItemStyle;
-  gridContainer?: LayoutGridContainerStyle;
-  gridItem?: LayoutGridItemStyle;
+  readonly display: LayoutDisplay;
+  readonly flexContainer?: LayoutFlexContainerStyle;
+  readonly flexItem?: LayoutFlexItemStyle;
+  readonly gridContainer?: LayoutGridContainerStyle;
+  readonly gridItem?: LayoutGridItemStyle;
 };
 
 export type LayoutNode = {
-  id: string;
-  label: string;
-  style: LayoutStyle;
-  children: readonly LayoutNode[];
+  readonly id: string;
+  readonly label: string;
+  readonly style: LayoutStyle;
+  readonly children: readonly LayoutNode[];
 };
 
 export type LayoutTreeSnapshot = {
