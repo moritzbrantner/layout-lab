@@ -243,7 +243,6 @@ function styleFieldEqual(left: LayoutStyle, right: LayoutStyle, field: Comparabl
       case "gridItem.columnStart": return style.gridItem?.columnStart;
       case "gridItem.columnSpan": return style.gridItem?.columnSpan;
       case "gridItem.minContribution": return style.gridItem?.minContribution;
-      case "gridContainer.columns": return undefined;
     }
   };
 
