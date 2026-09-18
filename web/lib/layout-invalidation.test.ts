@@ -38,6 +38,7 @@ describe("layout invalidation graph", () => {
       "content:geometry",
     ]));
     expect(plan.requiresGraphRebuild).toBe(false);
+    expect(plan.work).toEqual({phaseVisits: 2, edgeTraversals: 1});
   });
 
   test("propagates a block height mutation only to later siblings and auto-height ancestors", () => {

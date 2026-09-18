@@ -30,6 +30,11 @@ describe("incremental layout execution", () => {
     expect(incremental.work.visitedNodes).toBe(4);
     expect(incremental.work.reusedNodes).toBe(1);
     expect(incremental.work.solverPasses).toBe(0);
+    expect(incremental.work.boundaryNodeVisits).toBeGreaterThan(0);
+    expect(incremental.work.provenanceComparisons).toBeGreaterThan(0);
+    expect(incremental.work.invalidationPhaseVisits).toBe(incremental.plan.dirtyPhaseIds.length);
+    expect(incremental.work.invalidationEdgeTraversals).toBeGreaterThan(0);
+    expect(incremental.work.graphRebuilds).toBe(0);
     expect(cache.boxes.find((box) => box.id === "content")?.rect.height).toBe(132);
   });
 
@@ -52,6 +57,7 @@ describe("incremental layout execution", () => {
     expect(incremental.recomputedNodeIds).toEqual(["content"]);
     expect(incremental.reusedNodeIds).toEqual(["block-root", "header", "footer"]);
     expect(incremental.work.visitedNodes).toBe(4);
+    expect(incremental.work.graphRebuilds).toBe(1);
   });
 
   test("reruns Flex line resolution for a grow mutation while reusing cross sizes", () => {
@@ -118,6 +124,9 @@ describe("incremental layout execution", () => {
     expect(incremental.plan.dirtyPhaseIds).toEqual([]);
     expect(incremental.work.visitedNodes).toBe(0);
     expect(incremental.work.solverPasses).toBe(0);
+    expect(incremental.work.invalidationPhaseVisits).toBe(0);
+    expect(incremental.work.invalidationEdgeTraversals).toBe(0);
+    expect(incremental.work.graphRebuilds).toBe(0);
     expect(incremental.cache.root).toBe(cache.root);
   });
 
@@ -142,6 +151,7 @@ describe("incremental layout execution", () => {
     expect(geometry(incremental.cache.boxes)).toEqual(geometry(clean.boxes));
     expect(incremental.work.visitedNodes).toBe(3);
     expect(incremental.work.solverPasses).toBe(1);
+    expect(incremental.work.graphRebuilds).toBe(0);
     expect(incremental.cache.gridResolution).toEqual(clean.resolution);
     expect(incremental.cache.gridTrackStarts).toEqual(clean.trackStarts);
   });
@@ -231,6 +241,8 @@ describe("incremental layout execution", () => {
     const clean = layoutBlockTree(resizedChild);
 
     expect(geometry(second.cache.boxes)).toEqual(geometry(clean.boxes));
+    expect(first.work.graphRebuilds).toBe(1);
+    expect(second.work.graphRebuilds).toBe(0);
     expect(second.plan.dirtyPhaseIds).not.toContain("root:block-size");
     expect(second.cache.root.rect.height).toBe(100);
   });

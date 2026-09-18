@@ -23,7 +23,7 @@ export function LayoutMutationWorkloadExplorer() {
           <h3 id="layout-workload-title">Mutation traces and relayout work</h3>
         </div>
         <p>
-          Replayable mutation traces measure structural graph rebuilds, nodes actually visited by the executor, and solver work. No wall-clock timing is used for these claims.
+          Replayable mutation traces measure provenance checks, invalidation traversal, structural graph rebuilds, executor visits, and solver work. No wall-clock timing is used for these claims.
         </p>
       </div>
 
@@ -50,6 +50,8 @@ export function LayoutMutationWorkloadExplorer() {
               <th scope="col">Class</th>
               <th scope="col">Execution</th>
               <th scope="col">Dirty phases</th>
+              <th scope="col">Boundary work</th>
+              <th scope="col">Plan work</th>
               <th scope="col">Recomputed nodes</th>
               <th scope="col">Reused nodes</th>
               <th scope="col">Visited / clean</th>
@@ -65,6 +67,8 @@ export function LayoutMutationWorkloadExplorer() {
                 <td>{step.category}</td>
                 <td>{step.mode}</td>
                 <td>{step.dirtyPhaseCount}</td>
+                <td>{step.boundaryNodeVisits} nodes / {step.provenanceComparisons} comparisons</td>
+                <td>{step.invalidationPhaseVisits} phases / {step.invalidationEdgeTraversals} edges</td>
                 <td>{nodeList(step.recomputedNodeIds)}</td>
                 <td>{nodeList(step.reusedNodeIds)}</td>
                 <td>{step.visitedNodes} / {step.cleanVisitedNodes}</td>
@@ -77,7 +81,10 @@ export function LayoutMutationWorkloadExplorer() {
           <tfoot>
             <tr>
               <th scope="row">Trace total</th>
-              <td colSpan={5}>deterministic aggregate</td>
+              <td colSpan={3}>deterministic aggregate</td>
+              <td>{result.totalBoundaryNodeVisits} nodes / {result.totalProvenanceComparisons} comparisons</td>
+              <td>{result.totalInvalidationPhaseVisits} phases / {result.totalInvalidationEdgeTraversals} edges</td>
+              <td colSpan={2}>—</td>
               <td>{result.totalVisitedNodes} / {result.totalCleanVisitedNodes}</td>
               <td>{result.totalAlgorithmIterations} / {result.totalCleanAlgorithmIterations}</td>
               <td>{result.totalGraphRebuilds}</td>
@@ -88,7 +95,7 @@ export function LayoutMutationWorkloadExplorer() {
       </div>
 
       <p className="layout-workload-boundary">
-        Flex work reports real line-resolution iterations. Grid work reports one track-resolution pass per resolver invocation; finer internal Grid pass instrumentation is reserved for H10 rather than approximated here.
+        Boundary work counts immutable-tree/provenance observations before reuse is trusted; plan work counts dirty invalidation phases and dependency edges traversed. Flex reports real line-resolution iterations. Grid reports one track-resolution pass per resolver invocation.
       </p>
     </section>
   );

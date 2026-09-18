@@ -29,6 +29,10 @@ export type MutationWorkloadStepEvidence = {
   category: MutationWorkloadCategory;
   mode: MutationExecutionMode;
   dirtyPhaseCount: number;
+  boundaryNodeVisits: number;
+  provenanceComparisons: number;
+  invalidationPhaseVisits: number;
+  invalidationEdgeTraversals: number;
   recomputedNodeIds: readonly string[];
   reusedNodeIds: readonly string[];
   visitedNodes: number;
@@ -42,6 +46,10 @@ export type MutationWorkloadStepEvidence = {
 export type MutationWorkloadResult = {
   definition: MutationWorkloadDefinition;
   steps: readonly MutationWorkloadStepEvidence[];
+  totalBoundaryNodeVisits: number;
+  totalProvenanceComparisons: number;
+  totalInvalidationPhaseVisits: number;
+  totalInvalidationEdgeTraversals: number;
   totalVisitedNodes: number;
   totalCleanVisitedNodes: number;
   totalAlgorithmIterations: number;
@@ -220,6 +228,10 @@ export function runMutationWorkload(id: MutationWorkloadId): MutationWorkloadRes
         category: step.category,
         mode: "graph-rebuild",
         dirtyPhaseCount: plan.dirtyPhaseIds.length,
+        boundaryNodeVisits: 0,
+        provenanceComparisons: 0,
+        invalidationPhaseVisits: plan.work.phaseVisits,
+        invalidationEdgeTraversals: plan.work.edgeTraversals,
         recomputedNodeIds,
         reusedNodeIds: [],
         visitedNodes: rebuilt.boxes.length,
@@ -240,13 +252,17 @@ export function runMutationWorkload(id: MutationWorkloadId): MutationWorkloadRes
       category: step.category,
       mode: "incremental",
       dirtyPhaseCount: incremental.plan.dirtyPhaseIds.length,
+      boundaryNodeVisits: incremental.work.boundaryNodeVisits,
+      provenanceComparisons: incremental.work.provenanceComparisons,
+      invalidationPhaseVisits: incremental.work.invalidationPhaseVisits,
+      invalidationEdgeTraversals: incremental.work.invalidationEdgeTraversals,
       recomputedNodeIds: incremental.recomputedNodeIds,
       reusedNodeIds: incremental.reusedNodeIds,
       visitedNodes: incremental.work.visitedNodes,
       cleanVisitedNodes: clean.boxes.length,
       algorithmIterations: incremental.work.solverPasses,
       cleanAlgorithmIterations: fullAlgorithmIterations(clean),
-      graphRebuilds: 0,
+      graphRebuilds: incremental.work.graphRebuilds,
       geometryMatchesClean: geometrySignature(incremental.cache) === geometrySignature(clean),
     });
     cache = incremental.cache;
@@ -255,6 +271,10 @@ export function runMutationWorkload(id: MutationWorkloadId): MutationWorkloadRes
   return {
     definition,
     steps: evidence,
+    totalBoundaryNodeVisits: evidence.reduce((sum, step) => sum + step.boundaryNodeVisits, 0),
+    totalProvenanceComparisons: evidence.reduce((sum, step) => sum + step.provenanceComparisons, 0),
+    totalInvalidationPhaseVisits: evidence.reduce((sum, step) => sum + step.invalidationPhaseVisits, 0),
+    totalInvalidationEdgeTraversals: evidence.reduce((sum, step) => sum + step.invalidationEdgeTraversals, 0),
     totalVisitedNodes: evidence.reduce((sum, step) => sum + step.visitedNodes, 0),
     totalCleanVisitedNodes: evidence.reduce((sum, step) => sum + step.cleanVisitedNodes, 0),
     totalAlgorithmIterations: evidence.reduce((sum, step) => sum + step.algorithmIterations, 0),

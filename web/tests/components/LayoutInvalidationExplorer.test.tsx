@@ -15,6 +15,9 @@ describe("LayoutInvalidationExplorer", () => {
     expect(markup).toContain("1</strong><span>reused nodes");
     expect(markup).toContain("4</strong><span>visited nodes");
     expect(markup).toContain("0</strong><span>solver passes");
+    expect(markup).toContain("boundary visits / provenance comparisons");
+    expect(markup).toContain("dependency graph rebuilds");
+    expect(markup).toContain("Planning work:");
     expect(markup).toContain("identical</strong><span>incremental vs clean geometry");
     expect(markup).toContain("recomputed");
     expect(markup).toContain("reused from cache");

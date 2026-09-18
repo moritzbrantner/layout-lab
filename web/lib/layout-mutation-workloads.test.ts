@@ -68,6 +68,14 @@ describe("H8 mutation workloads", () => {
       expect(second).toEqual(first);
       expect(first.steps.every((step) => Number.isInteger(step.visitedNodes) && step.visitedNodes >= 0)).toBe(true);
       expect(first.steps.every((step) => Number.isInteger(step.algorithmIterations) && step.algorithmIterations >= 0)).toBe(true);
+      expect(first.steps.every((step) => Number.isInteger(step.boundaryNodeVisits) && step.boundaryNodeVisits >= 0)).toBe(true);
+      expect(first.steps.every((step) => Number.isInteger(step.provenanceComparisons) && step.provenanceComparisons >= 0)).toBe(true);
+      expect(first.steps.every((step) => step.invalidationPhaseVisits === step.dirtyPhaseCount)).toBe(true);
+      expect(first.steps.every((step) => Number.isInteger(step.invalidationEdgeTraversals) && step.invalidationEdgeTraversals >= 0)).toBe(true);
+      expect(first.totalBoundaryNodeVisits).toBe(first.steps.reduce((sum, step) => sum + step.boundaryNodeVisits, 0));
+      expect(first.totalProvenanceComparisons).toBe(first.steps.reduce((sum, step) => sum + step.provenanceComparisons, 0));
+      expect(first.totalInvalidationPhaseVisits).toBe(first.steps.reduce((sum, step) => sum + step.invalidationPhaseVisits, 0));
+      expect(first.totalInvalidationEdgeTraversals).toBe(first.steps.reduce((sum, step) => sum + step.invalidationEdgeTraversals, 0));
       expect(first.totalVisitedNodes).toBe(first.steps.reduce((sum, step) => sum + step.visitedNodes, 0));
       expect(first.totalAlgorithmIterations).toBe(first.steps.reduce((sum, step) => sum + step.algorithmIterations, 0));
       expect(JSON.stringify(first)).not.toContain("duration");

@@ -70,6 +70,11 @@ describe("layout complexity laboratory", () => {
       expect(counterValue(sample, "incremental-visits")).toBeLessThan(counterValue(sample, "full-visits"));
       expect(counterValue(sample, "reused")).toBeGreaterThan(0);
       expect(counterValue(sample, "recomputed")).toBeGreaterThan(0);
+      expect(counterValue(sample, "boundary-visits")).toBeGreaterThan(0);
+      expect(counterValue(sample, "provenance-comparisons")).toBeGreaterThan(0);
+      expect(counterValue(sample, "invalidation-phase-visits")).toBeGreaterThan(0);
+      expect(counterValue(sample, "invalidation-edge-traversals")).toBeGreaterThanOrEqual(0);
+      expect(counterValue(sample, "graph-rebuilds")).toBe(0);
     }
   });
 
