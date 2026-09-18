@@ -207,6 +207,7 @@ export function LayoutInvalidationExplorer() {
       <div className="layout-invalidation-evidence">
         <p><strong>Seed phases:</strong> {plan.seedPhaseIds.length > 0 ? plan.seedPhaseIds.join(" · ") : "none — current subset does not consume this property"}</p>
         <p><strong>Planned dirty phases:</strong> {plan.dirtyPhaseIds.length} of {graph.nodes.length}</p>
+        <p><strong>Planning work:</strong> {plan.work.phaseVisits} phase visits · {plan.work.edgeTraversals} dependency-edge traversals</p>
         <p><strong>Dependency graph rebuild:</strong> {plan.requiresGraphRebuild ? "required after structural mutation" : "not required"}</p>
       </div>
 
@@ -227,6 +228,14 @@ export function LayoutInvalidationExplorer() {
           <div>
             <strong>{incremental.work.solverPasses}</strong>
             <span>solver passes</span>
+          </div>
+          <div>
+            <strong>{incremental.work.boundaryNodeVisits} / {incremental.work.provenanceComparisons}</strong>
+            <span>boundary visits / provenance comparisons</span>
+          </div>
+          <div>
+            <strong>{incremental.work.graphRebuilds}</strong>
+            <span>dependency graph rebuilds</span>
           </div>
           <div data-match={matchesClean ? "true" : "false"}>
             <strong>{matchesClean ? "identical" : "mismatch"}</strong>
@@ -299,7 +308,7 @@ export function LayoutInvalidationExplorer() {
       </div>
 
       <p className="layout-invalidation-boundary">
-        Incremental style execution is verified against a clean full recomputation. Recomputed/reused nodes describe cache ownership; visited nodes and solver passes separately report actual deterministic executor work. Structural insert/remove/reorder remains a fail-closed boundary until the dependency graph is rebuilt for the new tree shape.
+        Incremental style execution is verified against a clean full recomputation. Boundary visits and provenance comparisons report the work required before reuse is trusted; phase/edge traversal reports invalidation planning; executor visits and solver passes report recomputation. Structural insert/remove/reorder remains a fail-closed boundary until the dependency graph is rebuilt for the new tree shape.
       </p>
     </section>
   );
