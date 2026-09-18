@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "benchmark:cassowary": "bun run scripts/cassowary-benchmark.ts",
     "benchmark:incremental-layout": "bun run scripts/incremental-layout-benchmark.ts",
+    "benchmark:incremental-orchestration": "bun run scripts/incremental-orchestration-benchmark.ts",
     "benchmark:sugiyama": "bun run scripts/sugiyama-benchmark.ts",
     "benchmark:packing": "bun run scripts/packing-benchmark.ts",
     "benchmark:line-breaking": "bun run scripts/line-breaking-benchmark.ts",
