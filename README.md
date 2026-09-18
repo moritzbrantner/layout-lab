@@ -34,4 +34,4 @@ The production build is a static export configured for `/layout-lab` on GitHub P
 
 ## Direction
 
-See [ROADMAP.md](ROADMAP.md). The lab starts with browser-native CSS layout and transforms, then grows toward constraint visualization, intrinsic sizing, containment, writing modes, and eventually small layout-engine implementations whose intermediate decisions can be inspected.
+See [ROADMAP.md](ROADMAP.md) for sequencing and [ARCHITECTURE.md](ARCHITECTURE.md) for authority, invalidation, rendering, and portability boundaries. The lab starts with browser-native CSS layout and transforms, then grows toward constraint visualization, intrinsic sizing, containment, writing modes, and eventually small layout-engine implementations whose intermediate decisions can be inspected.

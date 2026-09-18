@@ -297,7 +297,7 @@ export function Grid3DEditor() {
   const [source, setSource] = useState(HOUSE_GRID_3D_SOURCE);
   const [sourceDirty, setSourceDirty] = useState(false);
   const [definition, setDefinition] = useState<Grid3DDefinition>(INITIAL_DEFINITION);
-  const [scene, setScene] = useState<ResolvedGrid3DScene>(INITIAL_SCENE);
+  const scene = useMemo(() => resolveGrid3D(definition), [definition]);
   const [selectedId, setSelectedId] = useState<string>(INITIAL_SCENE.boxes[0]?.id ?? "");
   const [rendererMode, setRendererMode] = useState<Grid3DRendererMode>("three");
   const [view, setView] = useState<Grid3DView>(DEFAULT_GRID3D_VIEW);
@@ -327,7 +327,6 @@ export function Grid3DEditor() {
     try {
       const nextScene = resolveGrid3D(nextDefinition);
       setDefinition(nextDefinition);
-      setScene(nextScene);
       setSource(serializeGrid3DDefinition(nextDefinition));
       setSourceDirty(false);
       setSelectedId(nextScene.boxes.some((box) => box.id === preferredSelection)
@@ -344,7 +343,6 @@ export function Grid3DEditor() {
       const nextDefinition = parseGrid3DSource(source);
       const nextScene = resolveGrid3D(nextDefinition);
       setDefinition(nextDefinition);
-      setScene(nextScene);
       setSelectedId((current) => nextScene.boxes.some((box) => box.id === current)
         ? current
         : (nextScene.boxes[0]?.id ?? ""));
@@ -359,7 +357,6 @@ export function Grid3DEditor() {
     setSource(HOUSE_GRID_3D_SOURCE);
     setSourceDirty(false);
     setDefinition(INITIAL_DEFINITION);
-    setScene(INITIAL_SCENE);
     setSelectedId(INITIAL_SCENE.boxes[0]?.id ?? "");
     setView(DEFAULT_GRID3D_VIEW);
     setError(null);
