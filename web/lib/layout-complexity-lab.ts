@@ -14,7 +14,7 @@ import {
   type GridTrackInput,
 } from "./layout-analysis";
 import {layoutBlockTree, type LayoutBox} from "./layout-engine";
-import type {LayoutNode} from "./layout-tree";
+import {updateLayoutNode, type LayoutNode} from "./layout-tree";
 
 export const COMPLEXITY_LAB_VERSION = "layout-complexity-v1";
 
@@ -181,11 +181,6 @@ function groupedBlockTree(groupCount: number, leavesPerGroup: number): LayoutNod
   };
 }
 
-function updateNode(root: LayoutNode, nodeId: string, update: (node: LayoutNode) => LayoutNode): LayoutNode {
-  if (root.id === nodeId) return update(root);
-  return {...root, children: root.children.map((child) => updateNode(child, nodeId, update))};
-}
-
 function geometrySignature(boxes: readonly LayoutBox[]) {
   return JSON.stringify(boxes.map((box) => ({id: box.id, ...box.rect})));
 }
@@ -202,7 +197,7 @@ function incrementalScalingSample(groupCount: number, leavesPerGroup: number, mu
     const groupIndex = mutationIndex % groupCount;
     const leafIndex = mutationIndex % leavesPerGroup;
     const nodeId = `leaf-${groupIndex}-${leafIndex}`;
-    const nextTree = updateNode(tree, nodeId, (node) => ({
+    const nextTree = updateLayoutNode(tree, nodeId, (node) => ({
       ...node,
       style: {...node.style, width: 180 + (mutationIndex + 1) * 5},
     }));
