@@ -1,7 +1,7 @@
 import {buildFlexEngineTree, buildGridEngineTree} from "./layout-engine-fixtures";
 import {createIncrementalLayoutCache, recomputeIncrementalLayout, type IncrementalLayoutCache} from "./incremental-layout";
 import {buildLayoutInvalidationGraph, planLayoutInvalidation, type LayoutMutation} from "./layout-invalidation";
-import {buildBlockLayoutTree, flattenLayoutTree, type LayoutNode} from "./layout-tree";
+import {buildBlockLayoutTree, flattenLayoutTree, updateLayoutNode, type LayoutNode} from "./layout-tree";
 
 export type MutationWorkloadId = "block-structure" | "flex-solver" | "grid-solver";
 export type MutationWorkloadCategory = "resize" | "content" | "insert" | "remove" | "reorder" | "placement";
@@ -50,14 +50,6 @@ export type MutationWorkloadResult = {
   finalGeometry: readonly {id: string; x: number; y: number; width: number; height: number}[];
 };
 
-function updateNode(root: LayoutNode, nodeId: string, update: (node: LayoutNode) => LayoutNode): LayoutNode {
-  if (root.id === nodeId) return update(root);
-  return {
-    ...root,
-    children: root.children.map((child) => updateNode(child, nodeId, update)),
-  };
-}
-
 function blockAside(): LayoutNode {
   return {
     id: "aside",
@@ -80,7 +72,7 @@ const blockSteps: readonly MutationWorkloadStepDefinition[] = [
     label: "Content measurement changes",
     category: "content",
     mutation: {kind: "style", nodeId: "content", field: "height"},
-    apply: (tree) => updateNode(tree, "content", (node) => ({...node, style: {...node.style, height: 168}})),
+    apply: (tree) => updateLayoutNode(tree, "content", (node) => ({...node, style: {...node.style, height: 168}})),
   },
   {
     id: "insert",
@@ -127,7 +119,7 @@ const flexSteps: readonly MutationWorkloadStepDefinition[] = [
     label: "Change item B cross-size",
     category: "content",
     mutation: {kind: "style", nodeId: "item-b", field: "height"},
-    apply: (tree) => updateNode(tree, "item-b", (node) => ({...node, style: {...node.style, height: 116}})),
+    apply: (tree) => updateLayoutNode(tree, "item-b", (node) => ({...node, style: {...node.style, height: 116}})),
   },
 ] as const;
 
@@ -144,7 +136,7 @@ const gridSteps: readonly MutationWorkloadStepDefinition[] = [
     label: "Move item C one track left",
     category: "placement",
     mutation: {kind: "style", nodeId: "item-c", field: "gridItem.columnStart"},
-    apply: (tree) => updateNode(tree, "item-c", (node) => ({
+    apply: (tree) => updateLayoutNode(tree, "item-c", (node) => ({
       ...node,
       style: {...node.style, gridItem: {...node.style.gridItem!, columnStart: 1}},
     })),
