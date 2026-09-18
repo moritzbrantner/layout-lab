@@ -20,6 +20,8 @@ describe("LayoutMutationWorkloadExplorer", () => {
   test("shows structural rebuilds and deterministic work instead of timing claims", () => {
     const markup = renderToStaticMarkup(<LayoutMutationWorkloadExplorer />);
 
+    expect(markup).toContain("Boundary work");
+    expect(markup).toContain("Plan work");
     expect(markup).toContain("Visited / clean");
     expect(markup).toContain("Solver work / clean");
     expect(markup).toContain("Graph rebuild");
@@ -40,8 +42,9 @@ describe("LayoutMutationWorkloadExplorer", () => {
   test("states the bounded Grid work-accounting boundary", () => {
     const markup = renderToStaticMarkup(<LayoutMutationWorkloadExplorer />);
 
-    expect(markup).toContain("Flex work reports real line-resolution iterations");
-    expect(markup).toContain("Grid work reports one track-resolution pass per resolver invocation");
-    expect(markup).toContain("reserved for H10");
+    expect(markup).toContain("Boundary work counts immutable-tree/provenance observations");
+    expect(markup).toContain("plan work counts dirty invalidation phases and dependency edges traversed");
+    expect(markup).toContain("Flex reports real line-resolution iterations");
+    expect(markup).toContain("Grid reports one track-resolution pass per resolver invocation");
   });
 });
