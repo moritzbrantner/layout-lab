@@ -5,6 +5,7 @@ import {
   buildFlexLayoutTree,
   buildGridLayoutTree,
   flattenLayoutTree,
+  updateLayoutNode,
   validateLayoutTree,
   type LayoutNode,
 } from "./layout-tree";
@@ -20,6 +21,20 @@ describe("typed layout tree", () => {
       {id: "item-b", label: "B", depth: 1, display: "block", childCount: 0},
       {id: "item-c", label: "C", depth: 1, display: "block", childCount: 0},
     ]);
+  });
+
+  test("preserves unchanged subtree identity for incremental updates", () => {
+    const tree = buildFlexLayoutTree();
+    const next = updateLayoutNode(tree, "item-b", (node) => ({
+      ...node,
+      style: {...node.style, height: 96},
+    }));
+
+    expect(next).not.toBe(tree);
+    expect(next.children[0]).toBe(tree.children[0]);
+    expect(next.children[1]).not.toBe(tree.children[1]);
+    expect(next.children[2]).toBe(tree.children[2]);
+    expect(updateLayoutNode(tree, "missing", (node) => node)).toBe(tree);
   });
 
   test("adapts the flex tree into the existing resolver contract", () => {
