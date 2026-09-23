@@ -1,5 +1,6 @@
 "use client";
 
+import {PrecisionRange} from "./PrecisionRange";
 import {Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent} from "react";
 import {
   addWorkbenchChild,
@@ -34,6 +35,7 @@ function RangeControl({
   max,
   step = 1,
   unit = "",
+  integer = false,
   onCommit,
 }: {
   label: string;
@@ -42,42 +44,22 @@ function RangeControl({
   max: number;
   step?: number;
   unit?: string;
+  integer?: boolean;
   onCommit: (value: number) => void;
 }) {
-  const [draft, setDraft] = useState(value);
-  const draftRef = useRef(value);
-
-  useEffect(() => {
-    draftRef.current = value;
-    setDraft(value);
-  }, [value]);
-
-  const updateDraft = (next: number) => {
-    draftRef.current = next;
-    setDraft(next);
-  };
-
-  const commit = () => {
-    if (draftRef.current !== value) onCommit(draftRef.current);
-  };
-
   return (
-    <label className="workbench-field workbench-range">
-      <span>{label}</span>
-      <output>{draft}{unit}</output>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={draft}
-        onChange={(event) => updateDraft(Number(event.target.value))}
-        onMouseUp={commit}
-        onTouchEnd={commit}
-        onKeyUp={commit}
-        onBlur={commit}
-      />
-    </label>
+    <PrecisionRange
+      className="workbench-field workbench-range"
+      label={label}
+      value={value}
+      min={min}
+      max={max}
+      step={step}
+      unit={unit}
+      integer={integer}
+      coarseCommit="release"
+      onChange={onCommit}
+    />
   );
 }
 
@@ -161,6 +143,7 @@ function LayoutControls({state, setState}: {
       ) : (
         <RangeControl
           label="columns"
+          integer
           value={layout.columns}
           min={1}
           max={4}
@@ -204,6 +187,7 @@ function ItemControls({item, state, setState}: {
       ) : (
         <RangeControl
           label="grid-column span"
+          integer
           value={Math.min(item.gridSpan, Math.max(1, state.layout.columns))}
           min={1}
           max={Math.max(1, state.layout.columns)}
