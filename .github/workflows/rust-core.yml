@@ -26,6 +26,8 @@ jobs:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.98.1 --profile minimal --component clippy --component rustfmt
+      - name: Generate dependency lockfile
+        run: cargo +1.98.1 generate-lockfile
       - run: cargo +1.98.1 fmt --check
       - run: cargo +1.98.1 clippy --all-targets -- -D warnings
       - run: cargo +1.98.1 test
