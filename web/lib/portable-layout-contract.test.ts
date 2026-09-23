@@ -40,6 +40,17 @@ describe("portable layout contract", () => {
       .toThrow("cannot export invalid layout tree: duplicate layout node id: item-a");
   });
 
+  test("fails closed before JSON can turn non-finite geometry into null", () => {
+    const result = layoutFlexTree(buildFlexEngineTree());
+    const invalid = {
+      ...result.root,
+      rect: {...result.root.rect, width: Number.NaN},
+    };
+
+    expect(() => exportPortableLayoutGeometry(invalid))
+      .toThrow("root: portable geometry requires finite coordinates and non-negative sizes");
+  });
+
   test("omits absent optional fields instead of serializing implementation-only undefined values", () => {
     const document = exportPortableLayoutTree(buildFlexEngineTree());
     const serialized = serializePortableLayoutDocument(document);
