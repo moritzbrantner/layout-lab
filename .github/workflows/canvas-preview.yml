@@ -1,0 +1,87 @@
+name: canvas-preview
+
+on:
+  pull_request:
+    paths:
+      - "web/components/LayoutCanvasRenderer.tsx"
+      - "web/components/LayoutTreeInspector.tsx"
+      - "web/lib/layout-canvas-renderer.ts"
+      - ".github/workflows/canvas-preview.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  screenshot:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - name: Install Chromium runner
+        run: |
+          bun add --no-save playwright@1.63.0
+          bunx playwright@1.63.0 install --with-deps chromium
+      - name: Verify Canvas renderer and capture screenshot
+        run: |
+          bun run dev --hostname 127.0.0.1 > /tmp/layout-lab-dev.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+
+          url="http://127.0.0.1:3000/layout-lab/editors/algorithm-pipeline/"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error "$url" > /dev/null; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              cat /tmp/layout-lab-dev.log
+              exit 1
+            fi
+            sleep 1
+          done
+
+          mkdir -p browser-evidence
+          cat > .capture-canvas-preview.mjs <<'EOF'
+          import {chromium} from "playwright";
+
+          const browser = await chromium.launch({headless: true});
+          const page = await browser.newPage({viewport: {width: 1440, height: 1000}});
+          await page.goto("http://127.0.0.1:3000/layout-lab/editors/algorithm-pipeline/", {waitUntil: "networkidle"});
+
+          const renderer = page.locator(".layout-canvas-renderer").first();
+          await renderer.scrollIntoViewIfNeeded();
+          await page.waitForTimeout(250);
+
+          const canvas = renderer.locator("canvas");
+          const evidence = await canvas.evaluate((element) => ({
+            width: element.width,
+            height: element.height,
+            root: element.dataset.layoutCanvasRoot,
+            ariaLabel: element.getAttribute("aria-label"),
+          }));
+
+          if (evidence.root !== "root" || evidence.width <= 0 || evidence.height <= 0) {
+            throw new Error(`Canvas renderer did not initialize: ${JSON.stringify(evidence)}`);
+          }
+          if (!evidence.ariaLabel?.includes("Flex engine root")) {
+            throw new Error(`Canvas renderer exposed unexpected geometry: ${JSON.stringify(evidence)}`);
+          }
+
+          await renderer.screenshot({path: "browser-evidence/layout-canvas-renderer.png"});
+          console.log(JSON.stringify(evidence));
+          await browser.close();
+          EOF
+          bun .capture-canvas-preview.mjs
+          rm .capture-canvas-preview.mjs
+      - name: Upload Canvas screenshot
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: layout-canvas-renderer-preview
+          path: web/browser-evidence/layout-canvas-renderer.png
+          if-no-files-found: error
+          retention-days: 14
