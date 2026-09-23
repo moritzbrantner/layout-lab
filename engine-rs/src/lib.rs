@@ -363,7 +363,7 @@ fn layout_block_node(
     let width = resolve_width(node, containing_width);
     let mut children = Vec::with_capacity(node.children.len());
     let mut cursor = 0.0;
-    let mut previous_after = 0.0;
+    let mut previous_after = 0.0_f64;
 
     for (index, child) in node.children.iter().enumerate() {
         let before = child.style.margin_block_before.unwrap_or(0.0);
