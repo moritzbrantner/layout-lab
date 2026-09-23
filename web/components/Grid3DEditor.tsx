@@ -1,5 +1,6 @@
 "use client";
 
+import {PrecisionRange} from "./PrecisionRange";
 import {useMemo, useState} from "react";
 import {Grid3DThreeViewer} from "@/components/Grid3DThreeViewer";
 import {
@@ -220,6 +221,7 @@ function LiveRange({
   min,
   max,
   step,
+  integer = false,
   disabled,
   onChange,
 }: {
@@ -228,23 +230,22 @@ function LiveRange({
   min: number;
   max: number;
   step: number;
+  integer?: boolean;
   disabled?: boolean;
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="grid3d-live-range">
-      <span>{label}</span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
-      <output>{format(value)}</output>
-    </label>
+    <PrecisionRange
+      className="grid3d-live-range"
+      label={label}
+      value={value}
+      min={min}
+      max={max}
+      step={step}
+      integer={integer}
+      disabled={disabled}
+      onChange={onChange}
+    />
   );
 }
 
@@ -270,6 +271,7 @@ function PlacementControls({
             <legend>{label}</legend>
             <LiveRange
               label="Start"
+              integer
               value={placement.start}
               min={1}
               max={trackCount}
@@ -279,6 +281,7 @@ function PlacementControls({
             />
             <LiveRange
               label="Span"
+              integer
               value={placement.span}
               min={1}
               max={maximumSpan}
@@ -535,39 +538,9 @@ export function Grid3DEditor() {
               SVG
             </button>
           </div>
-          <label>
-            <span>Yaw</span>
-            <input
-              type="range"
-              min="-180"
-              max="180"
-              value={view.yaw}
-              onChange={(event) => updateView({yaw: Number(event.target.value)})}
-            />
-            <output>{Math.round(view.yaw)}°</output>
-          </label>
-          <label>
-            <span>Pitch</span>
-            <input
-              type="range"
-              min="5"
-              max="85"
-              value={view.pitch}
-              onChange={(event) => updateView({pitch: Number(event.target.value)})}
-            />
-            <output>{Math.round(view.pitch)}°</output>
-          </label>
-          <label>
-            <span>Zoom</span>
-            <input
-              type="range"
-              min="45"
-              max="180"
-              value={view.zoom}
-              onChange={(event) => updateView({zoom: Number(event.target.value)})}
-            />
-            <output>{Math.round(view.zoom)}%</output>
-          </label>
+          <PrecisionRange label="Yaw" value={view.yaw} min={-180} max={180} unit="°" onChange={(yaw) => updateView({yaw})} />
+          <PrecisionRange label="Pitch" value={view.pitch} min={5} max={85} unit="°" onChange={(pitch) => updateView({pitch})} />
+          <PrecisionRange label="Zoom" value={view.zoom} min={45} max={180} unit="%" onChange={(zoom) => updateView({zoom})} />
           <label className="grid3d-object-select">
             <span>Inspect box</span>
             <select
