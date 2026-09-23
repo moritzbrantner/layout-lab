@@ -1,0 +1,30 @@
+{
+  "contractVersion": "layout-lab/portable-layout-v1",
+  "kind": "geometry",
+  "coordinateSpace": "css-px",
+  "root": {
+    "id": "block-root",
+    "label": "Block root",
+    "rect": {"x": 0, "y": 0, "width": 420, "height": 276},
+    "children": [
+      {
+        "id": "header",
+        "label": "Header",
+        "rect": {"x": 0, "y": 0, "width": 420, "height": 56},
+        "children": []
+      },
+      {
+        "id": "content",
+        "label": "Content",
+        "rect": {"x": 0, "y": 76, "width": 360, "height": 132},
+        "children": []
+      },
+      {
+        "id": "footer",
+        "label": "Footer",
+        "rect": {"x": 0, "y": 232, "width": 280, "height": 44},
+        "children": []
+      }
+    ]
+  }
+}
