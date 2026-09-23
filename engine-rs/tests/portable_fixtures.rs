@@ -12,17 +12,13 @@ fn fixture_path(name: &str) -> PathBuf {
 }
 
 fn read_tree(name: &str) -> LayoutTreeDocument {
-    serde_json::from_str(
-        &fs::read_to_string(fixture_path(name)).expect("read layout fixture"),
-    )
-    .expect("parse layout fixture")
+    serde_json::from_str(&fs::read_to_string(fixture_path(name)).expect("read layout fixture"))
+        .expect("parse layout fixture")
 }
 
 fn read_geometry(name: &str) -> GeometryDocument {
-    serde_json::from_str(
-        &fs::read_to_string(fixture_path(name)).expect("read geometry fixture"),
-    )
-    .expect("parse geometry fixture")
+    serde_json::from_str(&fs::read_to_string(fixture_path(name)).expect("read geometry fixture"))
+        .expect("parse geometry fixture")
 }
 
 fn assert_json_close(actual: &Value, expected: &Value, path: &str) {
@@ -49,11 +45,7 @@ fn assert_json_close(actual: &Value, expected: &Value, path: &str) {
                 "{path}: object keys differ"
             );
             for (key, expected) in expected {
-                assert_json_close(
-                    &actual[key],
-                    expected,
-                    &format!("{path}.{key}"),
-                );
+                assert_json_close(&actual[key], expected, &format!("{path}.{key}"));
             }
         }
         _ => assert_eq!(actual, expected, "{path}: value differs"),
@@ -74,26 +66,17 @@ fn assert_fixture(layout_name: &str, geometry_name: &str) {
 
 #[test]
 fn block_baseline_matches_typescript_fixture() {
-    assert_fixture(
-        "block-baseline.layout.json",
-        "block-baseline.geometry.json",
-    );
+    assert_fixture("block-baseline.layout.json", "block-baseline.geometry.json");
 }
 
 #[test]
 fn flex_baseline_matches_typescript_fixture() {
-    assert_fixture(
-        "flex-baseline.layout.json",
-        "flex-baseline.geometry.json",
-    );
+    assert_fixture("flex-baseline.layout.json", "flex-baseline.geometry.json");
 }
 
 #[test]
 fn grid_baseline_matches_typescript_fixture() {
-    assert_fixture(
-        "grid-baseline.layout.json",
-        "grid-baseline.geometry.json",
-    );
+    assert_fixture("grid-baseline.layout.json", "grid-baseline.geometry.json");
 }
 
 #[test]
@@ -103,7 +86,9 @@ fn rejects_a_contract_version_it_does_not_implement() {
 
     let error = layout_document(&input).expect_err("unknown contract must fail");
     assert!(
-        error.to_string().contains("unsupported layout contract version"),
+        error
+            .to_string()
+            .contains("unsupported layout contract version"),
         "{error}"
     );
 }
