@@ -1,0 +1,49 @@
+{
+  "contractVersion": "layout-lab/portable-layout-v1",
+  "kind": "layout-tree",
+  "coordinateSpace": "css-px",
+  "root": {
+    "id": "block-root",
+    "label": "Block root",
+    "style": {
+      "display": "block",
+      "width": 420
+    },
+    "children": [
+      {
+        "id": "header",
+        "label": "Header",
+        "style": {
+          "display": "block",
+          "height": 56,
+          "marginBlockAfter": 20
+        },
+        "children": []
+      },
+      {
+        "id": "content",
+        "label": "Content",
+        "style": {
+          "display": "block",
+          "minWidth": 240,
+          "maxWidth": 360,
+          "height": 132,
+          "marginBlockBefore": 12,
+          "marginBlockAfter": 18
+        },
+        "children": []
+      },
+      {
+        "id": "footer",
+        "label": "Footer",
+        "style": {
+          "display": "block",
+          "width": 280,
+          "height": 44,
+          "marginBlockBefore": 24
+        },
+        "children": []
+      }
+    ]
+  }
+}

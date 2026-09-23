@@ -1,27 +1,43 @@
 import {describe, expect, test} from "bun:test";
+import blockGeometryFixture from "../../contracts/fixtures/block-baseline.geometry.json";
+import blockLayoutFixture from "../../contracts/fixtures/block-baseline.layout.json";
 import flexGeometryFixture from "../../contracts/fixtures/flex-baseline.geometry.json";
 import flexLayoutFixture from "../../contracts/fixtures/flex-baseline.layout.json";
-import {buildFlexEngineTree} from "./layout-engine-fixtures";
-import {layoutFlexTree} from "./layout-engine";
+import gridGeometryFixture from "../../contracts/fixtures/grid-baseline.geometry.json";
+import gridLayoutFixture from "../../contracts/fixtures/grid-baseline.layout.json";
+import {buildFlexEngineTree, buildGridEngineTree} from "./layout-engine-fixtures";
+import {layoutBlockTree, layoutFlexTree, layoutGridTree} from "./layout-engine";
 import {
   exportPortableLayoutGeometry,
   exportPortableLayoutTree,
   serializePortableLayoutDocument,
 } from "./portable-layout-contract";
-import type {LayoutNode} from "./layout-tree";
+import {buildBlockLayoutTree, type LayoutNode} from "./layout-tree";
+
+function expectPortableFixture(document: ReturnType<typeof exportPortableLayoutTree> | ReturnType<typeof exportPortableLayoutGeometry>, fixture: unknown) {
+  expect(JSON.parse(serializePortableLayoutDocument(document))).toEqual(fixture);
+}
 
 describe("portable layout contract", () => {
-  test("exports the H5 input tree to the shared language-neutral fixture", () => {
-    const document = exportPortableLayoutTree(buildFlexEngineTree());
-
-    expect(JSON.parse(serializePortableLayoutDocument(document))).toEqual(flexLayoutFixture);
+  test("exports block, flex, and grid H5 trees to the shared language-neutral fixtures", () => {
+    expectPortableFixture(exportPortableLayoutTree(buildBlockLayoutTree()), blockLayoutFixture);
+    expectPortableFixture(exportPortableLayoutTree(buildFlexEngineTree()), flexLayoutFixture);
+    expectPortableFixture(exportPortableLayoutTree(buildGridEngineTree()), gridLayoutFixture);
   });
 
-  test("exports resolved engine geometry to the shared fixture", () => {
-    const result = layoutFlexTree(buildFlexEngineTree());
-    const document = exportPortableLayoutGeometry(result.root);
-
-    expect(JSON.parse(serializePortableLayoutDocument(document))).toEqual(flexGeometryFixture);
+  test("exports block, flex, and grid resolved geometry to the shared fixtures", () => {
+    expectPortableFixture(
+      exportPortableLayoutGeometry(layoutBlockTree(buildBlockLayoutTree()).root),
+      blockGeometryFixture,
+    );
+    expectPortableFixture(
+      exportPortableLayoutGeometry(layoutFlexTree(buildFlexEngineTree()).root),
+      flexGeometryFixture,
+    );
+    expectPortableFixture(
+      exportPortableLayoutGeometry(layoutGridTree(buildGridEngineTree()).root),
+      gridGeometryFixture,
+    );
   });
 
   test("validates the authoritative TypeScript tree before crossing the wire boundary", () => {

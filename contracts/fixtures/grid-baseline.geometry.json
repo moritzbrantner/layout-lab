@@ -1,0 +1,34 @@
+{
+  "contractVersion": "layout-lab/portable-layout-v1",
+  "kind": "geometry",
+  "coordinateSpace": "css-px",
+  "root": {
+    "id": "root",
+    "label": "Grid engine root",
+    "rect": {"x": 0, "y": 0, "width": 560, "height": 120},
+    "children": [
+      {
+        "id": "span-ab",
+        "label": "A+B panel",
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 309.3333333333333,
+          "height": 80
+        },
+        "children": []
+      },
+      {
+        "id": "item-c",
+        "label": "C panel",
+        "rect": {
+          "x": 325.3333333333333,
+          "y": 0,
+          "width": 234.66666666666666,
+          "height": 96
+        },
+        "children": []
+      }
+    ]
+  }
+}

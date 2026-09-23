@@ -1,0 +1,51 @@
+{
+  "contractVersion": "layout-lab/portable-layout-v1",
+  "kind": "layout-tree",
+  "coordinateSpace": "css-px",
+  "root": {
+    "id": "root",
+    "label": "Grid engine root",
+    "style": {
+      "display": "grid",
+      "width": 560,
+      "height": 120,
+      "gridContainer": {
+        "gap": 16,
+        "columns": [
+          {"label": "A", "minSize": 96, "fr": 1},
+          {"label": "B", "minSize": 164, "fr": 1},
+          {"label": "C", "minSize": 88, "fr": 2}
+        ]
+      }
+    },
+    "children": [
+      {
+        "id": "span-ab",
+        "label": "A+B panel",
+        "style": {
+          "display": "block",
+          "height": 80,
+          "gridItem": {
+            "columnStart": 0,
+            "columnSpan": 2,
+            "minContribution": 300
+          }
+        },
+        "children": []
+      },
+      {
+        "id": "item-c",
+        "label": "C panel",
+        "style": {
+          "display": "block",
+          "height": 96,
+          "gridItem": {
+            "columnStart": 2,
+            "columnSpan": 1
+          }
+        },
+        "children": []
+      }
+    ]
+  }
+}
