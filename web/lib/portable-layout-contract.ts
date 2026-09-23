@@ -152,7 +152,21 @@ function toPortableNode(node: LayoutNode): PortableLayoutNode {
   };
 }
 
+function assertPortableRect(id: string, rect: LayoutRect) {
+  if (
+    !Number.isFinite(rect.x)
+    || !Number.isFinite(rect.y)
+    || !Number.isFinite(rect.width)
+    || !Number.isFinite(rect.height)
+    || rect.width < 0
+    || rect.height < 0
+  ) {
+    throw new Error(`${id}: portable geometry requires finite coordinates and non-negative sizes`);
+  }
+}
+
 function toPortableBox(box: LayoutBox): PortableLayoutBox {
+  assertPortableRect(box.id, box.rect);
   return {
     id: box.id,
     label: box.label,
