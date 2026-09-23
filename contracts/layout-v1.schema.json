@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moritzbrantner.github.io/layout-lab/contracts/layout-v1.schema.json",
+  "title": "Layout Lab portable layout contract v1",
+  "oneOf": [
+    {"$ref": "#/$defs/layoutTreeDocument"},
+    {"$ref": "#/$defs/geometryDocument"}
+  ],
+  "$defs": {
+    "layoutTreeDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractVersion", "kind", "coordinateSpace", "root"],
+      "properties": {
+        "contractVersion": {"const": "layout-lab/portable-layout-v1"},
+        "kind": {"const": "layout-tree"},
+        "coordinateSpace": {"const": "css-px"},
+        "root": {"$ref": "#/$defs/layoutNode"}
+      }
+    },
+    "geometryDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractVersion", "kind", "coordinateSpace", "root"],
+      "properties": {
+        "contractVersion": {"const": "layout-lab/portable-layout-v1"},
+        "kind": {"const": "geometry"},
+        "coordinateSpace": {"const": "css-px"},
+        "root": {"$ref": "#/$defs/layoutBox"}
+      }
+    },
+    "layoutNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "style", "children"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "label": {"type": "string", "minLength": 1},
+        "style": {"$ref": "#/$defs/layoutStyle"},
+        "children": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/layoutNode"}
+        }
+      }
+    },
+    "layoutStyle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["display"],
+      "properties": {
+        "display": {"enum": ["block", "flex", "grid"]},
+        "width": {"type": "number", "minimum": 0},
+        "minWidth": {"type": "number", "minimum": 0},
+        "maxWidth": {"type": "number", "minimum": 0},
+        "height": {"type": "number", "minimum": 0},
+        "minHeight": {"type": "number", "minimum": 0},
+        "maxHeight": {"type": "number", "minimum": 0},
+        "marginBlockBefore": {"type": "number", "minimum": 0},
+        "marginBlockAfter": {"type": "number", "minimum": 0},
+        "flexContainer": {"$ref": "#/$defs/flexContainer"},
+        "flexItem": {"$ref": "#/$defs/flexItem"},
+        "gridContainer": {"$ref": "#/$defs/gridContainer"},
+        "gridItem": {"$ref": "#/$defs/gridItem"}
+      }
+    },
+    "flexContainer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gap", "direction"],
+      "properties": {
+        "gap": {"type": "number", "minimum": 0},
+        "direction": {"enum": ["row", "column"]}
+      }
+    },
+    "flexItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["basis", "grow", "shrink"],
+      "properties": {
+        "basis": {"type": "number", "minimum": 0},
+        "grow": {"type": "number", "minimum": 0},
+        "shrink": {"type": "number", "minimum": 0}
+      }
+    },
+    "gridContainer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gap", "columns"],
+      "properties": {
+        "gap": {"type": "number", "minimum": 0},
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/gridTrack"}
+        }
+      }
+    },
+    "gridTrack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "minSize", "fr"],
+      "properties": {
+        "label": {"type": "string"},
+        "minSize": {"type": "number", "minimum": 0},
+        "fr": {"type": "number", "minimum": 0}
+      }
+    },
+    "gridItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["columnStart", "columnSpan"],
+      "properties": {
+        "columnStart": {"type": "integer", "minimum": 0},
+        "columnSpan": {"type": "integer", "minimum": 1},
+        "minContribution": {"type": "number", "minimum": 0}
+      }
+    },
+    "layoutBox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "rect", "children"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "label": {"type": "string", "minLength": 1},
+        "rect": {"$ref": "#/$defs/layoutRect"},
+        "children": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/layoutBox"}
+        }
+      }
+    },
+    "layoutRect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": {"type": "number"},
+        "y": {"type": "number"},
+        "width": {"type": "number", "minimum": 0},
+        "height": {"type": "number", "minimum": 0}
+      }
+    }
+  }
+}

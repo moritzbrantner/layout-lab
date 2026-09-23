@@ -26,5 +26,5 @@ Read [ARCHITECTURE.md](ARCHITECTURE.md) before changing layout execution, invali
 
 ## Portability
 
-- A Rust/WASM core must implement the same language-neutral contract and run the same fixtures before it can become authoritative.
+- A Rust/WASM core must implement `contracts/layout-v1.schema.json` and run the same `contracts/fixtures` before it can become authoritative.
 - Do not keep TypeScript and Rust as independent production truths. Any authority handoff must be explicit at the adapter boundary and covered by differential tests.
