@@ -1,5 +1,6 @@
 "use client";
 
+import {PrecisionRange as RangeField} from "./PrecisionRange";
 import {CSSProperties, RefObject, useEffect, useRef, useState} from "react";
 import {
   matchesMinInlineSize,
@@ -106,23 +107,6 @@ function ExperimentHeader() {
         {experiment.properties.map((property) => <code key={property}>{property}</code>)}
       </div>
     </header>
-  );
-}
-
-function RangeField({label, value, min, max, unit = "", onChange}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  unit?: string;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <label className="control range-control">
-      <span>{label}</span>
-      <output>{value}{unit}</output>
-      <input type="range" min={min} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} />
-    </label>
   );
 }
 
