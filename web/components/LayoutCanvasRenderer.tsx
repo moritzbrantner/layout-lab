@@ -34,7 +34,7 @@ export function LayoutCanvasRenderer({
       if (!context) return;
 
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      context.clearRect(0, 0, cssWidth, VIEWPORT_HEIGHT);
+      context.clearRect(0, 0, cssWidth, cssHeight);
 
       const style = getComputedStyle(canvas);
       const background = readColor(style, "--bg", "#0b0d12");
@@ -51,11 +51,11 @@ export function LayoutCanvasRenderer({
       ];
 
       context.fillStyle = background;
-      context.fillRect(0, 0, cssWidth, VIEWPORT_HEIGHT);
+      context.fillRect(0, 0, cssWidth, cssHeight);
 
       const scene = createLayoutCanvasScene(root, {
         width: cssWidth,
-        height: VIEWPORT_HEIGHT,
+        height: cssHeight,
         padding: 24,
       });
 
