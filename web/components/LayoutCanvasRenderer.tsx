@@ -25,7 +25,7 @@ export function LayoutCanvasRenderer({
     if (!canvas) return;
 
     const draw = () => {
-      const cssWidth = Math.max(280, canvas.clientWidth || FALLBACK_WIDTH);
+      const cssWidth = canvas.clientWidth > 0 ? canvas.clientWidth : FALLBACK_WIDTH;
       const cssHeight = canvas.clientHeight || VIEWPORT_HEIGHT;
       const ratio = window.devicePixelRatio || 1;
       canvas.width = Math.round(cssWidth * ratio);
