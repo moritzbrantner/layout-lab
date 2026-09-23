@@ -73,7 +73,20 @@ jobs:
           }
 
           await renderer.screenshot({path: "browser-evidence/layout-canvas-renderer.png"});
-          console.log(JSON.stringify(evidence));
+
+          await page.setViewportSize({width: 320, height: 900});
+          await page.waitForTimeout(250);
+          const mobileEvidence = await canvas.evaluate((element) => ({
+            bitmapWidth: element.width,
+            cssWidth: element.clientWidth,
+            ratio: window.devicePixelRatio || 1,
+          }));
+          const expectedBitmapWidth = Math.round(mobileEvidence.cssWidth * mobileEvidence.ratio);
+          if (mobileEvidence.cssWidth <= 0 || Math.abs(mobileEvidence.bitmapWidth - expectedBitmapWidth) > 1) {
+            throw new Error(`Canvas bitmap width does not match its narrow CSS width: ${JSON.stringify(mobileEvidence)}`);
+          }
+
+          console.log(JSON.stringify({desktop: evidence, mobile: mobileEvidence}));
           await browser.close();
           EOF
           bun .capture-canvas-preview.mjs
