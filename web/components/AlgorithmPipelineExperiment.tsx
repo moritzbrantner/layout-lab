@@ -1,5 +1,6 @@
 "use client";
 
+import {PrecisionRange} from "./PrecisionRange";
 import {useState} from "react";
 import {AlgorithmZooExplorer} from "@/components/AlgorithmZooExplorer";
 import {BrowserEngineComparison} from "@/components/BrowserEngineComparison";
@@ -202,31 +203,9 @@ export function AlgorithmPipelineExperiment() {
           <button type="button" aria-pressed={scenario === "grid"} onClick={() => selectScenario("grid")}>Grid</button>
         </div>
 
-        <label>
-          <span>Container size</span>
-          <input
-            type="range"
-            min={360}
-            max={760}
-            step={10}
-            value={innerSize}
-            onChange={(event) => setInnerSize(Number(event.target.value))}
-          />
-          <output>{innerSize}px</output>
-        </label>
+        <PrecisionRange label="Container size" value={innerSize} min={360} max={760} step={10} unit="px" onChange={setInnerSize} />
 
-        <label>
-          <span>Gap</span>
-          <input
-            type="range"
-            min={0}
-            max={40}
-            step={2}
-            value={gapSize}
-            onChange={(event) => setGapSize(Number(event.target.value))}
-          />
-          <output>{gapSize}px</output>
-        </label>
+        <PrecisionRange label="Gap" value={gapSize} min={0} max={40} step={2} unit="px" onChange={setGapSize} />
       </div>
 
       <LayoutTreeInspector scenario={scenario} innerSize={innerSize} gapSize={gapSize} />

@@ -1,5 +1,6 @@
 "use client";
 
+import {PrecisionRange as RangeField} from "./PrecisionRange";
 import {CSSProperties, PointerEvent as ReactPointerEvent, RefObject, useEffect, useRef, useState} from "react";
 import {experiments} from "@/lib/experiments";
 
@@ -41,24 +42,6 @@ function ExperimentHeader({id}: {id: (typeof experiments)[number]["id"]}) {
         {experiment.properties.map((property) => <code key={property}>{property}</code>)}
       </div>
     </header>
-  );
-}
-
-function RangeField({label, value, min, max, step = 1, unit = "", onChange}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step?: number;
-  unit?: string;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <label className="control range-control">
-      <span>{label}</span>
-      <output>{value}{unit}</output>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} />
-    </label>
   );
 }
 
@@ -139,9 +122,9 @@ export function StackingContextExperiment() {
       <ExperimentHeader id="stacking-contexts" />
       <div className="experiment-grid">
         <div className="controls-panel">
-          <RangeField label="context A z-index" value={aZ} min={-2} max={6} onChange={setAZ} />
-          <RangeField label="context B z-index" value={bZ} min={-2} max={6} onChange={setBZ} />
-          <RangeField label="A child z-index" value={childZ} min={0} max={999} step={111} onChange={setChildZ} />
+          <RangeField integer label="context A z-index" value={aZ} min={-2} max={6} onChange={setAZ} />
+          <RangeField integer label="context B z-index" value={bZ} min={-2} max={6} onChange={setBZ} />
+          <RangeField integer label="A child z-index" value={childZ} min={0} max={999} step={111} onChange={setChildZ} />
           <ToggleField label="transform context A" checked={transformA} onChange={setTransformA} />
           <ToggleField label="transform context B" checked={transformB} onChange={setTransformB} />
           <RuleList rules={[

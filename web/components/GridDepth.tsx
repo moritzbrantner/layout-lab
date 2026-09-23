@@ -1,5 +1,6 @@
 "use client";
 
+import {PrecisionRange as RangeField} from "./PrecisionRange";
 import {CSSProperties, RefObject, useEffect, useRef, useState} from "react";
 import {resolveAutoRepeat, type AutoRepeatMode} from "@/lib/grid-auto-repeat";
 import {resolveMinMaxFractionTracks} from "@/lib/layout-analysis";
@@ -96,24 +97,6 @@ function ExperimentHeader({id}: {id: (typeof experiments)[number]["id"]}) {
         {experiment.properties.map((property) => <code key={property}>{property}</code>)}
       </div>
     </header>
-  );
-}
-
-function RangeField({label, value, min, max, step = 1, unit = "", onChange}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step?: number;
-  unit?: string;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <label className="control range-control">
-      <span>{label}</span>
-      <output>{value}{unit}</output>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} />
-    </label>
   );
 }
 

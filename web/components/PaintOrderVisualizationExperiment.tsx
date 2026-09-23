@@ -1,5 +1,6 @@
 "use client";
 
+import {PrecisionRange as RangeField} from "./PrecisionRange";
 import {CSSProperties, RefObject, useEffect, useRef, useState} from "react";
 import {createPaintOrderFixture, resolvePaintOrder, topToBottomPaintIds} from "@/lib/paint-order";
 import {experiments} from "@/lib/experiments";
@@ -66,22 +67,6 @@ function ExperimentHeader() {
   );
 }
 
-function RangeField({label, value, min, max, onChange}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <label className="control range-control">
-      <span>{label}</span>
-      <output>{value}</output>
-      <input type="range" min={min} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} />
-    </label>
-  );
-}
-
 function ToggleField({label, checked, onChange}: {label: string; checked: boolean; onChange: (checked: boolean) => void}) {
   return (
     <label className="toggle-control">
@@ -127,10 +112,10 @@ export function PaintOrderVisualizationExperiment() {
         <ExperimentHeader />
         <div className="experiment-grid">
           <div className="controls-panel">
-            <RangeField label="negative A z-index" value={negativeA} min={-5} max={-1} onChange={setNegativeA} />
-            <RangeField label="negative B z-index" value={negativeB} min={-5} max={-1} onChange={setNegativeB} />
-            <RangeField label="positive A z-index" value={positiveA} min={1} max={5} onChange={setPositiveA} />
-            <RangeField label="positive B z-index" value={positiveB} min={1} max={5} onChange={setPositiveB} />
+            <RangeField integer label="negative A z-index" value={negativeA} min={-5} max={-1} onChange={setNegativeA} />
+            <RangeField integer label="negative B z-index" value={negativeB} min={-5} max={-1} onChange={setNegativeB} />
+            <RangeField integer label="positive A z-index" value={positiveA} min={1} max={5} onChange={setPositiveA} />
+            <RangeField integer label="positive B z-index" value={positiveB} min={1} max={5} onChange={setPositiveB} />
             <ToggleField label="positioned phase uses z-index: 0" checked={positionedZero} onChange={setPositionedZero} />
             <RuleList rules={[
               ".root { isolation: isolate; position: relative; }",

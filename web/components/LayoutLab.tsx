@@ -1,5 +1,6 @@
 "use client";
 
+import {PrecisionRange as RangeField} from "./PrecisionRange";
 import {CSSProperties, RefObject, useEffect, useRef, useState} from "react";
 import {
   resolveEqualFractionTracks,
@@ -121,39 +122,6 @@ function RuleList({rules}: {rules: readonly string[]}) {
     <pre className="rule-list" aria-label="Active CSS rules">
       {rules.join("\n")}
     </pre>
-  );
-}
-
-function RangeField({
-  label,
-  value,
-  min,
-  max,
-  step = 1,
-  unit = "",
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step?: number;
-  unit?: string;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <label className="control range-control">
-      <span>{label}</span>
-      <output>{value}{unit}</output>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
-    </label>
   );
 }
 
@@ -381,7 +349,7 @@ function GridExperiment() {
       <ExperimentHeader id="grid" />
       <div className="experiment-grid">
         <div className="controls-panel">
-          <RangeField label="columns" value={columns} min={2} max={5} onChange={setColumns} />
+          <RangeField label="columns" integer value={columns} min={2} max={5} onChange={setColumns} />
           <RangeField label="gap" value={gap} min={0} max={32} unit="px" onChange={setGap} />
           <ToggleField label="dense auto-placement" checked={dense} onChange={setDense} />
           <RuleList rules={[
