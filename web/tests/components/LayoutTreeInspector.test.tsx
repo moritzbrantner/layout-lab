@@ -37,7 +37,7 @@ describe("LayoutTreeInspector", () => {
     expect(flexMarkup).toContain("layout authority stays in the engine");
     expect(flexMarkup).toContain('data-layout-canvas-root="root"');
     expect(flexMarkup).toContain('aria-label="Flex engine geometry: Flex engine root with 3 direct children"');
-    expect(gridMarkup).toContain('aria-label="Grid engine geometry: Grid engine root with 1 direct children"');
+    expect(gridMarkup).toContain('aria-label="Grid engine geometry: Grid engine root with 2 direct children"');
     expect(gridMarkup).toContain("no DOM measurement");
   });
 
