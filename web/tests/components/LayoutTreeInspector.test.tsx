@@ -25,6 +25,22 @@ describe("LayoutTreeInspector", () => {
     expect(markup).toContain("Grid container");
   });
 
+  test("renders the selected engine result through the downstream Canvas boundary", () => {
+    const flexMarkup = renderToStaticMarkup(
+      <LayoutTreeInspector scenario="flex" innerSize={520} gapSize={16} />,
+    );
+    const gridMarkup = renderToStaticMarkup(
+      <LayoutTreeInspector scenario="grid" innerSize={560} gapSize={16} />,
+    );
+
+    expect(flexMarkup).toContain("2D Canvas resolved-box view");
+    expect(flexMarkup).toContain("layout authority stays in the engine");
+    expect(flexMarkup).toContain('data-layout-canvas-root="root"');
+    expect(flexMarkup).toContain('aria-label="Flex engine geometry: Flex engine root with 3 direct children"');
+    expect(gridMarkup).toContain('aria-label="Grid engine geometry: Grid engine root with 1 direct children"');
+    expect(gridMarkup).toContain("no DOM measurement");
+  });
+
   test("shows deterministic block geometry and margin collapse evidence", () => {
     const markup = renderToStaticMarkup(
       <LayoutTreeInspector scenario="flex" innerSize={520} gapSize={16} />,
