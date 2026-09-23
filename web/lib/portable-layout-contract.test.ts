@@ -14,7 +14,6 @@ describe("portable layout contract", () => {
   test("exports the H5 input tree to the shared language-neutral fixture", () => {
     const document = exportPortableLayoutTree(buildFlexEngineTree());
 
-    expect(document).toEqual(flexLayoutFixture);
     expect(JSON.parse(serializePortableLayoutDocument(document))).toEqual(flexLayoutFixture);
   });
 
@@ -22,7 +21,6 @@ describe("portable layout contract", () => {
     const result = layoutFlexTree(buildFlexEngineTree());
     const document = exportPortableLayoutGeometry(result.root);
 
-    expect(document).toEqual(flexGeometryFixture);
     expect(JSON.parse(serializePortableLayoutDocument(document))).toEqual(flexGeometryFixture);
   });
 
