@@ -432,11 +432,7 @@ fn resolve_flex_targets(root: &LayoutNode, inner_size: f64, gap: f64) -> Vec<f64
         .map(|child| {
             let item = child.style.flex_item.as_ref().expect("validated flex item");
             let minimum = child.style.min_width.unwrap_or(0.0).max(0.0);
-            let maximum = child
-                .style
-                .max_width
-                .unwrap_or(f64::INFINITY)
-                .max(minimum);
+            let maximum = child.style.max_width.unwrap_or(f64::INFINITY).max(minimum);
             FlexInput {
                 basis: item.basis.max(0.0),
                 grow: item.grow.max(0.0),
@@ -534,7 +530,10 @@ fn resolve_flex_targets(root: &LayoutNode, inner_size: f64, gap: f64) -> Vec<f64
 
 fn layout_flex_tree(root: &LayoutNode) -> Result<LayoutBox, LayoutError> {
     let container = root.style.flex_container.as_ref().ok_or_else(|| {
-        LayoutError::new(format!("{}: flex adapter requires a flex container root", root.id))
+        LayoutError::new(format!(
+            "{}: flex adapter requires a flex container root",
+            root.id
+        ))
     })?;
     if root.style.display != LayoutDisplay::Flex {
         return Err(LayoutError::new(format!(
@@ -700,7 +699,10 @@ fn resolve_grid_tracks(
 
 fn layout_grid_tree(root: &LayoutNode) -> Result<LayoutBox, LayoutError> {
     let container = root.style.grid_container.as_ref().ok_or_else(|| {
-        LayoutError::new(format!("{}: grid adapter requires a grid container root", root.id))
+        LayoutError::new(format!(
+            "{}: grid adapter requires a grid container root",
+            root.id
+        ))
     })?;
     if root.style.display != LayoutDisplay::Grid {
         return Err(LayoutError::new(format!(
@@ -739,10 +741,12 @@ fn layout_grid_tree(root: &LayoutNode) -> Result<LayoutBox, LayoutError> {
         let end = item
             .column_start
             .checked_add(item.column_span)
-            .ok_or_else(|| LayoutError::new(format!(
-                "{}: grid placement exceeds the explicit column set",
-                child.id
-            )))?;
+            .ok_or_else(|| {
+                LayoutError::new(format!(
+                    "{}: grid placement exceeds the explicit column set",
+                    child.id
+                ))
+            })?;
         if end > track_count {
             return Err(LayoutError::new(format!(
                 "{}: grid placement exceeds the explicit column set",
@@ -759,12 +763,7 @@ fn layout_grid_tree(root: &LayoutNode) -> Result<LayoutBox, LayoutError> {
     }
 
     let gap = container.gap.max(0.0);
-    let targets = resolve_grid_tracks(
-        inner_size.max(0.0),
-        gap,
-        &container.columns,
-        contributions,
-    );
+    let targets = resolve_grid_tracks(inner_size.max(0.0), gap, &container.columns, contributions);
 
     let mut track_starts = Vec::with_capacity(targets.len());
     let mut cursor = 0.0;
