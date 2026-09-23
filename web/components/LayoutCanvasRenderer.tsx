@@ -72,14 +72,14 @@ export function LayoutCanvasRenderer({
         context.lineWidth = command.depth === 0 ? 1 : 2;
         context.strokeRect(x, y, width, height);
 
-        if (width >= 54 && height >= 24) {
+        if (command.depth > 0 && width >= 54 && height >= 24) {
           context.fillStyle = text;
           context.font = "600 12px ui-sans-serif, system-ui, sans-serif";
           context.textBaseline = "top";
           context.fillText(command.label, x + 8, y + 7, Math.max(0, width - 16));
         }
 
-        if (width >= 72 && height >= 42) {
+        if (command.depth > 0 && width >= 72 && height >= 42) {
           context.fillStyle = muted;
           context.font = "11px ui-monospace, SFMono-Regular, Menlo, monospace";
           context.fillText(command.id, x + 8, y + 24, Math.max(0, width - 16));
