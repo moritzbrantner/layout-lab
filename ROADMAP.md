@@ -112,7 +112,7 @@ Build a common experiment contract so substantially different layout algorithms 
 
 Only pursue this after the H5 TypeScript model and fixtures establish stable semantics.
 
-- [ ] Define a language-neutral layout-tree and geometry contract from the H5 model
+- [x] Define a language-neutral layout-tree and geometry contract from the H5 model
 - [ ] Implement the deterministic core in Rust without changing the established semantics
 - [ ] Run the same conformance and edge-case corpus against TypeScript and Rust implementations
 - [ ] Expose the Rust core to the browser through WASM behind the existing adapter boundary
