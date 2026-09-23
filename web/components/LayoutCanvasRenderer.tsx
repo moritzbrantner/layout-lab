@@ -26,9 +26,10 @@ export function LayoutCanvasRenderer({
 
     const draw = () => {
       const cssWidth = Math.max(280, canvas.clientWidth || FALLBACK_WIDTH);
+      const cssHeight = canvas.clientHeight || VIEWPORT_HEIGHT;
       const ratio = window.devicePixelRatio || 1;
       canvas.width = Math.round(cssWidth * ratio);
-      canvas.height = Math.round(VIEWPORT_HEIGHT * ratio);
+      canvas.height = Math.round(cssHeight * ratio);
 
       const context = canvas.getContext("2d");
       if (!context) return;
