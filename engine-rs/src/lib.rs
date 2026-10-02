@@ -34,8 +34,8 @@ pub enum LayoutDisplay {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum FlexDirection {
+    /// Portable layout v1 advertises row direction only.
     Row,
-    Column,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -538,12 +538,6 @@ fn layout_flex_tree(root: &LayoutNode) -> Result<LayoutBox, LayoutError> {
     if root.style.display != LayoutDisplay::Flex {
         return Err(LayoutError::new(format!(
             "{}: flex adapter requires a flex container root",
-            root.id
-        )));
-    }
-    if container.direction != FlexDirection::Row {
-        return Err(LayoutError::new(format!(
-            "{}: current flex resolver adapter supports row direction only",
             root.id
         )));
     }
