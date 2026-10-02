@@ -69,7 +69,7 @@
       "required": ["gap", "direction"],
       "properties": {
         "gap": {"type": "number", "minimum": 0},
-        "direction": {"enum": ["row", "column"]}
+        "direction": {"enum": ["row"]}
       }
     },
     "flexItem": {
