@@ -21,7 +21,8 @@ export type PortableLayoutStyle = {
   marginBlockAfter?: number;
   flexContainer?: {
     gap: number;
-    direction: "row" | "column";
+    // v1 only advertises what the TypeScript reference executes.
+    direction: "row";
   };
   flexItem?: {
     basis: number;
@@ -105,6 +106,9 @@ function toPortableStyle(style: LayoutStyle): PortableLayoutStyle {
   copyOptionalNumber(portable, style, "marginBlockAfter");
 
   if (style.flexContainer) {
+    if (style.flexContainer.direction !== "row") {
+      throw new Error(`portable layout v1 supports row flex direction only, got ${style.flexContainer.direction}`);
+    }
     portable.flexContainer = {
       gap: style.flexContainer.gap,
       direction: style.flexContainer.direction,
@@ -165,7 +169,14 @@ function assertPortableRect(id: string, rect: LayoutRect) {
   }
 }
 
+function assertPortableIdentity(kind: string, id: string, label: string) {
+  if (id.length === 0 || label.length === 0) {
+    throw new Error(`${kind} ${JSON.stringify(id)}: portable documents require non-empty id and label`);
+  }
+}
+
 function toPortableBox(box: LayoutBox): PortableLayoutBox {
+  assertPortableIdentity("geometry box", box.id, box.label);
   assertPortableRect(box.id, box.rect);
   return {
     id: box.id,

@@ -49,6 +49,28 @@ describe("portable layout contract", () => {
       .toThrow("root: portable geometry requires finite coordinates and non-negative sizes");
   });
 
+  test("rejects flex directions the v1 contract does not advertise", () => {
+    const source = buildFlexEngineTree();
+    const column: LayoutNode = {
+      ...source,
+      style: {...source.style, flexContainer: {...source.style.flexContainer!, direction: "column"}},
+    };
+
+    expect(() => exportPortableLayoutTree(column))
+      .toThrow("portable layout v1 supports row flex direction only, got column");
+  });
+
+  test("fails closed on empty geometry identity fields", () => {
+    const result = layoutFlexTree(buildFlexEngineTree());
+    const invalid = {
+      ...result.root,
+      children: [{...result.root.children[0]!, label: ""}, ...result.root.children.slice(1)],
+    };
+
+    expect(() => exportPortableLayoutGeometry(invalid))
+      .toThrow("portable documents require non-empty id and label");
+  });
+
   test("omits absent optional fields instead of serializing implementation-only undefined values", () => {
     const document = exportPortableLayoutTree(buildFlexEngineTree());
     const serialized = serializePortableLayoutDocument(document);

@@ -10,6 +10,7 @@ The contract deliberately does not define a second layout engine. TypeScript rem
 - Coordinate space: CSS pixels (`css-px`)
 - Child order is significant and deterministic.
 - Grid `columnStart` is zero-based; `columnSpan` is a positive count.
+- Flex `direction` is `row` only in v1, matching the TypeScript reference executor.
 - Widths, heights, gaps, margins, flex factors, track minima, and contributions are finite non-negative numbers.
 - Geometry `x` and `y` may be any finite number; geometry sizes are non-negative.
 - Browser-owned intrinsic measurement stays outside this contract until supplied as explicit numeric input.
