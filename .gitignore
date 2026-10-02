@@ -3,3 +3,4 @@ web/.next/
 web/out/
 web/storybook-static/
 .DS_Store
+*.tsbuildinfo
