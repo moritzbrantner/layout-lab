@@ -1,5 +1,13 @@
+import {LayoutCanvasRenderer} from "@/components/LayoutCanvasRenderer";
 import {buildFlexEngineTree, buildGridEngineTree} from "@/lib/layout-engine-fixtures";
-import {layoutBlockTree, layoutFlexTree, layoutGridTree} from "@/lib/layout-engine";
+import {
+  layoutBlockTree,
+  layoutFlexTree,
+  layoutGridTree,
+  type BlockLayoutResult,
+  type FlexLayoutResult,
+  type GridLayoutResult,
+} from "@/lib/layout-engine";
 import {
   adaptFlexTree,
   adaptGridTree,
@@ -51,9 +59,7 @@ function EngineGeometryTable({
   );
 }
 
-function BlockLayoutBaseline() {
-  const result = layoutBlockTree(buildBlockLayoutTree());
-
+function BlockLayoutBaseline({result}: {result: BlockLayoutResult}) {
   return (
     <section className="block-engine-baseline" aria-labelledby="block-engine-title">
       <div className="algorithm-section-heading">
@@ -95,9 +101,7 @@ function BlockLayoutBaseline() {
   );
 }
 
-function FlexLayoutBaseline({innerSize, gapSize}: {innerSize: number; gapSize: number}) {
-  const result = layoutFlexTree(buildFlexEngineTree(innerSize, gapSize));
-
+function FlexLayoutBaseline({result}: {result: FlexLayoutResult}) {
   return (
     <section className="block-engine-baseline" aria-labelledby="flex-engine-title">
       <div className="algorithm-section-heading">
@@ -143,8 +147,7 @@ function FlexLayoutBaseline({innerSize, gapSize}: {innerSize: number; gapSize: n
   );
 }
 
-function GridLayoutBaseline({innerSize, gapSize}: {innerSize: number; gapSize: number}) {
-  const result = layoutGridTree(buildGridEngineTree(innerSize, gapSize));
+function GridLayoutBaseline({result}: {result: GridLayoutResult}) {
   const frozenTracks = result.resolution.tracks.filter((track) => track.frozen).map((track) => track.label);
 
   return (
@@ -216,6 +219,10 @@ export function LayoutTreeInspector({
         const adapter = adaptGridTree(tree);
         return `${adapter.tracks.length} grid tracks · ${adapter.contributions.length} spanning contribution · ${adapter.innerSize}px inline size`;
       })();
+  const blockResult = layoutBlockTree(buildBlockLayoutTree());
+  const scenarioResult = scenario === "flex"
+    ? layoutFlexTree(buildFlexEngineTree(innerSize, gapSize))
+    : layoutGridTree(buildGridEngineTree(innerSize, gapSize));
 
   return (
     <>
@@ -255,11 +262,17 @@ export function LayoutTreeInspector({
             </li>
           ))}
         </ol>
+
+        <LayoutCanvasRenderer
+          root={scenarioResult.root}
+          title={scenario === "flex" ? "Flex engine geometry" : "Grid engine geometry"}
+        />
       </section>
 
-      <BlockLayoutBaseline />
-      {scenario === "flex" ? <FlexLayoutBaseline innerSize={innerSize} gapSize={gapSize} /> : null}
-      {scenario === "grid" ? <GridLayoutBaseline innerSize={innerSize} gapSize={gapSize} /> : null}
+      <BlockLayoutBaseline result={blockResult} />
+      {scenario === "flex"
+        ? <FlexLayoutBaseline result={scenarioResult as FlexLayoutResult} />
+        : <GridLayoutBaseline result={scenarioResult as GridLayoutResult} />}
     </>
   );
 }
