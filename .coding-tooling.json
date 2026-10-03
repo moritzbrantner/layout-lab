@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "profile": "repository-foundation-v1",
+  "tiers": {
+    "performance": ["benchmark:smoke"]
+  },
+  "requiredCapabilities": ["benchmark:smoke"],
+  "capabilityCommands": {
+    ".": {
+      "benchmark:smoke": ["bash", "-lc", "cd web && bun run benchmark:smoke"]
+    }
+  }
+}

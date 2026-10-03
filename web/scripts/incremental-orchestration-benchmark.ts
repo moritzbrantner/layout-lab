@@ -29,6 +29,19 @@ function geometrySignature(tree: LayoutNode) {
   return JSON.stringify(layoutBlockTree(tree).boxes.map((box) => ({id: box.id, ...box.rect})));
 }
 
+function geometryChecksum(boxes: ReturnType<typeof layoutBlockTree>["boxes"]) {
+  let checksum = 0;
+  boxes.forEach((box, index) => {
+    checksum += (index + 1) * (
+      box.rect.x * 3
+      + box.rect.y * 5
+      + box.rect.width * 7
+      + box.rect.height * 11
+    );
+  });
+  return `${boxes.length}:${checksum.toFixed(4)}`;
+}
+
 let tree = buildTree();
 let cache = createIncrementalLayoutCache(tree);
 let boundaryNodeVisits = 0;
@@ -108,5 +121,5 @@ console.log(JSON.stringify({
   graphRebuilds,
   executorVisits,
   recomputedNodes,
-  geometrySignature: incrementalSignature,
+  resultSignature: geometryChecksum(cache.boxes),
 }, null, 2));

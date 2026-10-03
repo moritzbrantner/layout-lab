@@ -7,6 +7,7 @@
     "test": "bun test",
     "build": "next build",
     "typecheck": "tsc --noEmit",
+    "benchmark:smoke": "bun run scripts/performance-smoke.ts",
     "benchmark:cassowary": "bun run scripts/cassowary-benchmark.ts",
     "benchmark:incremental-layout": "bun run scripts/incremental-layout-benchmark.ts",
     "benchmark:incremental-orchestration": "bun run scripts/incremental-orchestration-benchmark.ts",
