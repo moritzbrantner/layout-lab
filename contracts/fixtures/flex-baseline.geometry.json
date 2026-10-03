@@ -1,0 +1,50 @@
+{
+  "contractVersion": "layout-lab/portable-layout-v1",
+  "kind": "geometry",
+  "coordinateSpace": "css-px",
+  "root": {
+    "id": "root",
+    "label": "Flex engine root",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "width": 520,
+      "height": 120
+    },
+    "children": [
+      {
+        "id": "item-a",
+        "label": "A",
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 144,
+          "height": 72
+        },
+        "children": []
+      },
+      {
+        "id": "item-b",
+        "label": "B",
+        "rect": {
+          "x": 160,
+          "y": 0,
+          "width": 184,
+          "height": 104
+        },
+        "children": []
+      },
+      {
+        "id": "item-c",
+        "label": "C",
+        "rect": {
+          "x": 360,
+          "y": 0,
+          "width": 160,
+          "height": 88
+        },
+        "children": []
+      }
+    ]
+  }
+}

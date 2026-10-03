@@ -1,0 +1,68 @@
+{
+  "contractVersion": "layout-lab/portable-layout-v1",
+  "kind": "layout-tree",
+  "coordinateSpace": "css-px",
+  "root": {
+    "id": "root",
+    "label": "Flex engine root",
+    "style": {
+      "display": "flex",
+      "width": 520,
+      "height": 120,
+      "flexContainer": {
+        "gap": 16,
+        "direction": "row"
+      }
+    },
+    "children": [
+      {
+        "id": "item-a",
+        "label": "A",
+        "style": {
+          "display": "block",
+          "minWidth": 80,
+          "maxWidth": 220,
+          "height": 72,
+          "flexItem": {
+            "basis": 120,
+            "grow": 1,
+            "shrink": 1
+          }
+        },
+        "children": []
+      },
+      {
+        "id": "item-b",
+        "label": "B",
+        "style": {
+          "display": "block",
+          "minWidth": 96,
+          "maxWidth": 184,
+          "height": 104,
+          "flexItem": {
+            "basis": 132,
+            "grow": 8,
+            "shrink": 1
+          }
+        },
+        "children": []
+      },
+      {
+        "id": "item-c",
+        "label": "C",
+        "style": {
+          "display": "block",
+          "minWidth": 72,
+          "maxWidth": 240,
+          "height": 88,
+          "flexItem": {
+            "basis": 112,
+            "grow": 2,
+            "shrink": 1
+          }
+        },
+        "children": []
+      }
+    ]
+  }
+}
