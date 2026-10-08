@@ -12,7 +12,7 @@ describe("browser conformance CI contract", () => {
     expect(workflow).toContain("playwright@1.63.0");
     expect(workflow).toContain('LAYOUT_CONFORMANCE_SEED: "12648430"');
     expect(workflow).toContain('LAYOUT_CONFORMANCE_CASES: "16"');
-    expect(workflow).toContain("actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f");
+    expect(workflow).toContain("actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9");
   });
 
   test("captures real browser geometry and emits replay evidence only on mismatch", () => {
