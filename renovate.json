@@ -1,0 +1,16 @@
+{
+  "extends": [
+    "github>moritzbrantner/coding-agent-conventions"
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": [
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom"
+      ],
+      "groupName": "react"
+    }
+  ]
+}
