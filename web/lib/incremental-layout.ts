@@ -55,12 +55,21 @@ export type IncrementalLayoutWork = {
   invalidationPhaseVisits: number;
   invalidationEdgeTraversals: number;
   graphRebuilds: number;
+  /** Layout-box entries written into the next cache's retained box tree. */
+  retainedEntryWrites: number;
+  /** Node ids visited to produce recompute/reuse reporting. */
+  reportingNodeVisits: number;
 };
 
 export type IncrementalLayoutResult = {
   cache: IncrementalLayoutCache;
   plan: LayoutInvalidationPlan;
   recomputedNodeIds: readonly string[];
+  /**
+   * Reused complement, derived on first read in O(total nodes). It is a
+   * reporting view for inspectors, not executor work; hot paths that only need
+   * the count read `work.reusedNodes`.
+   */
   reusedNodeIds: readonly string[];
   work: IncrementalLayoutWork;
 };
@@ -68,8 +77,16 @@ export type IncrementalLayoutResult = {
 type IncrementalCacheIndexes = {
   graph: LayoutInvalidationGraph;
   nodeIds: readonly string[];
+  /** Position of each layout node id in `nodeIds` (graph order). */
+  nodeOrderById: ReadonlyMap<string, number>;
   layoutNodeIdByPhaseId: ReadonlyMap<string, string>;
-  boxIndexById: ReadonlyMap<string, number>;
+  /**
+   * Child-index path from the root box to each layout box. Incremental style
+   * execution keeps the tree shape, so paths stay valid across the chain and
+   * unchanged boxes are reached through the structurally shared box tree
+   * instead of a flat array that would be rebuilt after every step.
+   */
+  boxPathById: ReadonlyMap<string, readonly number[]>;
 };
 
 const cacheIndexes = new WeakMap<IncrementalLayoutCache, IncrementalCacheIndexes>();
@@ -118,10 +135,44 @@ function validateChangedLayoutNodes(previous: LayoutNode, next: LayoutNode, work
   return errors;
 }
 
-function indexBoxPositions(boxes: readonly LayoutBox[]) {
-  const indexById = new Map<string, number>();
-  boxes.forEach((box, index) => indexById.set(box.id, index));
-  return indexById;
+function indexBoxPaths(root: LayoutBox) {
+  const pathById = new Map<string, readonly number[]>();
+  const visit = (box: LayoutBox, path: readonly number[]) => {
+    pathById.set(box.id, path);
+    box.children.forEach((child, index) => visit(child, [...path, index]));
+  };
+  visit(root, []);
+  return pathById;
+}
+
+function indexNodeOrder(nodeIds: readonly string[]) {
+  return new Map(nodeIds.map((id, index) => [id, index]));
+}
+
+/**
+ * Cache whose flat `boxes` view is derived lazily from the retained box tree.
+ * Reading `boxes` costs O(total boxes) once per changed root; the executor
+ * itself never rebuilds it.
+ */
+function nextRetainedCache(
+  previous: IncrementalLayoutCache,
+  fields: Omit<IncrementalLayoutCache, "boxes">,
+): IncrementalLayoutCache {
+  const cache = {...fields} as IncrementalLayoutCache;
+  // An unchanged root shares the previous flat view (eager or lazy) without reading it.
+  const shared = fields.root === previous.root
+    ? Object.getOwnPropertyDescriptor(previous, "boxes")
+    : undefined;
+  if (shared) {
+    Object.defineProperty(cache, "boxes", shared);
+    return cache;
+  }
+  let boxes: readonly LayoutBox[] | undefined;
+  Object.defineProperty(cache, "boxes", {
+    enumerable: true,
+    get: () => (boxes ??= flattenLayoutBoxes(fields.root)),
+  });
+  return cache;
 }
 
 function indexLayoutNodesByPhase(graph: LayoutInvalidationGraph) {
@@ -143,25 +194,32 @@ function indexesForCache(cache: IncrementalLayoutCache): IncrementalCacheIndexes
   let indexes = cacheIndexes.get(cache);
   if (indexes) return indexes;
 
-  const graph = buildLayoutInvalidationGraph(cache.tree);
-  indexes = {
-    graph,
-    nodeIds: graphNodeIds(graph),
-    layoutNodeIdByPhaseId: indexLayoutNodesByPhase(graph),
-    boxIndexById: indexBoxPositions(cache.boxes),
-  };
+  indexes = buildCacheIndexes(cache.tree, cache.root);
   cacheIndexes.set(cache, indexes);
   return indexes;
 }
 
+function buildCacheIndexes(tree: LayoutNode, root: LayoutBox): IncrementalCacheIndexes {
+  const graph = buildLayoutInvalidationGraph(tree);
+  const nodeIds = graphNodeIds(graph);
+  return {
+    graph,
+    nodeIds,
+    nodeOrderById: indexNodeOrder(nodeIds),
+    layoutNodeIdByPhaseId: indexLayoutNodesByPhase(graph),
+    boxPathById: indexBoxPaths(root),
+  };
+}
+
 function cachedBox(
-  boxes: readonly LayoutBox[],
-  boxIndexById: ReadonlyMap<string, number>,
+  root: LayoutBox,
+  boxPathById: ReadonlyMap<string, readonly number[]>,
   id: string,
 ) {
-  const index = boxIndexById.get(id);
-  if (index === undefined) throw new Error(`${id}: missing cached layout-box index`);
-  const box = boxes[index];
+  const path = boxPathById.get(id);
+  if (path === undefined) throw new Error(`${id}: missing cached layout-box path`);
+  let box: LayoutBox | undefined = root;
+  for (const index of path) box = box?.children[index];
   if (!box || box.id !== id) throw new Error(`${id}: cached layout-box order drifted from the validated tree shape`);
   return box;
 }
@@ -183,14 +241,29 @@ function dirtyLayoutNodeIds(
   return dirtyNodeIds;
 }
 
-function nodeSets(nodeIds: readonly string[], recomputed: ReadonlySet<string>) {
-  const recomputedNodeIds: string[] = [];
-  const reusedNodeIds: string[] = [];
-  nodeIds.forEach((id) => {
-    if (recomputed.has(id)) recomputedNodeIds.push(id);
-    else reusedNodeIds.push(id);
-  });
-  return {recomputedNodeIds, reusedNodeIds};
+/**
+ * Recomputed ids are ordered by graph position from the dirty set alone, so
+ * reporting visits only dirty nodes. The reused complement is derived lazily
+ * on first read; that O(total nodes) cost belongs to the consumer.
+ */
+function nodeSets(
+  nodeIds: readonly string[],
+  nodeOrderById: ReadonlyMap<string, number>,
+  recomputed: ReadonlySet<string>,
+) {
+  const order = (id: string) => {
+    const position = nodeOrderById.get(id);
+    if (position === undefined) throw new Error(`${id}: dirty node is missing from the invalidation graph order`);
+    return position;
+  };
+  const recomputedNodeIds = [...recomputed].sort((left, right) => order(left) - order(right));
+  let reusedNodeIds: readonly string[] | undefined;
+  return {
+    recomputedNodeIds,
+    reusedNodes: nodeIds.length - recomputed.size,
+    reportingNodeVisits: recomputed.size,
+    reusedNodeIds: () => (reusedNodeIds ??= nodeIds.filter((id) => !recomputed.has(id))),
+  };
 }
 
 function semanticDiffPaths(
@@ -344,13 +417,7 @@ export function createIncrementalLayoutCache(tree: LayoutNode): IncrementalLayou
     };
   }
 
-  const graph = buildLayoutInvalidationGraph(tree);
-  cacheIndexes.set(cache, {
-    graph,
-    nodeIds: graphNodeIds(graph),
-    layoutNodeIdByPhaseId: indexLayoutNodesByPhase(graph),
-    boxIndexById: indexBoxPositions(cache.boxes),
-  });
+  cacheIndexes.set(cache, buildCacheIndexes(tree, cache.root));
   return cache;
 }
 
@@ -380,10 +447,10 @@ function recomputeBlock(
   graph: LayoutInvalidationGraph,
   dirtyPhaseIds: ReadonlySet<string>,
   dirtyNodes: ReadonlySet<string>,
-  boxIndexById: ReadonlyMap<string, number>,
+  boxPathById: ReadonlyMap<string, readonly number[]>,
 ) {
   if (dirtyPhaseIds.size === 0) {
-    return {root: cache.root, boxes: cache.boxes, solverPasses: 0, visitedNodes: 0};
+    return {root: cache.root, solverPasses: 0, visitedNodes: 0, retainedEntryWrites: 0};
   }
 
   const dirtySubtree = new Set(dirtyNodes);
@@ -395,6 +462,7 @@ function recomputeBlock(
     }
   });
   let visitedNodes = 0;
+  let retainedEntryWrites = 0;
 
   const visit = (
     node: LayoutNode,
@@ -403,7 +471,7 @@ function recomputeBlock(
     proposedY: number,
   ): LayoutBox => {
     visitedNodes += 1;
-    const old = cachedBox(cache.boxes, boxIndexById, node.id);
+    const old = cachedBox(cache.root, boxPathById, node.id);
     if (!dirtySubtree.has(node.id)) return old;
 
     const width = dirty(dirtyPhaseIds, node.id, "inline-size")
@@ -422,7 +490,7 @@ function recomputeBlock(
         ? before
         : resolveBlockSiblingGap(previousAfter, before);
       const childY = cursor + gap;
-      const oldChild = cachedBox(cache.boxes, boxIndexById, child.id);
+      const oldChild = cachedBox(cache.root, boxPathById, child.id);
       const childX = dirty(dirtyPhaseIds, child.id, "position") ? x : oldChild.rect.x;
       const childOriginY = dirty(dirtyPhaseIds, child.id, "position") ? y + childY : oldChild.rect.y;
       const childBox = visit(child, width, childX, childOriginY);
@@ -436,6 +504,7 @@ function recomputeBlock(
       ? resolveLayoutHeight(node, contentHeight)
       : old.rect.height;
 
+    retainedEntryWrites += 1;
     return {
       id: node.id,
       label: node.label,
@@ -447,13 +516,13 @@ function recomputeBlock(
   if (nextTree.style.width === undefined) {
     throw new Error(`${nextTree.id}: block baseline requires an explicit root width`);
   }
-  const oldRoot = cachedBox(cache.boxes, boxIndexById, nextTree.id);
+  const oldRoot = cachedBox(cache.root, boxPathById, nextTree.id);
   const root = visit(nextTree, nextTree.style.width, oldRoot.rect.x, oldRoot.rect.y);
   return {
     root,
-    boxes: flattenLayoutBoxes(root),
     solverPasses: 0,
     visitedNodes,
+    retainedEntryWrites,
   };
 }
 
@@ -461,16 +530,16 @@ function recomputeFlex(
   cache: IncrementalLayoutCache,
   nextTree: LayoutNode,
   dirtyPhaseIds: ReadonlySet<string>,
-  boxIndexById: ReadonlyMap<string, number>,
+  boxPathById: ReadonlyMap<string, readonly number[]>,
 ) {
   if (dirtyPhaseIds.size === 0) {
     if (!cache.flexResolution) throw new Error("missing cached Flex resolution");
     return {
       root: cache.root,
-      boxes: cache.boxes,
       resolution: cache.flexResolution,
       solverPasses: 0,
       visitedNodes: 0,
+      retainedEntryWrites: 0,
     };
   }
 
@@ -483,22 +552,25 @@ function recomputeFlex(
   const gap = lineDirty ? input!.gapSize : nextTree.style.flexContainer!.gap;
 
   let cursor = 0;
+  let retainedEntryWrites = 1;
   const children = nextTree.children.map((child, index): LayoutBox => {
-    const old = cachedBox(cache.boxes, boxIndexById, child.id);
+    const old = cachedBox(cache.root, boxPathById, child.id);
     const item = resolution.items[index];
     if (!item) throw new Error(`${child.id}: missing Flex line item resolution`);
     const desired = resolveFlexItemRect(child, cursor, item.targetSize);
     const width = dirty(dirtyPhaseIds, child.id, "inline-size") ? desired.width : old.rect.width;
     const x = dirty(dirtyPhaseIds, child.id, "position") ? desired.x : old.rect.x;
     const height = dirty(dirtyPhaseIds, child.id, "block-size") ? desired.height : old.rect.height;
-    const box = dirty(dirtyPhaseIds, child.id, "geometry")
+    const geometryDirty = dirty(dirtyPhaseIds, child.id, "geometry");
+    if (geometryDirty) retainedEntryWrites += 1;
+    const box = geometryDirty
       ? {id: child.id, label: child.label, rect: {x, y: 0, width, height}, children: [] as const}
       : old;
     cursor += width + gap;
     return box;
   });
 
-  const oldRoot = cachedBox(cache.boxes, boxIndexById, nextTree.id);
+  const oldRoot = cachedBox(cache.root, boxPathById, nextTree.id);
   const rootWidth = dirty(dirtyPhaseIds, nextTree.id, "inline-size")
     ? (input ?? adaptFlexTree(nextTree)).innerSize
     : oldRoot.rect.width;
@@ -514,10 +586,10 @@ function recomputeFlex(
 
   return {
     root,
-    boxes: flattenLayoutBoxes(root),
     resolution,
     solverPasses: lineDirty ? resolution.iterations.length : 0,
     visitedNodes: 1 + nextTree.children.length,
+    retainedEntryWrites,
   };
 }
 
@@ -525,17 +597,17 @@ function recomputeGrid(
   cache: IncrementalLayoutCache,
   nextTree: LayoutNode,
   dirtyPhaseIds: ReadonlySet<string>,
-  boxIndexById: ReadonlyMap<string, number>,
+  boxPathById: ReadonlyMap<string, readonly number[]>,
 ) {
   if (dirtyPhaseIds.size === 0) {
     if (!cache.gridResolution || !cache.gridTrackStarts) throw new Error("missing cached Grid evidence");
     return {
       root: cache.root,
-      boxes: cache.boxes,
       resolution: cache.gridResolution,
       trackStarts: cache.gridTrackStarts,
       solverPasses: 0,
       visitedNodes: 0,
+      retainedEntryWrites: 0,
     };
   }
 
@@ -551,8 +623,9 @@ function recomputeGrid(
     : cache.gridTrackStarts;
   if (!trackStarts) throw new Error("missing cached Grid track starts");
 
+  let retainedEntryWrites = 1;
   const children = nextTree.children.map((child): LayoutBox => {
-    const old = cachedBox(cache.boxes, boxIndexById, child.id);
+    const old = cachedBox(cache.root, boxPathById, child.id);
     const item = child.style.gridItem;
     if (!item) throw new Error(`${child.id}: Grid incremental execution requires explicit placement`);
     const desired = resolveGridItemRect(child, resolution, trackStarts, gap);
@@ -560,12 +633,12 @@ function recomputeGrid(
     const x = dirty(dirtyPhaseIds, child.id, "position") ? desired.x : old.rect.x;
     const height = dirty(dirtyPhaseIds, child.id, "block-size") ? desired.height : old.rect.height;
 
-    return dirty(dirtyPhaseIds, child.id, "geometry")
-      ? {id: child.id, label: child.label, rect: {x, y: 0, width, height}, children: []}
-      : old;
+    if (!dirty(dirtyPhaseIds, child.id, "geometry")) return old;
+    retainedEntryWrites += 1;
+    return {id: child.id, label: child.label, rect: {x, y: 0, width, height}, children: []};
   });
 
-  const oldRoot = cachedBox(cache.boxes, boxIndexById, nextTree.id);
+  const oldRoot = cachedBox(cache.root, boxPathById, nextTree.id);
   const rootWidth = dirty(dirtyPhaseIds, nextTree.id, "inline-size")
     ? (input ?? adaptGridTree(nextTree)).innerSize
     : oldRoot.rect.width;
@@ -581,11 +654,11 @@ function recomputeGrid(
 
   return {
     root,
-    boxes: flattenLayoutBoxes(root),
     resolution,
     trackStarts,
     solverPasses: tracksDirty ? 1 : 0,
     visitedNodes: 1 + nextTree.children.length,
+    retainedEntryWrites,
   };
 }
 
@@ -608,44 +681,41 @@ export function recomputeIncrementalLayout(
 
   const dirtyPhaseIds = new Set(plan.dirtyPhaseIds);
   const dirtyNodes = dirtyLayoutNodeIds(indexes.layoutNodeIdByPhaseId, plan.dirtyPhaseIds);
-  const sets = nodeSets(indexes.nodeIds, dirtyNodes);
+  const sets = nodeSets(indexes.nodeIds, indexes.nodeOrderById, dirtyNodes);
   let nextCache: IncrementalLayoutCache;
   let solverPasses: number;
   let visitedNodes: number;
+  let retainedEntryWrites: number;
 
   if (cache.context === "block") {
-    const partial = recomputeBlock(cache, nextTree, graph, dirtyPhaseIds, dirtyNodes, indexes.boxIndexById);
-    nextCache = {
-      context: "block",
-      tree: nextTree,
-      root: partial.root,
-      boxes: partial.boxes,
-    };
+    const partial = recomputeBlock(cache, nextTree, graph, dirtyPhaseIds, dirtyNodes, indexes.boxPathById);
+    nextCache = nextRetainedCache(cache, {context: "block", tree: nextTree, root: partial.root});
     solverPasses = partial.solverPasses;
     visitedNodes = partial.visitedNodes;
+    retainedEntryWrites = partial.retainedEntryWrites;
   } else if (cache.context === "flex") {
-    const partial = recomputeFlex(cache, nextTree, dirtyPhaseIds, indexes.boxIndexById);
-    nextCache = {
+    const partial = recomputeFlex(cache, nextTree, dirtyPhaseIds, indexes.boxPathById);
+    nextCache = nextRetainedCache(cache, {
       context: "flex",
       tree: nextTree,
       root: partial.root,
-      boxes: partial.boxes,
       flexResolution: partial.resolution,
-    };
+    });
     solverPasses = partial.solverPasses;
     visitedNodes = partial.visitedNodes;
+    retainedEntryWrites = partial.retainedEntryWrites;
   } else {
-    const partial = recomputeGrid(cache, nextTree, dirtyPhaseIds, indexes.boxIndexById);
-    nextCache = {
+    const partial = recomputeGrid(cache, nextTree, dirtyPhaseIds, indexes.boxPathById);
+    nextCache = nextRetainedCache(cache, {
       context: "grid",
       tree: nextTree,
       root: partial.root,
-      boxes: partial.boxes,
       gridResolution: partial.resolution,
       gridTrackStarts: partial.trackStarts,
-    };
+    });
     solverPasses = partial.solverPasses;
     visitedNodes = partial.visitedNodes;
+    retainedEntryWrites = partial.retainedEntryWrites;
   }
 
   const nextGraph = mutation.kind === "style"
@@ -656,28 +726,33 @@ export function recomputeIncrementalLayout(
   cacheIndexes.set(nextCache, {
     graph: nextGraph,
     nodeIds: indexes.nodeIds,
+    nodeOrderById: indexes.nodeOrderById,
     layoutNodeIdByPhaseId: nextGraph === graph
       ? indexes.layoutNodeIdByPhaseId
       : indexLayoutNodesByPhase(nextGraph),
-    boxIndexById: indexes.boxIndexById,
+    boxPathById: indexes.boxPathById,
   });
 
-  return {
+  const result = {
     cache: nextCache,
     plan,
     recomputedNodeIds: sets.recomputedNodeIds,
-    reusedNodeIds: sets.reusedNodeIds,
+    reusedNodeIds: [] as readonly string[],
     work: {
       recomputedPhaseCount: plan.dirtyPhaseIds.length,
       reusedPhaseCount: graph.nodes.length - plan.dirtyPhaseIds.length,
       visitedNodes,
-      reusedNodes: sets.reusedNodeIds.length,
+      reusedNodes: sets.reusedNodes,
       solverPasses,
       boundaryNodeVisits: boundary.work.nodeVisits,
       provenanceComparisons: boundary.work.provenanceComparisons,
       invalidationPhaseVisits: plan.work.phaseVisits,
       invalidationEdgeTraversals: plan.work.edgeTraversals,
       graphRebuilds,
+      retainedEntryWrites,
+      reportingNodeVisits: sets.reportingNodeVisits,
     },
   };
+  Object.defineProperty(result, "reusedNodeIds", {enumerable: true, get: sets.reusedNodeIds});
+  return result;
 }

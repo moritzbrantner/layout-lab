@@ -3,7 +3,9 @@ import {createIncrementalLayoutCache, recomputeIncrementalLayout} from "./increm
 import {planLayoutInvalidation, buildLayoutInvalidationGraph} from "./layout-invalidation";
 import {
   buildScalingTree,
+  LOCAL_BOUNDED_COUNTERS,
   measureScalingOperation,
+  NOOP_ZERO_COUNTERS,
   runScalingContract,
   scalingDimensions,
   type IncrementalLayoutExecutor,
@@ -31,8 +33,23 @@ const cleanFallbackExecutor: IncrementalLayoutExecutor = (_cache, nextTree, muta
       invalidationPhaseVisits: plan.work.phaseVisits,
       invalidationEdgeTraversals: plan.work.edgeTraversals,
       graphRebuilds: 0,
+      // A clean rebuild writes every retained box and reports every node.
+      retainedEntryWrites: cache.boxes.length,
+      reportingNodeVisits: nodeIds.length,
     },
   };
+};
+
+/** Real incremental work, but reports copying every retained box per step. */
+const fullRetainedCopyExecutor: IncrementalLayoutExecutor = (cache, nextTree, mutation) => {
+  const result = recomputeIncrementalLayout(cache, nextTree, mutation);
+  return {...result, work: {...result.work, retainedEntryWrites: result.cache.boxes.length}};
+};
+
+/** Real incremental work, but reports scanning every node id for reuse reporting. */
+const fullReportingScanExecutor: IncrementalLayoutExecutor = (cache, nextTree, mutation) => {
+  const result = recomputeIncrementalLayout(cache, nextTree, mutation);
+  return {...result, work: {...result.work, reportingNodeVisits: flattenLayoutTree(nextTree).length}};
 };
 
 describe("operation-level layout scaling contracts", () => {
@@ -67,6 +84,8 @@ describe("operation-level layout scaling contracts", () => {
       graphRebuilds: 0,
       executorVisits: 0,
       recomputedNodes: 0,
+      retainedEntryWrites: 0,
+      reportingNodeVisits: 0,
     });
     expect(sample.divergentSteps).toEqual([]);
   });
@@ -93,6 +112,55 @@ describe("operation-level layout scaling contracts", () => {
       "local-style: recomputedNodes depends on unrelated nodes (264 at 33 nodes, 1608 at 201 nodes)",
     );
     expect(result.violations.some((violation) => violation.startsWith("repeated-noop at"))).toBe(true);
+  });
+
+  test("retained-entry writes and reuse reporting are gated counters", () => {
+    expect(LOCAL_BOUNDED_COUNTERS).toContain("retainedEntryWrites");
+    expect(LOCAL_BOUNDED_COUNTERS).toContain("reportingNodeVisits");
+    expect(NOOP_ZERO_COUNTERS).toContain("retainedEntryWrites");
+    expect(NOOP_ZERO_COUNTERS).toContain("reportingNodeVisits");
+  });
+
+  test("local mutations keep retained-entry writes and reporting visits independent of population", () => {
+    const small = measureScalingOperation("local-style", 8);
+    const medium = measureScalingOperation("local-style", 64);
+    const large = measureScalingOperation("local-style", 512);
+    for (const sample of [medium, large]) {
+      expect(sample.counters.retainedEntryWrites).toBe(small.counters.retainedEntryWrites);
+      expect(sample.counters.reportingNodeVisits).toBe(small.counters.reportingNodeVisits);
+    }
+    // Bounded by the affected region, so far below one full copy/scan per step.
+    expect(large.counters.retainedEntryWrites).toBeLessThan(large.dimensions.totalNodes);
+    expect(large.counters.reportingNodeVisits).toBeLessThan(large.dimensions.totalNodes);
+  });
+
+  test("an executor that copies every retained box fails the local contract", () => {
+    const result = runScalingContract(fullRetainedCopyExecutor, [8, 64], ["local-style", "repeated-noop"]);
+    expect(result.samples.every((sample) => sample.divergentSteps.length === 0)).toBe(true);
+    expect(result.violations).toContain(
+      "local-style: retainedEntryWrites depends on unrelated nodes (264 at 33 nodes, 1608 at 201 nodes)",
+    );
+    expect(result.violations).toContain("repeated-noop at 33 nodes: no-op mutation reported 264 retainedEntryWrites");
+    expect(result.violations.every((violation) => violation.includes("retainedEntryWrites"))).toBe(true);
+  });
+
+  test("an executor that scans every node id for reuse reporting fails the local contract", () => {
+    const result = runScalingContract(fullReportingScanExecutor, [8, 64], ["local-style", "repeated-noop"]);
+    expect(result.samples.every((sample) => sample.divergentSteps.length === 0)).toBe(true);
+    expect(result.violations).toContain(
+      "local-style: reportingNodeVisits depends on unrelated nodes (264 at 33 nodes, 1608 at 201 nodes)",
+    );
+    expect(result.violations).toContain("repeated-noop at 33 nodes: no-op mutation reported 264 reportingNodeVisits");
+    expect(result.violations.every((violation) => violation.includes("reportingNodeVisits"))).toBe(true);
+  });
+
+  test("an executor without retained-work evidence cannot be measured", () => {
+    const silent: IncrementalLayoutExecutor = (cache, nextTree, mutation) => {
+      const result = recomputeIncrementalLayout(cache, nextTree, mutation);
+      const {retainedEntryWrites: _dropped, ...work} = result.work;
+      return {...result, work: work as typeof result.work};
+    };
+    expect(() => measureScalingOperation("local-style", 8, silent)).toThrow("missing retainedEntryWrites");
   });
 
   test("a reversible trace cannot hide a diverging intermediate step", () => {

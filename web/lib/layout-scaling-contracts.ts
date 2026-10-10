@@ -53,6 +53,10 @@ export type ScalingCounters = {
   executorVisits: number;
   recomputedNodes: number;
   solverPasses: number;
+  /** Retained layout-box entries written into the next cache's box storage. */
+  retainedEntryWrites: number;
+  /** Node ids visited to produce reuse/recompute reporting. */
+  reportingNodeVisits: number;
 };
 
 export type ScalingSample = {
@@ -100,6 +104,8 @@ export const LOCAL_BOUNDED_COUNTERS: readonly (keyof ScalingCounters)[] = [
   "executorVisits",
   "recomputedNodes",
   "solverPasses",
+  "retainedEntryWrites",
+  "reportingNodeVisits",
 ];
 
 /** Counters a repeated identical mutation must keep at zero. */
@@ -110,6 +116,8 @@ export const NOOP_ZERO_COUNTERS: readonly (keyof ScalingCounters)[] = [
   "executorVisits",
   "recomputedNodes",
   "solverPasses",
+  "retainedEntryWrites",
+  "reportingNodeVisits",
 ];
 
 function leaf(id: string): LayoutNode {
@@ -189,7 +197,24 @@ function emptyCounters(): ScalingCounters {
     executorVisits: 0,
     recomputedNodes: 0,
     solverPasses: 0,
+    retainedEntryWrites: 0,
+    reportingNodeVisits: 0,
   };
+}
+
+/**
+ * Reads one retained-state work counter. A missing or non-integer value is
+ * not evidence of bounded work, so the contract refuses to measure it.
+ */
+function retainedWorkCounter(
+  work: IncrementalLayoutResult["work"],
+  counter: "retainedEntryWrites" | "reportingNodeVisits",
+): number {
+  const value = (work as Partial<Record<typeof counter, unknown>>)[counter];
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    throw new Error(`executor work evidence is missing ${counter} (got ${String(value)})`);
+  }
+  return value;
 }
 
 function geometrySignature(boxes: IncrementalLayoutCache["boxes"]) {
@@ -284,6 +309,8 @@ export function measureScalingOperation(
     counters.executorVisits += result.work.visitedNodes;
     counters.recomputedNodes += result.recomputedNodeIds.length;
     counters.solverPasses += result.work.solverPasses;
+    counters.retainedEntryWrites += retainedWorkCounter(result.work, "retainedEntryWrites");
+    counters.reportingNodeVisits += retainedWorkCounter(result.work, "reportingNodeVisits");
     result.recomputedNodeIds.forEach((id) => recomputed.add(id));
     cache = result.cache;
     if (geometrySignature(cache.boxes) !== geometrySignature(layoutBlockTree(cache.tree).boxes)) {

@@ -214,7 +214,7 @@ function incrementalScalingSample(groupCount: number, leavesPerGroup: number, mu
     incrementalVisited += incremental.work.visitedNodes;
     fullVisited += clean.visitedNodes;
     recomputedNodes += incremental.recomputedNodeIds.length;
-    reusedNodes += incremental.reusedNodeIds.length;
+    reusedNodes += incremental.work.reusedNodes;
     boundaryNodeVisits += incremental.work.boundaryNodeVisits;
     provenanceComparisons += incremental.work.provenanceComparisons;
     invalidationPhaseVisits += incremental.work.invalidationPhaseVisits;

@@ -1,7 +1,13 @@
 import {describe, expect, test} from "bun:test";
 import {buildFlexEngineTree, buildGridEngineTree} from "./layout-engine-fixtures";
 import {layoutBlockTree, layoutFlexTree, layoutGridTree, type LayoutBox} from "./layout-engine";
-import {createIncrementalLayoutCache, recomputeIncrementalLayout} from "./incremental-layout";
+import {
+  createIncrementalLayoutCache,
+  recomputeIncrementalLayout,
+  type IncrementalLayoutCache,
+  type IncrementalLayoutResult,
+} from "./incremental-layout";
+import {buildLayoutInvalidationGraph, type LayoutMutation} from "./layout-invalidation";
 import {buildBlockLayoutTree, buildFlexLayoutTree, updateLayoutNode, type LayoutNode} from "./layout-tree";
 
 function geometry(boxes: readonly LayoutBox[]) {
@@ -299,5 +305,139 @@ describe("incremental layout execution", () => {
       parentId: "root",
       operation: "reorder",
     })).toThrow("structural mutations require rebuilding the invalidation graph");
+  });
+});
+
+type ChainStep = {
+  mutation: Extract<LayoutMutation, {kind: "style"}>;
+  apply: (tree: LayoutNode) => LayoutNode;
+  /** A fresh style object with unchanged semantics: no retained work allowed. */
+  noop?: boolean;
+};
+
+function restyle(nodeId: string, update: (style: LayoutNode["style"]) => LayoutNode["style"]) {
+  return (tree: LayoutNode) => updateLayoutNode(tree, nodeId, (node) => ({...node, style: update(node.style)}));
+}
+
+function cleanLayout(tree: LayoutNode) {
+  if (tree.style.display === "block") return layoutBlockTree(tree);
+  if (tree.style.display === "flex") return layoutFlexTree(tree);
+  return layoutGridTree(tree);
+}
+
+/** Reporting expected from first principles: graph node order partitioned by the dirty set. */
+function expectedReporting(previousTree: LayoutNode, result: IncrementalLayoutResult) {
+  const graph = buildLayoutInvalidationGraph(previousTree);
+  const layoutNodeIdByPhase = new Map(graph.nodes.map((node) => [node.id, node.layoutNodeId]));
+  const dirty = new Set(result.plan.dirtyPhaseIds.map((phaseId) => layoutNodeIdByPhase.get(phaseId)));
+  const order = [...new Set(graph.nodes.map((node) => node.layoutNodeId))];
+  return {
+    recomputedNodeIds: order.filter((id) => dirty.has(id)),
+    reusedNodeIds: order.filter((id) => !dirty.has(id)),
+  };
+}
+
+function changedBoxCount(previous: IncrementalLayoutCache, next: IncrementalLayoutCache) {
+  const before = new Map(previous.boxes.map((box) => [box.id, JSON.stringify(box.rect)]));
+  return next.boxes.filter((box) => before.get(box.id) !== JSON.stringify(box.rect)).length;
+}
+
+function runEquivalenceChain(initial: LayoutNode, steps: readonly ChainStep[]) {
+  let cache = createIncrementalLayoutCache(initial);
+  const history: Array<{cache: IncrementalLayoutCache; boxes: readonly LayoutBox[]}> = [];
+  steps.forEach((step, index) => {
+    const label = `step ${index + 1} (${step.mutation.nodeId}.${step.mutation.field})`;
+    const nextTree = step.apply(cache.tree);
+    const result = recomputeIncrementalLayout(cache, nextTree, step.mutation);
+    const clean = cleanLayout(nextTree);
+
+    // Observable output is exactly the clean layout, in clean pre-order flatten order.
+    expect(result.cache.boxes, label).toEqual(clean.boxes);
+    expect(result.cache.root, label).toEqual(clean.root);
+    expect(result.cache.boxes.map((box) => box.id), label).toEqual(clean.boxes.map((box) => box.id));
+
+    // Reuse reporting keeps its contents and order.
+    const expected = expectedReporting(cache.tree, result);
+    expect([...result.recomputedNodeIds], label).toEqual(expected.recomputedNodeIds);
+    expect([...result.reusedNodeIds], label).toEqual(expected.reusedNodeIds);
+    expect(result.work.reusedNodes, label).toBe(expected.reusedNodeIds.length);
+
+    // Retained-state work is reported as deterministic evidence.
+    const {retainedEntryWrites, reportingNodeVisits} = result.work;
+    expect(Number.isInteger(retainedEntryWrites) && retainedEntryWrites >= 0, `${label} retainedEntryWrites`).toBe(true);
+    expect(Number.isInteger(reportingNodeVisits) && reportingNodeVisits >= 0, `${label} reportingNodeVisits`).toBe(true);
+    if (step.noop) {
+      expect(result.plan.dirtyPhaseIds, label).toEqual([]);
+      expect(retainedEntryWrites, label).toBe(0);
+      expect(reportingNodeVisits, label).toBe(0);
+    } else {
+      // Every box whose geometry changed must have been written to retained storage.
+      expect(retainedEntryWrites, label).toBeGreaterThanOrEqual(changedBoxCount(cache, result.cache));
+    }
+
+    history.push({cache: result.cache, boxes: structuredClone(clean.boxes)});
+    cache = result.cache;
+  });
+
+  // Retained storage shared between steps must not leak later writes into earlier caches.
+  history.forEach(({cache: earlier, boxes}, index) => {
+    expect(earlier.boxes, `cache of step ${index + 1} after the chain`).toEqual(boxes);
+  });
+}
+
+describe("retained box storage and reuse reporting stay equivalent to clean layout", () => {
+  test("block mutation chain", () => {
+    runEquivalenceChain(buildBlockLayoutTree(), [
+      {mutation: {kind: "style", nodeId: "content", field: "height"}, apply: restyle("content", (style) => ({...style, height: 180}))},
+      {mutation: {kind: "style", nodeId: "content", field: "width"}, apply: restyle("content", (style) => ({...style, width: 300}))},
+      {mutation: {kind: "style", nodeId: "footer", field: "marginBlockBefore"}, apply: restyle("footer", (style) => ({...style, marginBlockBefore: 8}))},
+      {mutation: {kind: "style", nodeId: "header", field: "height"}, apply: restyle("header", (style) => ({...style})), noop: true},
+      {mutation: {kind: "style", nodeId: "block-root", field: "width"}, apply: restyle("block-root", (style) => ({...style, width: 400}))},
+      {mutation: {kind: "style", nodeId: "header", field: "height"}, apply: restyle("header", (style) => ({...style, height: 30}))},
+      {mutation: {kind: "style", nodeId: "content", field: "height"}, apply: restyle("content", (style) => ({...style, height: 132}))},
+    ]);
+  });
+
+  test("flex mutation chain", () => {
+    runEquivalenceChain(buildFlexEngineTree(), [
+      {
+        mutation: {kind: "style", nodeId: "item-b", field: "flexItem.grow"},
+        apply: restyle("item-b", (style) => ({...style, flexItem: {...style.flexItem!, grow: 3}})),
+      },
+      {mutation: {kind: "style", nodeId: "item-b", field: "height"}, apply: restyle("item-b", (style) => ({...style, height: 90}))},
+      {mutation: {kind: "style", nodeId: "item-a", field: "height"}, apply: restyle("item-a", (style) => ({...style})), noop: true},
+      {mutation: {kind: "style", nodeId: "item-a", field: "height"}, apply: restyle("item-a", (style) => ({...style, height: 60}))},
+      {
+        mutation: {kind: "style", nodeId: "item-b", field: "flexItem.grow"},
+        apply: restyle("item-b", (style) => ({...style, flexItem: {...style.flexItem!, grow: 1}})),
+      },
+    ]);
+  });
+
+  test("grid mutation chain", () => {
+    runEquivalenceChain(buildGridEngineTree(), [
+      {
+        mutation: {kind: "style", nodeId: "span-ab", field: "gridItem.minContribution"},
+        apply: restyle("span-ab", (style) => ({...style, gridItem: {...style.gridItem!, minContribution: 340}})),
+      },
+      {
+        mutation: {kind: "style", nodeId: "item-c", field: "gridItem.columnStart"},
+        apply: restyle("item-c", (style) => ({...style, gridItem: {...style.gridItem!, columnStart: 1}})),
+      },
+      {mutation: {kind: "style", nodeId: "item-c", field: "height"}, apply: restyle("item-c", (style) => ({...style})), noop: true},
+      {mutation: {kind: "style", nodeId: "item-c", field: "height"}, apply: restyle("item-c", (style) => ({...style, height: 50}))},
+      {
+        mutation: {kind: "style", nodeId: "root", field: "gridContainer.columns"},
+        apply: restyle("root", (style) => ({
+          ...style,
+          gridContainer: {
+            ...style.gridContainer!,
+            columns: style.gridContainer!.columns.map((track, index) => (
+              index === 0 ? {...track, minSize: track.minSize + 12} : track
+            )),
+          },
+        })),
+      },
+    ]);
   });
 });
