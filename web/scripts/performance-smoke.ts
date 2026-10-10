@@ -4,6 +4,7 @@ type JsonRecord = Record<string, unknown>;
 
 const scenarios = [
   "incremental-orchestration-benchmark.ts",
+  "layout-scaling-benchmark.ts",
   "sugiyama-benchmark.ts",
   "line-breaking-benchmark.ts",
 ] as const;
@@ -41,6 +42,7 @@ const evidence = scenarios.map((script) => deterministicEvidence(runScenario(scr
 const workloadIds = evidence.map((sample) => sample.workload);
 const expected = [
   "incremental-layout-orchestration",
+  "incremental-layout-scaling",
   "sugiyama-layered-dag",
   "knuth-plass-box-glue",
 ];

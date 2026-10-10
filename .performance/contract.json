@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "suite": "layout-lab/algorithmic-work-v2",
-  "description": "Deterministic layout work contracts covering incremental orchestration, layered graph layout, and paragraph line breaking. Shared-runner wall-clock timing is intentionally excluded from blocking smoke evidence.",
+  "description": "Deterministic layout work contracts covering incremental orchestration, operation-level incremental scaling, layered graph layout, and paragraph line breaking. Shared-runner wall-clock timing is intentionally excluded from blocking smoke evidence.",
   "scenarios": [
     {
       "id": "incremental-layout-orchestration",
@@ -73,6 +73,90 @@
           "signal": "operation-count",
           "blocking": true,
           "budget": {"relativeRegressionPercent": 5}
+        }
+      ]
+    },
+    {
+      "id": "incremental-layout-scaling",
+      "kind": "scaling",
+      "description": "Measure local style, repeated identical, and dependency-topology mutations on block trees whose affected branch stays fixed while unrelated nodes grow from 33 to 1,545; local and no-op work must not depend on unrelated nodes, and full clean layout stays the linear reference.",
+      "dimensions": {
+        "smallest_total_nodes": 33,
+        "largest_total_nodes": 1545,
+        "affected_nodes": 6,
+        "affected_depth": 2,
+        "local_mutations": 8,
+        "topology_mutations": 2
+      },
+      "correctnessEvidence": [
+        "incremental geometry equals clean block layout for every operation and population",
+        "local and no-op work counters are identical across unrelated populations",
+        "a clean-layout fallback for local mutations fails the contract"
+      ],
+      "metrics": [
+        {
+          "name": "contractViolations",
+          "unit": "violations",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"max": 0}
+        },
+        {
+          "name": "localWorkGrowth",
+          "unit": "operations",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"max": 0}
+        },
+        {
+          "name": "localWork",
+          "unit": "operations",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"relativeRegressionPercent": 5}
+        },
+        {
+          "name": "localGraphRebuilds",
+          "unit": "rebuilds",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"max": 0}
+        },
+        {
+          "name": "noopWorkGrowth",
+          "unit": "operations",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"max": 0}
+        },
+        {
+          "name": "noopRecomputedNodes",
+          "unit": "nodes",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"max": 0}
+        },
+        {
+          "name": "noopExecutorVisits",
+          "unit": "node-visits",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"max": 0}
+        },
+        {
+          "name": "topologyGraphRebuilds",
+          "unit": "rebuilds",
+          "direction": "lower",
+          "signal": "operation-count",
+          "blocking": true,
+          "budget": {"max": 2}
         }
       ]
     },
