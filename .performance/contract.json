@@ -86,10 +86,13 @@
         "affected_nodes": 6,
         "affected_depth": 2,
         "local_mutations": 8,
-        "topology_mutations": 2
+        "topology_mutations": 4,
+        "topology_transitions": 2
       },
       "correctnessEvidence": [
-        "incremental geometry equals clean block layout for every operation and population",
+        "incremental geometry equals clean block layout after every step of every operation and population",
+        "local recomputation stays inside the fixed affected branch",
+        "each topology transition rebuilds the dependency graph exactly once",
         "local and no-op work counters are identical across unrelated populations",
         "a clean-layout fallback for local mutations fails the contract"
       ],
