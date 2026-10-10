@@ -16,6 +16,7 @@ import {
   type LayoutBox,
 } from "./layout-geometry";
 import {
+  assertValidLayoutMutation,
   buildLayoutInvalidationGraph,
   invalidationPhaseId,
   planLayoutInvalidation,
@@ -301,6 +302,20 @@ function invalidationGraphNeedsRefresh(
   return false;
 }
 
+function unchangedStylePlan(
+  graph: LayoutInvalidationGraph,
+  mutation: Extract<LayoutMutation, {kind: "style"}>,
+): LayoutInvalidationPlan {
+  assertValidLayoutMutation(graph, mutation);
+  return {
+    mutation,
+    seedPhaseIds: [],
+    dirtyPhaseIds: [],
+    requiresGraphRebuild: false,
+    work: {phaseVisits: 0, edgeTraversals: 0},
+  };
+}
+
 export function createIncrementalLayoutCache(tree: LayoutNode): IncrementalLayoutCache {
   const context = contextForTree(tree);
   let cache: IncrementalLayoutCache;
@@ -582,7 +597,11 @@ export function recomputeIncrementalLayout(
   const boundary = assertIncrementalBoundary(cache, nextTree, mutation);
   const indexes = indexesForCache(cache);
   const graph = indexes.graph;
-  const plan = planLayoutInvalidation(graph, mutation);
+  // A declared style mutation whose snapshot carries no semantic change (for
+  // example a repeated identical value) dirties nothing, so it skips planning.
+  const plan = mutation.kind === "style" && boundary.changedNode === null
+    ? unchangedStylePlan(graph, mutation)
+    : planLayoutInvalidation(graph, mutation);
   if (plan.requiresGraphRebuild) {
     throw new Error("structural mutations require rebuilding the invalidation graph before incremental execution");
   }

@@ -22,6 +22,7 @@ Layout Lab deliberately keeps layout semantics separate from experiments, cachin
 - Preserve deterministic ordering, tie-breaking, and replayable inputs. Seed optional stochastic algorithms.
 - Compare optimized and clean execution on identical inputs. Differential equivalence is a correctness gate, not a benchmark.
 - Blocking performance evidence should use deterministic work counters. Wall-clock timing remains advisory.
+- Incremental work is also gated per operation (`web/lib/layout-scaling-contracts.ts`): local and repeated identical style mutations must report the same work counters while unrelated nodes grow around a fixed affected branch, and an identical mutation recomputes nothing. Dependency-topology mutations may rebuild the invalidation graph once per mutation; full clean layout remains the linear reference.
 - Pathological incremental work should fall back to bounded clean recomputation rather than weakening correctness.
 
 ## Renderer and portability rule
