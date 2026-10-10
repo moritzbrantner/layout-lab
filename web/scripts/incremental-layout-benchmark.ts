@@ -69,7 +69,10 @@ for (let mutationIndex = 0; mutationIndex < MUTATIONS; mutationIndex += 1) {
   const groupIndex = mutationIndex % GROUP_COUNT;
   const leafIndex = Math.floor(mutationIndex / GROUP_COUNT) % LEAVES_PER_GROUP;
   const nodeId = `leaf-${groupIndex}-${leafIndex}`;
-  const marginBlockBefore = mutationIndex % 2 === 0 ? 1 : 2;
+  // Alternate per visit of the same leaf so every mutation is a real change:
+  // identical repeats would measure the no-op path instead of local reflow.
+  const round = Math.floor(mutationIndex / (GROUP_COUNT * LEAVES_PER_GROUP));
+  const marginBlockBefore = round % 2 === 0 ? 1 : 2;
   const nextTree = updateBenchmarkNode(tree, nodeId, (node) => ({
     ...node,
     style: {...node.style, marginBlockBefore},

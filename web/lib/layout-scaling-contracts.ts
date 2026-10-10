@@ -37,6 +37,8 @@ export type ScalingDimensions = {
   affectedNodes: number;
   /** Depth of the mutated node below the root. */
   affectedDepth: number;
+  /** Mutations that change the dependency-graph topology. */
+  topologyTransitions: number;
   /** Children of the mutated node's ancestors that flow traversal may read. */
   ancestorFanOut: number;
   mutations: number;
@@ -58,7 +60,10 @@ export type ScalingSample = {
   population: number;
   dimensions: ScalingDimensions;
   counters: ScalingCounters;
-  geometryMatchesClean: boolean;
+  /** Distinct node ids any step recomputed, sorted. */
+  recomputedNodeIds: readonly string[];
+  /** Steps (1-based) whose geometry differed from clean layout of that step's tree. */
+  divergentSteps: readonly number[];
 };
 
 export type ScalingContractResult = {
@@ -75,6 +80,7 @@ export const SCALING_OPERATIONS: readonly ScalingOperationId[] = [
 ];
 
 const AFFECTED_LEAVES = 4;
+const ROOT_WIDTH = 960;
 const UNRELATED_GROUPS = 3;
 const LOCAL_MUTATIONS = 8;
 const MUTATED_LEAF = "affected-leaf-1";
@@ -128,7 +134,7 @@ export function buildScalingTree(population: number): LayoutNode {
   return {
     id: "scaling-root",
     label: "Scaling root",
-    style: {display: "block", width: 960},
+    style: {display: "block", width: ROOT_WIDTH},
     children: [
       {
         id: "affected-group",
@@ -146,7 +152,20 @@ export function buildScalingTree(population: number): LayoutNode {
   };
 }
 
-export function scalingDimensions(population: number, mutations: number): ScalingDimensions {
+/** Ids of the fixed dependency region: the root and the affected branch. */
+export function affectedNodeIds(): readonly string[] {
+  return [
+    "scaling-root",
+    "affected-group",
+    ...Array.from({length: AFFECTED_LEAVES}, (_, index) => `affected-leaf-${index}`),
+  ];
+}
+
+export function scalingDimensions(
+  population: number,
+  mutations: number,
+  topologyTransitions = 0,
+): ScalingDimensions {
   const unrelatedNodes = UNRELATED_GROUPS * (1 + population);
   const affectedNodes = 2 + AFFECTED_LEAVES;
   return {
@@ -154,6 +173,7 @@ export function scalingDimensions(population: number, mutations: number): Scalin
     unrelatedNodes,
     affectedNodes,
     affectedDepth: 2,
+    topologyTransitions,
     ancestorFanOut: 1 + UNRELATED_GROUPS + AFFECTED_LEAVES,
     mutations,
   };
@@ -179,6 +199,7 @@ function geometrySignature(boxes: IncrementalLayoutCache["boxes"]) {
 type ScalingStep = {
   mutation: Extract<LayoutMutation, {kind: "style"}>;
   apply: (tree: LayoutNode) => LayoutNode;
+  changesTopology?: boolean;
 };
 
 function setStyle(nodeId: string, style: Partial<LayoutNode["style"]>) {
@@ -202,14 +223,27 @@ function stepsFor(operation: Exclude<ScalingOperationId, "full-clean">): readonl
       apply: (tree) => updateLayoutNode(tree, MUTATED_LEAF, (node) => ({...node, style: {...node.style}})),
     }));
   }
+  // Removing the leaf width adds its dependency on the containing inline size;
+  // the root width change exercises that new dependency before it is removed
+  // again, so a stale graph diverges from clean layout.
   return [
     {
       mutation: {kind: "style", nodeId: TOPOLOGY_LEAF, field: "width"},
       apply: setStyle(TOPOLOGY_LEAF, {width: undefined}),
+      changesTopology: true,
+    },
+    {
+      mutation: {kind: "style", nodeId: "scaling-root", field: "width"},
+      apply: setStyle("scaling-root", {width: ROOT_WIDTH - 60}),
     },
     {
       mutation: {kind: "style", nodeId: TOPOLOGY_LEAF, field: "width"},
       apply: setStyle(TOPOLOGY_LEAF, {width: 160}),
+      changesTopology: true,
+    },
+    {
+      mutation: {kind: "style", nodeId: "scaling-root", field: "width"},
+      apply: setStyle("scaling-root", {width: ROOT_WIDTH}),
     },
   ];
 }
@@ -224,20 +258,23 @@ export function measureScalingOperation(
 
   if (operation === "full-clean") {
     const clean = layoutBlockTree(initial);
-    counters.executorVisits = clean.boxes.length;
+    counters.executorVisits = clean.visitedNodes;
     counters.recomputedNodes = clean.boxes.length;
     return {
       operation,
       population,
       dimensions: scalingDimensions(population, 0),
       counters,
-      geometryMatchesClean: true,
+      recomputedNodeIds: [],
+      divergentSteps: [],
     };
   }
 
   const steps = stepsFor(operation);
+  const recomputed = new Set<string>();
+  const divergentSteps: number[] = [];
   let cache = createIncrementalLayoutCache(initial);
-  for (const step of steps) {
+  steps.forEach((step, index) => {
     const result = executor(cache, step.apply(cache.tree), step.mutation);
     counters.boundaryNodeVisits += result.work.boundaryNodeVisits;
     counters.provenanceComparisons += result.work.provenanceComparisons;
@@ -247,15 +284,24 @@ export function measureScalingOperation(
     counters.executorVisits += result.work.visitedNodes;
     counters.recomputedNodes += result.recomputedNodeIds.length;
     counters.solverPasses += result.work.solverPasses;
+    result.recomputedNodeIds.forEach((id) => recomputed.add(id));
     cache = result.cache;
-  }
+    if (geometrySignature(cache.boxes) !== geometrySignature(layoutBlockTree(cache.tree).boxes)) {
+      divergentSteps.push(index + 1);
+    }
+  });
 
   return {
     operation,
     population,
-    dimensions: scalingDimensions(population, steps.length),
+    dimensions: scalingDimensions(
+      population,
+      steps.length,
+      steps.filter((step) => step.changesTopology).length,
+    ),
     counters,
-    geometryMatchesClean: geometrySignature(cache.boxes) === geometrySignature(layoutBlockTree(cache.tree).boxes),
+    recomputedNodeIds: [...recomputed].sort(),
+    divergentSteps,
   };
 }
 
@@ -272,7 +318,11 @@ export function evaluateScalingContract(samples: readonly ScalingSample[]): stri
   const byOperation = new Map<ScalingOperationId, ScalingSample[]>();
   samples.forEach((sample) => {
     byOperation.set(sample.operation, [...(byOperation.get(sample.operation) ?? []), sample]);
-    if (!sample.geometryMatchesClean) violations.push(`${sampleLabel(sample)}: geometry differs from clean layout`);
+    if (sample.divergentSteps.length > 0) {
+      violations.push(
+        `${sampleLabel(sample)}: geometry differs from clean layout after step(s) ${sample.divergentSteps.join(", ")}`,
+      );
+    }
   });
 
   const requirePopulationIndependence = (operation: ScalingOperationId, counters: readonly (keyof ScalingCounters)[]) => {
@@ -296,6 +346,7 @@ export function evaluateScalingContract(samples: readonly ScalingSample[]): stri
     });
   };
 
+  const affected = new Set(affectedNodeIds());
   requirePopulationIndependence("local-style", LOCAL_BOUNDED_COUNTERS);
   requirePopulationIndependence("repeated-noop", LOCAL_BOUNDED_COUNTERS);
 
@@ -303,8 +354,9 @@ export function evaluateScalingContract(samples: readonly ScalingSample[]): stri
     if (sample.counters.graphRebuilds !== 0) {
       violations.push(`${sampleLabel(sample)}: local style mutation rebuilt the dependency graph`);
     }
-    if (sample.counters.recomputedNodes > sample.dimensions.affectedNodes * sample.dimensions.mutations) {
-      violations.push(`${sampleLabel(sample)}: recomputed nodes outside the affected region`);
+    const outside = sample.recomputedNodeIds.filter((id) => !affected.has(id));
+    if (outside.length > 0) {
+      violations.push(`${sampleLabel(sample)}: recomputed nodes outside the affected region: ${outside.join(", ")}`);
     }
   });
   (byOperation.get("repeated-noop") ?? []).forEach((sample) => {
@@ -314,15 +366,19 @@ export function evaluateScalingContract(samples: readonly ScalingSample[]): stri
       }
     });
   });
-  // A dependency-topology change may legitimately rebuild the graph, which is
-  // linear in the dependency graph; it only must not rebuild more than once per
-  // mutation.
+  // A dependency-topology change legitimately rebuilds the graph, which is
+  // linear in the dependency graph: exactly once per topology transition, and
+  // never for the trace's ordinary mutations.
   (byOperation.get("dependency-topology") ?? []).forEach((sample) => {
-    if (sample.counters.graphRebuilds > sample.dimensions.mutations) {
-      violations.push(`${sampleLabel(sample)}: more than one graph rebuild per topology mutation`);
+    if (sample.counters.graphRebuilds !== sample.dimensions.topologyTransitions) {
+      violations.push(
+        `${sampleLabel(sample)}: ${sample.counters.graphRebuilds} graph rebuilds for `
+        + `${sample.dimensions.topologyTransitions} topology transitions`,
+      );
     }
   });
-  // Full clean layout is the O(N) correctness reference.
+  // Full clean layout is the O(N) correctness reference; its visits are the
+  // clean executor's own measured work.
   (byOperation.get("full-clean") ?? []).forEach((sample) => {
     if (sample.counters.executorVisits !== sample.dimensions.totalNodes) {
       violations.push(`${sampleLabel(sample)}: clean layout did not visit every node exactly once`);

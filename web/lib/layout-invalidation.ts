@@ -369,6 +369,16 @@ function downstream(graph: LayoutInvalidationGraph, seedIds: readonly string[]) 
   };
 }
 
+/**
+ * Rejects a mutation whose target or field is invalid for the graph without
+ * planning its downstream work; for declared mutations that turn out to carry
+ * no semantic change.
+ */
+export function assertValidLayoutMutation(graph: LayoutInvalidationGraph, mutation: LayoutMutation) {
+  if (mutation.kind === "style") styleMutationSeeds(graph, mutation.nodeId, mutation.field);
+  else childMutationSeeds(graph, mutation.parentId);
+}
+
 export function planLayoutInvalidation(graph: LayoutInvalidationGraph, mutation: LayoutMutation): LayoutInvalidationPlan {
   const seedPhaseIds = mutation.kind === "style"
     ? styleMutationSeeds(graph, mutation.nodeId, mutation.field)
