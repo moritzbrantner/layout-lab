@@ -65,6 +65,11 @@ export type IncrementalLayoutResult = {
   cache: IncrementalLayoutCache;
   plan: LayoutInvalidationPlan;
   recomputedNodeIds: readonly string[];
+  /**
+   * Reused complement, derived on first read in O(total nodes). It is a
+   * reporting view for inspectors, not executor work; hot paths that only need
+   * the count read `work.reusedNodes`.
+   */
   reusedNodeIds: readonly string[];
   work: IncrementalLayoutWork;
 };
