@@ -12,5 +12,6 @@
       ],
       "groupName": "react"
     }
-  ]
+  ],
+  "platformAutomerge": true
 }
