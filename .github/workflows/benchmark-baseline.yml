@@ -1,11 +1,7 @@
 name: benchmark-baseline
 
 on:
-  pull_request:
-    paths:
-      - "web/lib/**"
-      - "web/scripts/**"
-      - ".github/workflows/benchmark-baseline.yml"
+  workflow_call:
   workflow_dispatch:
 
 permissions:
